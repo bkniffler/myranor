@@ -1,6 +1,61 @@
-# Myranor: Strategiespiel
+# Myranor Strategy Game
 
-Ein textbasiertes (CLI) rundenbasiertes Strategiespiel mit Fokus auf Ressourcenmanagement und Aufbau.
+## Overview
+A strategy game set in the Myranor universe where players manage resources, build properties, and make strategic decisions.
+
+## Project Structure
+
+```
+src/
+├── core/                   # Game core logic (framework/UI-agnostic)
+│   ├── commands/           # Command objects representing user actions
+│   ├── events/             # Events that occur as a result of commands
+│   ├── models/             # Domain models and types
+│   ├── engine/             # Game logic and event processing
+│   └── config/             # Game configuration
+│
+├── adapters/               # Interface adapters for different platforms
+│   ├── console/            # Console interface
+│   └── common/             # Shared UI code
+```
+
+## Architecture
+
+This project follows an event sourcing pattern:
+
+1. **Commands**: Represent user intentions (e.g., GainInfluenceCommand)
+2. **Events**: Represent facts that have happened (e.g., InfluenceGainedEvent)
+3. **State**: Built by applying events sequentially
+
+## Key Concepts
+
+- **Properties (Posten)**: The main entities that players can acquire (domains, city properties, offices, etc.)
+- **Facilities**: Buildings that can be constructed on properties
+- **Resources**: Gold, labor power, influence, raw materials, and special materials
+- **Game Phases**: Maintenance → Action → Production → Resource Conversion → Resource Reset
+
+## Running the Game
+
+```bash
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Start the game
+npm start
+```
+
+## Development
+
+```bash
+# Run tests
+npm test
+
+# Start in development mode
+npm run dev
+```
 
 ## Beschreibung
 
@@ -16,57 +71,8 @@ In diesem Spiel verwaltest du deine Ressourcen, baust dein Reich auf und triffst
 * [Bun](https://bun.sh/) (JavaScript/TypeScript Runtime)
 * Node.js und npm
 
-## Installation
-
-1. Klone das Repository oder lade die Dateien herunter
-2. Installiere die Abhängigkeiten:
-
-```bash
-npm install
-```
-
 ## Spielstart
 
 Führe den folgenden Befehl aus, um das Spiel zu starten:
 
-```bash
-npm start
 ```
-
-oder
-
-```bash
-bun run src/index.ts
-```
-
-## Spielregeln
-
-### Ressourcen
-
-* **Gold**: Hauptwährung für Käufe und Unterhalt
-* **Arbeitskraft (AK)**: Wird für Aktionen und Unterhalt benötigt
-* **Temporärer Einfluss (tE)**: Wird zu Beginn jeder Runde zurückgesetzt
-* **Rohmaterialien**: Nahrung und Holz
-* **Sondermaterialien**: Werkzeug
-
-### Spielziel
-
-* Überlebe 30 Runden ohne bankrott zu gehen
-* Baue dein Imperium auf und verwalte deine Ressourcen effizient
-
-### Rundenablauf
-
-1. **Rundenbeginn & Info-Anzeige**: Übersicht über alle Ressourcen und Besitztümer
-2. **Unterhaltsphase**: Zahlung für Domänen und Einrichtungen
-3. **Aktionsphase**: Spieler wählt Aktionen (2 pro Runde)
-4. **Produktionsphase**: Domänen und Werkstätten produzieren Materialien
-5. **Ressourcenumwandlung**: Überschüssige Materialien werden zu Gold konvertiert
-
-### Aktionen
-
-1. **Einfluss gewinnen**: Investiere Gold für temporären Einfluss
-2. **Materialien verkaufen**: Verkaufe Nahrung, Holz oder Werkzeug für Gold
-3. **Material gewinnen**: Verwalte Domänen für zusätzliche Materialproduktion
-4. **Neuen Posten erwerben**: Kaufe neue Domänen, Werkstätten oder Lager
-
-## Viel Spaß beim Spielen! 
