@@ -1,0 +1,24 @@
+{
+  "name": "myranor",
+  "version": "1.0.0",
+  "description": "Myranor - Textbasiertes Strategiespiel",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "mcp-server": "bun run src/mcp-server.ts",
+    "mcp-client": "bun run src/mcp-client.ts",
+    "mcp-client:step": "bun run src/mcp-client.ts step",
+    "mcp-client:manual": "bun run src/mcp-client.ts manual"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.13"
+  }
+}

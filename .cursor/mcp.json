@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "myranor": {
+            "command": "bun",
+            "args": [
+                "./src/mcp-server.ts"
+            ]
+        }
+    }
+}
