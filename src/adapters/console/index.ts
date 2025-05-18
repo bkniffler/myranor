@@ -1,28 +1,26 @@
-import { GameEngine } from '../../core';
-import { createInitialGameState } from '../../core/models';
+import { createFromJsonData } from '../../core/engine/GameEngineFactory';
 import { ConsoleUI } from './ConsoleUI';
 
 // Start the console application
 export function startConsoleApp(): void {
-  // Create a new player ID
-  const playerId = `player_${Date.now()}`;
+  try {
+    // Create game engine using JSON data
+    const engine = createFromJsonData();
 
-  // Create initial game state
-  const initialState = createInitialGameState(playerId, 'Player');
+    // Create console UI
+    const ui = new ConsoleUI(engine);
 
-  // Create game engine
-  const engine = new GameEngine(initialState);
+    // Start the UI
+    ui.start();
 
-  // Create console UI
-  const ui = new ConsoleUI(engine);
-
-  // Start the UI
-  ui.start();
-
-  // Handle clean shutdown
-  process.on('SIGINT', () => {
-    console.log('\nSpiel wird beendet...');
-    ui.close();
-    process.exit(0);
-  });
+    // Handle clean shutdown
+    process.on('SIGINT', () => {
+      console.log('\nSpiel wird beendet...');
+      ui.close();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('Error starting game:', error);
+    process.exit(1);
+  }
 }

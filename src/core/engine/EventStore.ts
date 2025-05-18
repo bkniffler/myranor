@@ -39,7 +39,9 @@ export class InMemoryEventStore implements EventStore {
   addEvent(event: GameEvent): void {
     this.events.push(event);
     // Notify subscribers
-    this.subscribers.forEach((handler) => handler(event));
+    for (const handler of this.subscribers) {
+      handler(event);
+    }
   }
 
   getAllEvents(): GameEvent[] {

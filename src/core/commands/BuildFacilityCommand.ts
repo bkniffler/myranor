@@ -1,13 +1,19 @@
+import { FacilityTypes } from '../data/factories/FacilityFactory';
 import { GameEventType, createGameEvent } from '../events/GameEvent';
-import type { GameCommand } from './GameCommand';
 import type { GameEvent } from '../events/GameEvent';
-import type { GameState, Facility } from '../models';
+import type { Facility, GameState } from '../models';
+import { rollD20 } from '../utils';
 import { generateUniqueId } from '../utils/idGenerator';
-import { FacilityTypes } from '../config';
+import type { GameCommand } from './GameCommand';
 
 // Supported facility types for V1
-type V1FacilityType = 'BASIC_HOUSING' | 'FOOD_STORAGE' | 'LAND_EXPANSION' |
-                      'BASIC_DEFENSE' | 'OCTAD_SHRINE' | 'MARKETPLACE';
+type V1FacilityType =
+  | 'BASIC_HOUSING'
+  | 'FOOD_STORAGE'
+  | 'LAND_EXPANSION'
+  | 'BASIC_DEFENSE'
+  | 'OCTAD_SHRINE'
+  | 'MARKETPLACE';
 
 // Command to build a facility on a property
 export interface BuildFacilityCommand extends GameCommand {
@@ -18,11 +24,6 @@ export interface BuildFacilityCommand extends GameCommand {
     // Property ID to build on
     propertyId: string;
   };
-}
-
-// For V1, use a simple d20 roll for building success
-function rollD20(): number {
-  return Math.floor(Math.random() * 20) + 1;
 }
 
 // Command handler for building facilities
@@ -58,8 +59,10 @@ export const buildFacilityHandler = {
     }
 
     // Check if this facility can be built on this property type
-    if (facilityConfig.buildRequirements.propertyTypes &&
-        !facilityConfig.buildRequirements.propertyTypes.includes(property.type)) {
+    if (
+      facilityConfig.buildRequirements.propertyTypes &&
+      !facilityConfig.buildRequirements.propertyTypes.includes(property.type)
+    ) {
       return false;
     }
 
@@ -77,9 +80,8 @@ export const buildFacilityHandler = {
 
     // Count existing facilities of this category
     const existingFacilitiesCount = property.facilityIds
-      .map(id => state.facilities[id])
-      .filter(f => f?.category === facilityConfig.category)
-      .length;
+      .map((id) => state.facilities[id])
+      .filter((f) => f?.category === facilityConfig.category).length;
 
     if (existingFacilitiesCount >= slotsAvailable) {
       return false;
@@ -92,23 +94,36 @@ export const buildFacilityHandler = {
         return false;
       }
 
-      if (resources.laborPower && player.resources.laborPower < resources.laborPower) {
+      if (
+        resources.laborPower &&
+        player.resources.laborPower < resources.laborPower
+      ) {
         return false;
       }
 
       if (resources.rawMaterials) {
-        for (const [material, amount] of Object.entries(resources.rawMaterials)) {
-          const playerAmount = player.resources.rawMaterials[material as keyof typeof player.resources.rawMaterials] || 0;
-          if (playerAmount < amount) {
+        for (const [material, amount] of Object.entries(
+          resources.rawMaterials
+        )) {
+          const playerAmount =
+            player.resources.rawMaterials[
+              material as keyof typeof player.resources.rawMaterials
+            ] || 0;
+          if (playerAmount < (amount as number)) {
             return false;
           }
         }
       }
 
       if (resources.specialMaterials) {
-        for (const [material, amount] of Object.entries(resources.specialMaterials)) {
-          const playerAmount = player.resources.specialMaterials[material as keyof typeof player.resources.specialMaterials] || 0;
-          if (playerAmount < amount) {
+        for (const [material, amount] of Object.entries(
+          resources.specialMaterials
+        )) {
+          const playerAmount =
+            player.resources.specialMaterials[
+              material as keyof typeof player.resources.specialMaterials
+            ] || 0;
+          if (playerAmount < (amount as number)) {
             return false;
           }
         }
@@ -121,7 +136,7 @@ export const buildFacilityHandler = {
   execute: (command: BuildFacilityCommand, state: GameState): GameEvent[] => {
     // Get facility config
     const facilityConfig = FacilityTypes[command.payload.facilityConfigKey];
-    const property = state.properties[command.payload.propertyId];
+    const _property = state.properties[command.payload.propertyId];
 
     // Roll for success (simplified for V1, success is guaranteed)
     const roll = rollD20();
@@ -136,12 +151,12 @@ export const buildFacilityHandler = {
       category: facilityConfig.category,
       buildRequirements: facilityConfig.buildRequirements,
       maintenanceCost: facilityConfig.maintenanceCost,
-      effects: facilityConfig.effects
+      effects: facilityConfig.effects,
     };
 
     // Determine resource costs
     const resourceCosts = facilityConfig.buildRequirements.resources || {
-      gold: 0
+      gold: 0,
     };
 
     // Create the facility built event
@@ -153,7 +168,7 @@ export const buildFacilityHandler = {
         propertyId: command.payload.propertyId,
         roll,
         success,
-        resourceCosts
+        resourceCosts,
       },
       apply: (state: GameState): GameState => {
         const player = { ...state.players[command.playerId] };
@@ -163,16 +178,20 @@ export const buildFacilityHandler = {
         player.resources = {
           ...player.resources,
           gold: player.resources.gold - (resourceCosts.gold || 0),
-          laborPower: player.resources.laborPower - (resourceCosts.laborPower || 0)
+          laborPower:
+            player.resources.laborPower - (resourceCosts.laborPower || 0),
         };
 
         // Update raw materials
         if (resourceCosts.rawMaterials) {
           const updatedRawMaterials = { ...player.resources.rawMaterials };
 
-          for (const [material, amount] of Object.entries(resourceCosts.rawMaterials)) {
+          for (const [material, amount] of Object.entries(
+            resourceCosts.rawMaterials
+          )) {
             const materialKey = material as keyof typeof updatedRawMaterials;
-            updatedRawMaterials[materialKey] = (updatedRawMaterials[materialKey] || 0) - amount;
+            updatedRawMaterials[materialKey] =
+              (updatedRawMaterials[materialKey] || 0) - (amount as number);
           }
 
           player.resources.rawMaterials = updatedRawMaterials;
@@ -180,11 +199,17 @@ export const buildFacilityHandler = {
 
         // Update special materials
         if (resourceCosts.specialMaterials) {
-          const updatedSpecialMaterials = { ...player.resources.specialMaterials };
+          const updatedSpecialMaterials = {
+            ...player.resources.specialMaterials,
+          };
 
-          for (const [material, amount] of Object.entries(resourceCosts.specialMaterials)) {
-            const materialKey = material as keyof typeof updatedSpecialMaterials;
-            updatedSpecialMaterials[materialKey] = (updatedSpecialMaterials[materialKey] || 0) - amount;
+          for (const [material, amount] of Object.entries(
+            resourceCosts.specialMaterials
+          )) {
+            const materialKey =
+              material as keyof typeof updatedSpecialMaterials;
+            updatedSpecialMaterials[materialKey] =
+              (updatedSpecialMaterials[materialKey] || 0) - (amount as number);
           }
 
           player.resources.specialMaterials = updatedSpecialMaterials;
@@ -198,21 +223,21 @@ export const buildFacilityHandler = {
           ...state,
           players: {
             ...state.players,
-            [command.playerId]: player
+            [command.playerId]: player,
           },
           properties: {
             ...state.properties,
-            [property.id]: property
+            [property.id]: property,
           },
           facilities: {
             ...state.facilities,
-            [newFacility.id]: newFacility
+            [newFacility.id]: newFacility,
           },
-          facilityBuildActionAvailable: false
+          facilityBuildActionAvailable: false,
         };
-      }
+      },
     });
 
     return [buildEvent];
-  }
+  },
 };

@@ -1,0 +1,249 @@
+[
+  {
+    "id": "wood",
+    "name": "Holz",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Einfaches Holz, wird für Bauprojekte und in Werkstätten verwendet."
+  },
+  {
+    "id": "bricks",
+    "name": "Ziegel",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Grundlegendes Baumaterial für einfache Strukturen.",
+    "priceBonus": 1
+  },
+  {
+    "id": "wool",
+    "name": "Wolle",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Rohe Wolle für die Stoffherstellung."
+  },
+  {
+    "id": "fruit",
+    "name": "Obst",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Verschiedene Obstsorten für Nahrung und Verarbeitung."
+  },
+  {
+    "id": "grain",
+    "name": "Getreide",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Grundlegendes Nahrungsmittel, kann zu Pulpellen verarbeitet werden."
+  },
+  {
+    "id": "vegetables",
+    "name": "Gemüse",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Verschiedene Gemüsesorten für Nahrung und Verarbeitung."
+  },
+  {
+    "id": "milk",
+    "name": "Milch",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Frische Milch, kann zu Käse verarbeitet werden.",
+    "priceBonus": 1
+  },
+  {
+    "id": "fish",
+    "name": "Fisch",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Frischer oder gepökelter Fisch.",
+    "priceBonus": 1
+  },
+  {
+    "id": "olives",
+    "name": "Oliven",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Oliven, können zu Öl verarbeitet werden."
+  },
+  {
+    "id": "fat",
+    "name": "Fett",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Tierisches Fett, kann zu Seife verarbeitet werden."
+  },
+  {
+    "id": "sand",
+    "name": "Sand",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Feiner Sand, wird für Glasherstellung benötigt."
+  },
+  {
+    "id": "leather",
+    "name": "Leder",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Verarbeitete Tierhäute, wichtig für Rüstungen."
+  },
+  {
+    "id": "flowers",
+    "name": "Blumen",
+    "category": "cheap",
+    "basePrice": 1,
+    "description": "Duftende Blumen für Parfüm und Dekoration."
+  },
+  {
+    "id": "dyes",
+    "name": "Farbstoffe",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Natürliche Farbstoffe für Stoffe und Kleidung."
+  },
+  {
+    "id": "stone",
+    "name": "Baugestein",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Behauene Steine für Bauvorhaben."
+  },
+  {
+    "id": "honey",
+    "name": "Honig",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Süßungsmittel und wertvolles Handelsgut."
+  },
+  {
+    "id": "iron",
+    "name": "Eisen",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Wichtigstes Metall für Werkzeuge und Waffen.",
+    "priceBonus": 1
+  },
+  {
+    "id": "tin",
+    "name": "Zinn",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Weiches Metall, wichtig für Legierungen.",
+    "priceBonus": 1
+  },
+  {
+    "id": "pigs",
+    "name": "Schweine",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Nutztiere für Fleisch.",
+    "priceBonus": 1
+  },
+  {
+    "id": "sheep",
+    "name": "Schafe",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Nutztiere für Wolle und Fleisch."
+  },
+  {
+    "id": "meat",
+    "name": "Fleisch",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Frisches oder konserviertes Fleisch."
+  },
+  {
+    "id": "salt",
+    "name": "Salz",
+    "category": "medium",
+    "basePrice": 2,
+    "description": "Lebensnotwendiges Mineral zur Konservierung.",
+    "priceBonus": 1
+  },
+  {
+    "id": "granite",
+    "name": "Granit",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Harter, dekorativer Stein für anspruchsvolle Bauvorhaben."
+  },
+  {
+    "id": "marble",
+    "name": "Marmor",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Edler Stein für Luxusbauten und Statuen."
+  },
+  {
+    "id": "optrolith",
+    "name": "Optrolith",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Wertvoller Kristall mit magischen Eigenschaften.",
+    "priceBonus": 2
+  },
+  {
+    "id": "beasts",
+    "name": "Lasttiere",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Starke Tiere für Transport und Arbeit.",
+    "priceBonus": 2
+  },
+  {
+    "id": "cattle",
+    "name": "Rinder",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Große Nutztiere für Milch, Fleisch und Arbeit.",
+    "priceBonus": 2
+  },
+  {
+    "id": "fur",
+    "name": "Pelze",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Wertvolle Tierfelle für Luxuskleidung.",
+    "priceBonus": 2
+  },
+  {
+    "id": "magicOre",
+    "name": "Magische Erze",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Seltene Erze mit arkanen Eigenschaften.",
+    "priceBonus": 2
+  },
+  {
+    "id": "gems",
+    "name": "Edelsteine",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Ungeschliffene Edelsteine und Kristalle.",
+    "priceBonus": 2
+  },
+  {
+    "id": "horses",
+    "name": "Pferde",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Wertvolle Reit- und Lasttiere.",
+    "priceBonus": 3
+  },
+  {
+    "id": "exoticBeasts",
+    "name": "Exotische Biester",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Seltene und exotische Tiere mit besonderen Eigenschaften.",
+    "priceBonus": 3
+  },
+  {
+    "id": "preciousMetals",
+    "name": "Edelmetalle",
+    "category": "expensive",
+    "basePrice": 4,
+    "description": "Gold, Silber und andere seltene Metalle.",
+    "priceBonus": 3
+  }
+]

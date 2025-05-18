@@ -1,13 +1,18 @@
+import { PropertyTypes } from '../data/factories/PropertyFactory';
 import { GameEventType, createGameEvent } from '../events/GameEvent';
-import type { GameCommand } from './GameCommand';
 import type { GameEvent } from '../events/GameEvent';
 import type { GameState, Property } from '../models';
 import { generateUniqueId } from '../utils/idGenerator';
-import { PropertyTypes } from '../config';
+import type { GameCommand } from './GameCommand';
 
 // Supported property types for V1
-type V1PropertyType = 'SMALL_RURAL_DOMAIN' | 'MEDIUM_RURAL_DOMAIN' | 'SMALL_CITY_PROPERTY' |
-                      'SMALL_WORKSHOP' | 'SMALL_STORAGE' | 'SMALL_OFFICE';
+type V1PropertyType =
+  | 'SMALL_RURAL_DOMAIN'
+  | 'MEDIUM_RURAL_DOMAIN'
+  | 'SMALL_CITY_PROPERTY'
+  | 'SMALL_WORKSHOP'
+  | 'SMALL_STORAGE'
+  | 'SMALL_OFFICE';
 
 // Command to acquire a new property
 export interface AcquirePropertyCommand extends GameCommand {
@@ -58,7 +63,10 @@ export const acquirePropertyHandler = {
     return true;
   },
 
-  execute: (command: AcquirePropertyCommand, state: GameState): GameEvent[] => {
+  execute: (
+    command: AcquirePropertyCommand,
+    _state: GameState
+  ): GameEvent[] => {
     // Get property config
     const propertyConfig = PropertyTypes[command.payload.propertyConfigKey];
     const cost = PROPERTY_COSTS[command.payload.propertyConfigKey];
@@ -85,7 +93,7 @@ export const acquirePropertyHandler = {
       playerId: command.playerId,
       payload: {
         property: newProperty,
-        cost
+        cost,
       },
       apply: (state: GameState): GameState => {
         const player = { ...state.players[command.playerId] };
@@ -93,7 +101,7 @@ export const acquirePropertyHandler = {
         // Update player gold
         player.resources = {
           ...player.resources,
-          gold: player.resources.gold - cost.gold
+          gold: player.resources.gold - cost.gold,
         };
 
         // Add property to player's properties
@@ -104,17 +112,17 @@ export const acquirePropertyHandler = {
           ...state,
           players: {
             ...state.players,
-            [command.playerId]: player
+            [command.playerId]: player,
           },
           properties: {
             ...state.properties,
-            [newProperty.id]: newProperty
+            [newProperty.id]: newProperty,
           },
-          actionPointsRemaining: state.actionPointsRemaining - 1
+          actionPointsRemaining: state.actionPointsRemaining - 1,
         };
-      }
+      },
     });
 
     return [acquireEvent];
-  }
+  },
 };

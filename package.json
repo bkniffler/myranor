@@ -8,7 +8,6 @@
     "check": "bun typecheck && bun lint",
     "start": "bun src/index.js",
     "dev": "bun --watch src/index.ts",
-    "build": "tsc",
     "test": "jest",
     "lint": "biome lint --vcs-use-ignore-file true --vcs-enabled true --diagnostic-level=error",
     "lint:fix": "biome check --write --unsafe --skip-errors ."

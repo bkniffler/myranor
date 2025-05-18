@@ -1,0 +1,173 @@
+[
+    {
+        "id": "small_rural_domain",
+        "name": "Kleine Ländliche Domäne",
+        "type": "domain",
+        "size": "small",
+        "defaultActive": true,
+        "maintenance": {
+            "gold": 2
+        },
+        "production": {
+            "laborPower": 2,
+            "rawMaterials": {
+                "grain": 8,
+                "wood": 4
+            }
+        },
+        "dcModifiers": {
+            "gainMaterials": {
+                "small": -1
+            }
+        },
+        "facilitySlots": {
+            "general": 2,
+            "specialized": 0,
+            "workshop": 1,
+            "warehouse": 1
+        },
+        "cost": {
+            "gold": 20
+        }
+    },
+    {
+        "id": "medium_rural_domain",
+        "name": "Mittlere Ländliche Domäne",
+        "type": "domain",
+        "size": "medium",
+        "defaultActive": true,
+        "maintenance": {
+            "gold": 4
+        },
+        "production": {
+            "laborPower": 4,
+            "rawMaterials": {
+                "grain": 12,
+                "wood": 8
+            }
+        },
+        "dcModifiers": {
+            "gainMaterials": {
+                "medium": -1
+            }
+        },
+        "facilitySlots": {
+            "general": 4,
+            "specialized": 1,
+            "workshop": 1,
+            "warehouse": 1
+        },
+        "cost": {
+            "gold": 40
+        }
+    },
+    {
+        "id": "small_city_property",
+        "name": "Kleiner Städtischer Besitz",
+        "type": "cityProperty",
+        "size": "small",
+        "defaultActive": true,
+        "maintenance": {
+            "gold": 2
+        },
+        "production": {
+            "laborPower": 1,
+            "gold": 3,
+            "influence": 1
+        },
+        "dcModifiers": {
+            "gainInfluence": {
+                "small": -1
+            },
+            "politicalActions": {
+                "small": -1
+            }
+        },
+        "facilitySlots": {
+            "general": 2,
+            "specialized": 0,
+            "workshop": 2,
+            "warehouse": 1
+        },
+        "cost": {
+            "gold": 15
+        },
+        "specialFeatures": {
+            "canBeRented": true
+        }
+    },
+    {
+        "id": "small_workshop",
+        "name": "Kleine Werkstatt",
+        "type": "workshop",
+        "size": "small",
+        "defaultActive": true,
+        "maintenance": {
+            "gold": 1,
+            "laborPower": 1
+        },
+        "facilitySlots": {
+            "general": 0,
+            "specialized": 0
+        },
+        "cost": {
+            "gold": 10
+        },
+        "specialFeatures": {
+            "conversionCapacity": 5,
+            "conversionsPerRound": 1
+        }
+    },
+    {
+        "id": "small_storage",
+        "name": "Kleines Lager",
+        "type": "warehouse",
+        "size": "small",
+        "defaultActive": true,
+        "maintenance": {
+            "laborPower": 1
+        },
+        "facilitySlots": {
+            "general": 0,
+            "specialized": 0
+        },
+        "cost": {
+            "gold": 8
+        },
+        "specialFeatures": {
+            "storageCapacity": {
+                "rawMaterials": 10,
+                "specialMaterials": 5
+            }
+        }
+    },
+    {
+        "id": "small_office",
+        "name": "Kleines Amt",
+        "type": "office",
+        "size": "small",
+        "defaultActive": true,
+        "maintenance": {
+            "gold": 1
+        },
+        "production": {
+            "influence": 4
+        },
+        "dcModifiers": {
+            "gainInfluence": {
+                "small": -1
+            },
+            "politicalActions": {
+                "small": -1
+            }
+        },
+        "facilitySlots": {
+            "general": 2,
+            "specialized": 0
+        },
+        "cost": {
+            "gold": 10,
+            "influence": 2
+        }
+    }
+]

@@ -1,15 +1,16 @@
 import type { GameEvent } from '../events/GameEvent';
 import type { GameState } from '../models';
 
+// Base interface for all game commands
 export interface GameCommand {
-  // Unique identifier for the command type
+  // Command type
   type: string;
 
   // Player who issued the command
   playerId: string;
 
-  // Payload data specific to this command
-  payload: any;
+  // Command data
+  payload: Record<string, unknown>;
 
   // Validate if this command can be executed given the current state
   validate: (state: GameState) => boolean;

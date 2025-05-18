@@ -1,7 +1,7 @@
 import { GameEventType, createGameEvent } from '../events/GameEvent';
-import type { GameCommand } from './GameCommand';
 import type { GameEvent } from '../events/GameEvent';
 import type { GameState } from '../models';
+import type { GameCommand } from './GameCommand';
 
 // Command to gain influence by spending gold
 export interface GainInfluenceCommand extends GameCommand {
@@ -39,7 +39,7 @@ export const gainInfluenceHandler = {
     return true;
   },
 
-  execute: (command: GainInfluenceCommand, state: GameState): GameEvent[] => {
+  execute: (command: GainInfluenceCommand, _state: GameState): GameEvent[] => {
     const goldSpent = command.payload.goldAmount;
     const influenceGained = calculateInfluenceGain(goldSpent);
 
@@ -49,7 +49,7 @@ export const gainInfluenceHandler = {
       playerId: command.playerId,
       payload: {
         goldSpent,
-        influenceGained
+        influenceGained,
       },
       apply: (state: GameState): GameState => {
         const player = { ...state.players[command.playerId] };
@@ -58,7 +58,8 @@ export const gainInfluenceHandler = {
         player.resources = {
           ...player.resources,
           gold: player.resources.gold - goldSpent,
-          temporaryInfluence: player.resources.temporaryInfluence + influenceGained
+          temporaryInfluence:
+            player.resources.temporaryInfluence + influenceGained,
         };
 
         // Consume an action point
@@ -66,13 +67,13 @@ export const gainInfluenceHandler = {
           ...state,
           players: {
             ...state.players,
-            [command.playerId]: player
+            [command.playerId]: player,
           },
-          actionPointsRemaining: state.actionPointsRemaining - 1
+          actionPointsRemaining: state.actionPointsRemaining - 1,
         };
-      }
+      },
     });
 
     return [influenceEvent];
-  }
+  },
 };

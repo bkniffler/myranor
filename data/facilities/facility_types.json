@@ -1,0 +1,219 @@
+[
+    {
+        "id": "basic_housing",
+        "name": "Erweiterte Arbeiterunterkünfte",
+        "type": "housing",
+        "category": "general",
+        "description": "Verbesserte Unterkünfte für mehr Arbeitskräfte.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 5
+            },
+            "propertyTypes": [
+                "domain"
+            ]
+        },
+        "effects": {
+            "productionBonus": {
+                "laborPower": 1
+            }
+        }
+    },
+    {
+        "id": "food_storage",
+        "name": "Kornspeicher",
+        "type": "storage",
+        "category": "general",
+        "description": "Ermöglicht die Lagerung von Nahrung ohne ein dediziertes Lager.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 4
+            },
+            "propertyTypes": [
+                "domain"
+            ]
+        },
+        "effects": {
+            "storageCapacity": {
+                "rawMaterials": {
+                    "grain": 5,
+                    "fruit": 5,
+                    "vegetables": 5
+                }
+            }
+        }
+    },
+    {
+        "id": "land_expansion",
+        "name": "Landgewinnung",
+        "type": "landExpansion",
+        "category": "general",
+        "description": "Ausweitung der nutzbaren Landfläche.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 4,
+                "laborPower": 2
+            },
+            "propertyTypes": [
+                "domain"
+            ]
+        },
+        "effects": {
+            "productionBonus": {
+                "rawMaterials": {
+                    "grain": 2
+                }
+            }
+        }
+    },
+    {
+        "id": "basic_defense",
+        "name": "Einfache Verteidigungsanlagen",
+        "type": "defense",
+        "category": "general",
+        "description": "Verbesserte Sicherheit, reduziert die Wahrscheinlichkeit von Überfällen.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 3,
+                "rawMaterials": {
+                    "wood": 3
+                },
+                "laborPower": 1
+            },
+            "propertyTypes": [
+                "domain"
+            ]
+        },
+        "effects": {
+            "specialEffects": [
+                "reduced_raid_chance"
+            ]
+        }
+    },
+    {
+        "id": "octad_shrine",
+        "name": "Großer Oktaden-Schrein",
+        "type": "shrine",
+        "category": "general",
+        "description": "Ein imposanter Schrein zur Verehrung der Zwölfgötter.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 8
+            },
+            "propertyTypes": [
+                "domain",
+                "cityProperty"
+            ]
+        },
+        "effects": {
+            "productionBonus": {
+                "influence": 4
+            },
+            "specialEffects": [
+                "add_250_subjects"
+            ]
+        }
+    },
+    {
+        "id": "marketplace",
+        "name": "Marktplatz und Handelsposten",
+        "type": "market",
+        "category": "general",
+        "description": "Ein Marktplatz für den lokalen Handel.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 16
+            },
+            "propertyTypes": [
+                "domain",
+                "cityProperty"
+            ]
+        },
+        "maintenance": {
+            "laborPower": 1
+        },
+        "effects": {
+            "productionBonus": {
+                "gold": 2
+            },
+            "materialProduction": {
+                "specialMaterials": {
+                    "perfume": {
+                        "amount": 1,
+                        "frequency": 3
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "mechanical_mill",
+        "name": "Mechanische Mühlanlagen",
+        "type": "mill",
+        "category": "specialized",
+        "description": "Wandelt Getreide in wertvolle Produkte um.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 5
+            },
+            "propertyTypes": [
+                "domain"
+            ],
+            "propertySize": [
+                "medium",
+                "large"
+            ],
+            "specializations": [
+                "agriculture"
+            ],
+            "requiredFacilities": [
+                "workshop"
+            ]
+        },
+        "effects": {
+            "conversionRate": [
+                {
+                    "inputType": "grain",
+                    "outputType": "pulps",
+                    "ratio": 1,
+                    "maxConversion": 2
+                },
+                {
+                    "inputType": "olives",
+                    "outputType": "oil",
+                    "ratio": 1,
+                    "maxConversion": 2
+                }
+            ]
+        }
+    },
+    {
+        "id": "dairy",
+        "name": "Käserei",
+        "type": "dairy",
+        "category": "specialized",
+        "description": "Verarbeitet Milch zu Käse und anderen Produkten.",
+        "buildRequirements": {
+            "resources": {
+                "gold": 6,
+                "laborPower": 1
+            },
+            "propertyTypes": [
+                "domain"
+            ],
+            "specializations": [
+                "animalHusbandry"
+            ]
+        },
+        "effects": {
+            "conversionRate": [
+                {
+                    "inputType": "milk",
+                    "outputType": "cheese",
+                    "ratio": 0.5,
+                    "maxConversion": 3
+                }
+            ]
+        }
+    }
+]
