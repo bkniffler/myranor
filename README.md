@@ -39,63 +39,6 @@ oder
 bun run src/index.ts
 ```
 
-## MCP Server (Model Context Protocol)
-
-Der MCP Server ermöglicht es einer KI (wie Claude), das Spiel autonom zu spielen.
-
-### Server starten
-
-```bash
-npm run mcp-server
-```
-
-Der Server wird auf http://localhost:3000 gestartet.
-
-### Testen mit dem Client
-
-Es gibt verschiedene Modi, um die AI-Spielweise zu testen:
-
-```bash
-# Automatisches Durchspielen
-npm run mcp-client
-
-# Schrittweises Spielen (5 Runden)
-npm run mcp-client:step
-
-# Manuelle Aktionen testen
-npm run mcp-client:manual
-```
-
-### API-Endpunkte
-
-1. **Spiel initialisieren**
-   - `GET /game/init`
-
-2. **Spielstatus abrufen**
-   - `GET /game/state`
-
-3. **AI-Aktion ausführen**
-   - `POST /game/action`
-   - Body: `{ "actionType": 1, "params": { "goldAmount": 10 } }`
-   
-   Aktionstypen:
-   - 1 = Einfluss gewinnen (params: goldAmount)
-   - 2 = Materialien verkaufen (params: materialType, sellAmount)
-     - materialType: 1=Nahrung, 2=Holz, 3=Werkzeug
-   - 3 = Material gewinnen (params: domainIndex)
-   - 4 = Posten erwerben (params: propertyType, name)
-     - propertyType: 1=Domäne, 2=Werkstatt, 3=Lager
-   - 5 = Runde beenden
-
-4. **AI-Spielzug ausführen**
-   - `GET /game/turn`
-
-5. **Spielverlauf abrufen**
-   - `GET /game/history`
-
-6. **Komplettes Spiel automatisch spielen**
-   - `GET /game/autoplay`
-
 ## Spielregeln
 
 ### Ressourcen

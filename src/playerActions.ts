@@ -1,6 +1,13 @@
 import * as readline from 'readline';
-import { Domain, GameState, StorageFacility, Workshop } from './types';
+import { Domain, GameState } from './types';
 import { clearScreen, displayGameInfo } from './gamePhases';
+import { 
+  ActionType,
+  performAction,
+  rollD20,
+  MaterialType,
+  PropertyType
+} from './actions';
 
 // Create readline interface for CLI input
 const rl = readline.createInterface({
@@ -32,9 +39,9 @@ async function promptNumber(question: string, min = Number.MIN_SAFE_INTEGER, max
     }
 }
 
-// Helper function for d20 roll
-function rollD20(): number {
-    return Math.floor(Math.random() * 20) + 1;
+// Helper function to wait for user to press Enter
+async function waitForEnter(): Promise<void> {
+    await prompt('Drücke Enter, um fortzufahren...');
 }
 
 // Action 1: Gain influence
@@ -43,41 +50,19 @@ export async function gainInfluence(gameState: GameState): Promise<void> {
     displayGameInfo(gameState);
     console.log('\n=== EINFLUSS GEWINNEN ===');
 
-    // Check if player has enough labor power
-    if (gameState.player.resources.laborPower < 1) {
-        console.log('Du hast nicht genug Arbeitskraft für diese Aktion!');
-        await waitForEnter();
-        return;
-    }
-
     // Ask for gold amount
     const goldAmount = await promptNumber('Wie viel Gold möchtest du investieren? (min. 1): ', 1);
 
-    // Check if player has enough gold
-    if (goldAmount > gameState.player.resources.gold) {
-        console.log('Du hast nicht genug Gold für diese Investition!');
-        await waitForEnter();
-        return;
-    }
-
-    // Calculate influence gain (round down)
-    const influenceGain = Math.floor(goldAmount / 2);
-
-    // Apply changes
-    gameState.player.resources.gold -= goldAmount;
-    gameState.player.resources.laborPower -= 1;
-    gameState.player.resources.temporaryInfluence += influenceGain;
-    gameState.actionPointsRemaining -= 1;
+    // Execute action and get result
+    const result = performAction(gameState, {
+        type: ActionType.GAIN_INFLUENCE,
+        payload: { goldAmount }
+    });
 
     clearScreen();
     displayGameInfo(gameState);
-    console.log(`Du hast ${goldAmount} Gold investiert und ${influenceGain} temporären Einfluss gewonnen.`);
+    console.log(result.message);
     await waitForEnter();
-}
-
-// Helper function to wait for user to press Enter
-async function waitForEnter(): Promise<void> {
-    await prompt('Drücke Enter, um fortzufahren...');
 }
 
 // Action 2: Sell materials for gold
@@ -85,13 +70,6 @@ export async function sellMaterials(gameState: GameState): Promise<void> {
     clearScreen();
     displayGameInfo(gameState);
     console.log('\n=== MATERIALIEN VERKAUFEN ===');
-
-    // Check if player has enough labor power
-    if (gameState.player.resources.laborPower < 1) {
-        console.log('Du hast nicht genug Arbeitskraft für diese Aktion!');
-        await waitForEnter();
-        return;
-    }
 
     // Show material options
     console.log('Welches Material möchtest du verkaufen?');
@@ -102,66 +80,65 @@ export async function sellMaterials(gameState: GameState): Promise<void> {
     // Get material choice
     const materialChoice = await promptNumber('Wähle eine Option (1-3): ', 1, 3);
 
-    let materialType: string;
-    let conversionRate: number;
-    let availableAmount: number;
+    let materialType: MaterialType;
 
     switch (materialChoice) {
         case 1:
-            materialType = 'Nahrung';
-            conversionRate = 0.2; // 1 Nahrung = 0.2 Gold
-            availableAmount = gameState.player.resources.rawMaterials.food;
+            materialType = 'food';
             break;
         case 2:
-            materialType = 'Holz';
-            conversionRate = 0.25; // 1 Holz = 0.25 Gold
-            availableAmount = gameState.player.resources.rawMaterials.wood;
+            materialType = 'wood';
             break;
         case 3:
-            materialType = 'Werkzeug';
-            conversionRate = 2; // 1 Werkzeug = 2 Gold
-            availableAmount = gameState.player.resources.specialMaterials.tools;
+            materialType = 'tools';
             break;
         default:
+            clearScreen();
+            displayGameInfo(gameState);
             console.log('Ungültige Auswahl!');
             await waitForEnter();
             return;
     }
 
-    // Check if player has any of the chosen material
-    if (availableAmount <= 0) {
-        console.log(`Du hast kein ${materialType} zum Verkaufen!`);
+    // Check if player has enough resources for a basic check before asking for amount
+    const checkResult = performAction(gameState, {
+        type: ActionType.SELL_MATERIALS,
+        payload: { materialType, amount: 0 }
+    });
+    if (!checkResult.success) {
+        clearScreen();
+        displayGameInfo(gameState);
+        console.log(checkResult.message);
         await waitForEnter();
         return;
     }
 
-    // Ask for amount to sell
-    const sellAmount = await promptNumber(`Wie viel ${materialType} möchtest du verkaufen? (1-${availableAmount}): `, 1, availableAmount);
-
-    // Calculate gold to receive
-    const goldGain = Math.floor(sellAmount * conversionRate);
-
-    // Apply changes
-    gameState.player.resources.gold += goldGain;
-    gameState.player.resources.laborPower -= 1;
-    gameState.actionPointsRemaining -= 1;
-
-    // Update specific resource
-    switch (materialChoice) {
-        case 1:
-            gameState.player.resources.rawMaterials.food -= sellAmount;
+    // Get available amount based on material type
+    let availableAmount: number;
+    switch (materialType) {
+        case 'food':
+            availableAmount = gameState.player.resources.rawMaterials.food;
             break;
-        case 2:
-            gameState.player.resources.rawMaterials.wood -= sellAmount;
+        case 'wood':
+            availableAmount = gameState.player.resources.rawMaterials.wood;
             break;
-        case 3:
-            gameState.player.resources.specialMaterials.tools -= sellAmount;
+        case 'tools':
+            availableAmount = gameState.player.resources.specialMaterials.tools;
             break;
     }
 
+    // Ask for amount to sell
+    const amount = await promptNumber(`Wie viel möchtest du verkaufen? (1-${availableAmount}): `, 1, availableAmount);
+
+    // Execute action and get result
+    const result = performAction(gameState, {
+        type: ActionType.SELL_MATERIALS,
+        payload: { materialType, amount }
+    });
+
     clearScreen();
     displayGameInfo(gameState);
-    console.log(`Du hast ${sellAmount} ${materialType} für ${goldGain} Gold verkauft.`);
+    console.log(result.message);
     await waitForEnter();
 }
 
@@ -170,13 +147,6 @@ export async function gainMaterials(gameState: GameState): Promise<void> {
     clearScreen();
     displayGameInfo(gameState);
     console.log('\n=== MATERIAL GEWINNEN ===');
-
-    // Check if player has enough labor power
-    if (gameState.player.resources.laborPower < 1) {
-        console.log('Du hast nicht genug Arbeitskraft für diese Aktion!');
-        await waitForEnter();
-        return;
-    }
 
     // Find domains
     const domains = gameState.player.properties.filter(p => p.type === 'domain') as Domain[];
@@ -197,52 +167,22 @@ export async function gainMaterials(gameState: GameState): Promise<void> {
 
     // Get domain choice
     const domainIndex = await promptNumber(`Wähle eine Domäne (1-${domains.length}): `, 1, domains.length) - 1;
-    const selectedDomain = domains[domainIndex];
 
-    // Check if domain is active
-    if (!selectedDomain.active) {
-        console.log(`${selectedDomain.name} ist inaktiv und kann keine zusätzlichen Materialien produzieren!`);
-        await waitForEnter();
-        return;
+    // Execute action and get result
+    const result = performAction(gameState, {
+        type: ActionType.GATHER_MATERIALS,
+        payload: { domainIndex }
+    });
+
+    clearScreen();
+    displayGameInfo(gameState);
+
+    // If roll was made, show it
+    if (result.roll) {
+        console.log(`Würfelwurf (d20): ${result.roll}`);
     }
 
-    // Roll d20 for success check
-    const roll = rollD20();
-    const difficulty = 12;
-
-    console.log(`Würfelwurf (d20): ${roll}`);
-
-    if (roll >= difficulty) {
-        // Success - add extra food
-        const extraFood = 5;
-
-        // Check food storage capacity
-        const foodStorage = selectedDomain.facilities.find(f => f.type === 'foodStorage') as StorageFacility | undefined;
-        const foodCapacity = foodStorage?.maxCapacity.food || 0;
-        const currentFood = gameState.player.resources.rawMaterials.food;
-
-        // Calculate how much food can be stored
-        const foodToAdd = Math.min(extraFood, foodCapacity - currentFood);
-
-        if (foodToAdd > 0) {
-            gameState.player.resources.rawMaterials.food += foodToAdd;
-            console.log(`Erfolg! ${selectedDomain.name} produziert zusätzlich ${foodToAdd} Nahrung.`);
-
-            if (foodToAdd < extraFood) {
-                console.log(`Hinweis: ${extraFood - foodToAdd} Nahrung ging verloren, da dein Speicher voll ist!`);
-            }
-        } else {
-            console.log('Erfolg! Aber dein Nahrungsspeicher ist bereits voll!');
-        }
-    } else {
-        // Failure
-        console.log(`Fehlschlag! ${selectedDomain.name} produziert keine zusätzlichen Materialien.`);
-    }
-
-    // Apply action cost
-    gameState.player.resources.laborPower -= 1;
-    gameState.actionPointsRemaining -= 1;
-
+    console.log(result.message);
     await waitForEnter();
 }
 
@@ -252,7 +192,7 @@ export async function acquireProperty(gameState: GameState): Promise<void> {
     displayGameInfo(gameState);
     console.log('\n=== NEUEN POSTEN ERWERBEN ===');
 
-    // Check if player has enough labor power
+    // Check if player has enough labor power for a basic check
     if (gameState.player.resources.laborPower < 1) {
         console.log('Du hast nicht genug Arbeitskraft für diese Aktion!');
         await waitForEnter();
@@ -275,159 +215,47 @@ export async function acquireProperty(gameState: GameState): Promise<void> {
         return;
     }
 
-    // Check for property limits
-    const domains = gameState.player.properties.filter(p => p.type === 'domain');
-    const workshops = gameState.player.properties.filter(p => p.type === 'workshop');
-    const storages = gameState.player.properties.filter(p =>
-        p.type === 'generalStorage' || p.type === 'foodStorage'
-    );
-
-    // Check limits based on selected property
+    // Map choice to property type
+    let propertyType: PropertyType;
     switch (propertyChoice) {
-        case 1: // Domain
-            if (domains.length >= 3) {
-                console.log('Du kannst nicht mehr als 3 Domänen besitzen!');
-                await waitForEnter();
-                return;
-            }
+        case 1:
+            propertyType = 'domain';
             break;
-        case 2: // Workshop
-            if (workshops.length >= 2) {
-                console.log('Du kannst nicht mehr als 2 Werkstätten besitzen!');
-                await waitForEnter();
-                return;
-            }
+        case 2:
+            propertyType = 'workshop';
             break;
-        case 3: // Storage
-            if (storages.length >= 2) {
-                console.log('Du kannst nicht mehr als 2 Lager besitzen!');
-                await waitForEnter();
-                return;
-            }
+        case 3:
+            propertyType = 'storage';
+            break;
+        default:
+            return;
+    }
+
+    // Get name for new property
+    let propertyTypeName: string;
+    switch (propertyType) {
+        case 'domain':
+            propertyTypeName = 'Domäne';
+            break;
+        case 'workshop':
+            propertyTypeName = 'Werkstatt';
+            break;
+        case 'storage':
+            propertyTypeName = 'Lager';
             break;
     }
 
-    // Check for resources and create property based on choice
-    switch (propertyChoice) {
-        case 1: // Domain
-            // Check resources
-            if (gameState.player.resources.gold < 30 || gameState.player.resources.specialMaterials.tools < 5) {
-                console.log('Du hast nicht genug Ressourcen für eine neue Domäne!');
-                await waitForEnter();
-                return;
-            }
+    const propertyName = await prompt(`Gib einen Namen für deine neue ${propertyTypeName} ein: `);
 
-            // Get name for new domain
-            const domainName = await prompt('Gib einen Namen für deine neue Domäne ein: ');
-
-            // Create new domain with standard facilities
-            const foodStorage: StorageFacility = {
-                type: 'foodStorage',
-                name: 'Speicher 1',
-                maxCapacity: {
-                    food: 50,
-                },
-            };
-
-            const housing = {
-                type: 'housing' as const,
-                name: 'Baracke 1',
-                laborBonus: 2,
-            };
-
-            const newDomain: Domain = {
-                type: 'domain',
-                name: domainName,
-                maintenanceCost: {
-                    gold: 2,
-                },
-                active: true,
-                baseProduction: {
-                    food: 5,
-                    wood: 2,
-                },
-                facilities: [foodStorage, housing],
-            };
-
-            // Add domain and update resources
-            gameState.player.properties.push(newDomain);
-            gameState.player.resources.gold -= 30;
-            gameState.player.resources.specialMaterials.tools -= 5;
-            gameState.player.resources.baseLaborPower += 2; // Add labor bonus from new housing
-
-            console.log(`Domäne "${domainName}" erfolgreich erworben!`);
-            break;
-
-        case 2: // Workshop
-            // Check resources
-            if (gameState.player.resources.gold < 15 || gameState.player.resources.rawMaterials.wood < 8) {
-                console.log('Du hast nicht genug Ressourcen für eine neue Werkstatt!');
-                await waitForEnter();
-                return;
-            }
-
-            // Get name for new workshop
-            const workshopName = await prompt('Gib einen Namen für deine neue Werkstatt ein: ');
-
-            // Create new workshop
-            const newWorkshop: Workshop = {
-                type: 'workshop',
-                name: workshopName,
-                maintenanceCost: {
-                    gold: 1,
-                    laborPower: 1,
-                },
-                active: true,
-                productionRate: {
-                    toolsPerWood: 1 / 5,
-                    maxProduction: 1,
-                },
-            };
-
-            // Add workshop and update resources
-            gameState.player.properties.push(newWorkshop);
-            gameState.player.resources.gold -= 15;
-            gameState.player.resources.rawMaterials.wood -= 8;
-
-            console.log(`Werkstatt "${workshopName}" erfolgreich erworben!`);
-            break;
-
-        case 3: // Storage
-            // Check resources
-            if (gameState.player.resources.gold < 10 || gameState.player.resources.rawMaterials.wood < 5) {
-                console.log('Du hast nicht genug Ressourcen für ein neues Lager!');
-                await waitForEnter();
-                return;
-            }
-
-            // Get name for new storage
-            const storageName = await prompt('Gib einen Namen für dein neues Lager ein: ');
-
-            // Create new storage
-            const newStorage: StorageFacility = {
-                type: 'generalStorage',
-                name: storageName,
-                maxCapacity: {
-                    wood: 30,
-                    tools: 10,
-                },
-            };
-
-            // Add storage and update resources
-            gameState.player.properties.push(newStorage);
-            gameState.player.resources.gold -= 10;
-            gameState.player.resources.rawMaterials.wood -= 5;
-
-            console.log(`Lager "${storageName}" erfolgreich erworben!`);
-            break;
-    }
-
-    // Apply action cost
-    gameState.player.resources.laborPower -= 1;
-    gameState.actionPointsRemaining -= 1;
+    // Execute action and get result
+    const result = performAction(gameState, {
+        type: ActionType.ACQUIRE_PROPERTY,
+        payload: { propertyType, propertyName }
+    });
 
     clearScreen();
     displayGameInfo(gameState);
+    console.log(result.message);
     await waitForEnter();
 }
 

@@ -1,0 +1,41 @@
+{
+  "bun.test.filePattern": "**/*{.test.,.spec.,_test_,_spec_}{js,ts,tsx,jsx,mts,cts}",
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "source.fixAll.biome": "explicit",
+    "quickfix.biome": "explicit"
+  },
+  "eslint.enable": false,
+  "editor.defaultFormatter": "vscode.json-language-features",
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.tsx": "$(capture).ios.tsx,$(capture).android.tsx,$(capture).web.tsx,$(capture).native.tsx,$(capture).styles.tsx,$(capture).styles.ts,$(capture).test.tsx,$(capture).test.ts,$(capture).spec.tsx,$(capture).spec.ts",
+    "*.ts": "$(capture).ios.ts,$(capture).android.ts,$(capture).web.ts,$(capture).native.ts,$(capture).styles.ts,$(capture).test.ts,$(capture).spec.ts",
+    "tsconfig.json": "tsconfig.*.json,*.d.ts",
+    "package.json": "bun.lock,.npmrc",
+    "app.json": "metro.config.js,babel.config.js,eas.json,webpack.config.js,polyfills.js,index.js",
+    "tailwind.config.js": "global.css,gluestack-ui.config.json",
+    ".env": ".env.template,.env.*,env.ts",
+    "biome.json": ".editorconfig",
+    "docker-compose.yml": "docker-compose.*.yml,Dockerfile",
+    ".gitignore": ".gitattributes,.gitkeep",
+    "README.md": "MILESTONE_*.md"
+  }
+}
