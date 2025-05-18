@@ -1,3 +1,4 @@
+import type { AveProfile } from '../data/config/ave_config';
 import type {
   MaintenanceCost,
   Production,
@@ -153,7 +154,12 @@ export interface Facility {
 
   // Effects when active
   effects: FacilityEffect;
+
+  // Calculated AVE profile for this facility type
+  aveProfile?: AveProfile;
 }
 
 // Type for facility configurations used to create actual facilities
-export type FacilityConfig = Omit<Facility, 'id'>;
+export type FacilityConfig = Omit<Facility, 'id'> & {
+  aveProfile?: AveProfile; // Ensure FacilityConfig can hold the profile
+};

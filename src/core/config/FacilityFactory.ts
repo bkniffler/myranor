@@ -3,14 +3,11 @@ import type {
   FacilityCategory,
   FacilityConfig,
   FacilityType,
-} from '../../models/Facility';
-import type {
   PropertySize,
   PropertyType,
   SpecializationType,
-} from '../../models/Property';
-import { AveCalculator } from '../../utils/AveCalculator';
-import { DataLoader } from '../loaders/DataLoader';
+} from '../models';
+import { DataLoader } from '../utils/DataLoader';
 
 // Facility type IDs (for TypeScript type checking)
 export const FacilityTypeID = {
@@ -32,49 +29,43 @@ export type FacilityTypeIDType =
  */
 export function getFacilityTypes(): Record<string, FacilityConfig> {
   const dataLoader = new DataLoader();
-  const aveCalculator = new AveCalculator(); // Instantiate AveCalculator
-  const facilityTypesData = dataLoader.loadFacilityTypes();
+  const facilityTypes = dataLoader.loadFacilityTypes();
 
   const result: Record<string, FacilityConfig> = {};
 
   // Convert from array to record with keys in uppercase
-  for (const facilityData of facilityTypesData) {
-    const key = facilityData.id.toUpperCase();
+  for (const facility of facilityTypes) {
+    const key = facility.id.toUpperCase();
 
     // Convert string types to enum types where needed
-    const facilityType = facilityData.type as unknown as FacilityType;
-    const category = facilityData.category as unknown as FacilityCategory;
+    const facilityType = facility.type as unknown as FacilityType;
+    const category = facility.category as unknown as FacilityCategory;
 
     // Convert property types and specializations arrays
     const buildRequirements: BuildRequirement = {
-      ...facilityData.buildRequirements,
-      propertyTypes: facilityData.buildRequirements.propertyTypes?.map(
+      ...facility.buildRequirements,
+      propertyTypes: facility.buildRequirements.propertyTypes?.map(
         (type) => type as unknown as PropertyType
       ),
-      specializations: facilityData.buildRequirements.specializations?.map(
+      specializations: facility.buildRequirements.specializations?.map(
         (spec) => spec as unknown as SpecializationType
       ),
-      propertySize: facilityData.buildRequirements.propertySize?.map(
+      propertySize: facility.buildRequirements.propertySize?.map(
         (size) => size as unknown as PropertySize
       ),
-      requiredFacilities:
-        facilityData.buildRequirements.requiredFacilities?.map(
-          (fac) => fac as unknown as FacilityType
-        ),
+      requiredFacilities: facility.buildRequirements.requiredFacilities?.map(
+        (fac) => fac as unknown as FacilityType
+      ),
     };
 
-    // Calculate AVE profile
-    const aveProfile = aveCalculator.calculateFacilityAveProfile(facilityData);
-
     result[key] = {
-      name: facilityData.name,
+      name: facility.name,
       type: facilityType,
-      description: facilityData.description,
+      description: facility.description,
       category: category,
       buildRequirements: buildRequirements,
-      maintenanceCost: facilityData.maintenance,
-      effects: facilityData.effects,
-      aveProfile: aveProfile, // Add the calculated profile
+      maintenanceCost: facility.maintenance,
+      effects: facility.effects,
     };
   }
 

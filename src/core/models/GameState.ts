@@ -60,3 +60,8 @@ export interface GameState {
     startingActionPoints: number;
   };
 }
+
+// Function to generate a unique ID (utility)
+export function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}

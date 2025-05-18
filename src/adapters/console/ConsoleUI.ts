@@ -1,10 +1,6 @@
 import * as readline from 'node:readline';
 import { type GameEngine, GameEventType, GamePhase } from '../../core';
 import { FacilityTypes, PropertyTypes } from '../../core';
-import type {
-  MaintenancePerformedPayload,
-  RoundAdvancedPayload,
-} from '../../core/events/EventPayloads';
 import type { GameEvent } from '../../core/events/GameEvent';
 
 export class ConsoleUI {
@@ -56,13 +52,11 @@ export class ConsoleUI {
         break;
       }
 
-      case GameEventType.MAINTENANCE_PERFORMED: {
-        const payload = event.payload as MaintenancePerformedPayload;
+      case GameEventType.MAINTENANCE_PERFORMED:
         console.log(
-          `\nUnterhalt bezahlt: ${payload.goldCost} Gold, ${payload.laborCost} Arbeitskraft`
+          `\nUnterhalt bezahlt: ${event.payload.goldCost} Gold, ${event.payload.laborCost} Arbeitskraft`
         );
         break;
-      }
 
       case GameEventType.RESOURCES_PRODUCED:
         console.log('\nProduktion abgeschlossen');
@@ -72,11 +66,9 @@ export class ConsoleUI {
         console.log('\nRessourcen zurückgesetzt');
         break;
 
-      case GameEventType.ROUND_ADVANCED: {
-        const payload = event.payload as RoundAdvancedPayload;
-        console.log(`\nRunde ${payload.round} beginnt`);
+      case GameEventType.ROUND_ADVANCED:
+        console.log(`\nRunde ${event.payload.round} beginnt`);
         break;
-      }
     }
   }
 
@@ -95,12 +87,12 @@ export class ConsoleUI {
 
   // Prompt for player name
   private promptForName(): void {
-    this.rl.question('Wie ist dein Name? ', (name) => {
+    this.rl.question('Wie ist dein Name? ', (_name) => {
       const playerId = 'player1';
 
       // Initialize game state with player - startGame will handle this
       const engine = this.engine;
-      engine.startGame(playerId, name || 'Spieler 1');
+      engine.startGame(playerId);
     });
   }
 
@@ -228,9 +220,6 @@ export class ConsoleUI {
 
   // Show the main action menu
   private showActionMenu(): void {
-    // Always display the current game state first
-    this.displayGameInfo();
-
     const state = this.engine.getCurrentState();
 
     if (state.actionPointsRemaining <= 0) {
@@ -276,11 +265,10 @@ export class ConsoleUI {
 
   // Placeholder methods for various actions
   private showGainInfluenceAction(): void {
-    this.clearScreen();
     const state = this.engine.getCurrentState();
     const player = state.players[state.currentPlayerId];
 
-    console.log('=== EINFLUSS GEWINNEN ===');
+    console.log('\n=== EINFLUSS GEWINNEN ===');
     console.log('Du kannst Gold ausgeben, um temporären Einfluss zu gewinnen.');
     console.log('Verhältnis: 1 Gold = 2 Einfluss');
     console.log(`Aktuelles Gold: ${player.resources.gold}`);
@@ -293,7 +281,9 @@ export class ConsoleUI {
         // Validate input
         if (Number.isNaN(amount)) {
           console.log('Ungültige Eingabe. Bitte gib eine Zahl ein.');
-          this.showGainInfluenceAction();
+          this.waitForEnter(() => {
+            this.showGainInfluenceAction();
+          });
           return;
         }
 
@@ -380,11 +370,10 @@ export class ConsoleUI {
   }
 
   private showSellMaterialsAction(): void {
-    this.clearScreen();
     const state = this.engine.getCurrentState();
     const player = state.players[state.currentPlayerId];
 
-    console.log('=== MATERIALIEN VERKAUFEN ===');
+    console.log('\n=== MATERIALIEN VERKAUFEN ===');
     console.log(
       'Du kannst Rohmaterialien und Sondermaterialien verkaufen, um Gold zu gewinnen.'
     );
@@ -451,7 +440,9 @@ export class ConsoleUI {
 
         if (!materialType) {
           console.log('Dieses Material ist nicht verfügbar.');
-          this.showSellMaterialsAction();
+          this.waitForEnter(() => {
+            this.showSellMaterialsAction();
+          });
           return;
         }
 
@@ -588,11 +579,10 @@ export class ConsoleUI {
   }
 
   private showGatherMaterialsAction(): void {
-    this.clearScreen();
     const state = this.engine.getCurrentState();
     const player = state.players[state.currentPlayerId];
 
-    console.log('=== MATERIAL GEWINNEN ===');
+    console.log('\n=== MATERIAL GEWINNEN ===');
     console.log(
       'Du kannst Arbeitskraft einsetzen, um Rohmaterialien zu gewinnen.'
     );
@@ -631,7 +621,9 @@ export class ConsoleUI {
           choice > activeProperties.length
         ) {
           console.log('Ungültige Eingabe.');
-          this.showGatherMaterialsAction();
+          this.waitForEnter(() => {
+            this.showGatherMaterialsAction();
+          });
           return;
         }
 
@@ -726,7 +718,7 @@ export class ConsoleUI {
                       roll,
                       dc,
                       success,
-                      materialsGathered: materialsGained,
+                      materialsGained,
                     },
                     apply: (state) => {
                       const player = {
@@ -800,11 +792,10 @@ export class ConsoleUI {
   }
 
   private showAcquirePropertyAction(): void {
-    this.clearScreen();
     const state = this.engine.getCurrentState();
     const player = state.players[state.currentPlayerId];
 
-    console.log('=== POSTEN ERWERBEN ===');
+    console.log('\n=== POSTEN ERWERBEN ===');
     console.log(
       'Du kannst neue Besitztümer erwerben, wenn du genug Gold hast.'
     );
@@ -827,7 +818,9 @@ export class ConsoleUI {
         // Validate input
         if (Number.isNaN(choice) || choice < 0 || choice > 6) {
           console.log('Ungültige Eingabe.');
-          this.showAcquirePropertyAction();
+          this.waitForEnter(() => {
+            this.showAcquirePropertyAction();
+          });
           return;
         }
 
@@ -953,11 +946,10 @@ export class ConsoleUI {
   }
 
   private showBuildFacilityAction(): void {
-    this.clearScreen();
     const state = this.engine.getCurrentState();
     const player = state.players[state.currentPlayerId];
 
-    console.log('=== EINRICHTUNG AUSBAUEN ===');
+    console.log('\n=== EINRICHTUNG AUSBAUEN ===');
     console.log('Du kannst Einrichtungen auf deinen Besitztümern ausbauen.');
 
     // Check if build action is available
@@ -1004,7 +996,9 @@ export class ConsoleUI {
           choice > activeProperties.length
         ) {
           console.log('Ungültige Eingabe.');
-          this.showBuildFacilityAction();
+          this.waitForEnter(() => {
+            this.showBuildFacilityAction();
+          });
           return;
         }
 
@@ -1083,46 +1077,47 @@ export class ConsoleUI {
             }
 
             // Check resource requirements
-            const resources = facilityConfig.buildRequirements.resources || {
-              gold: 0,
-              laborPower: 0,
-              rawMaterials: {},
-              specialMaterials: {},
-            };
+            const buildReqResources =
+              facilityConfig.buildRequirements.resources;
             let canBuild = true;
             const missingResources: string[] = [];
 
-            if (resources.gold && player.resources.gold < resources.gold) {
-              canBuild = false;
-              missingResources.push(
-                `${resources.gold - player.resources.gold} Gold`
-              );
-            }
+            if (buildReqResources) {
+              if (
+                buildReqResources.gold &&
+                player.resources.gold < buildReqResources.gold
+              ) {
+                canBuild = false;
+                missingResources.push(
+                  `${buildReqResources.gold - player.resources.gold} Gold`
+                );
+              }
 
-            if (
-              resources.laborPower &&
-              player.resources.laborPower < resources.laborPower
-            ) {
-              canBuild = false;
-              missingResources.push(
-                `${resources.laborPower - player.resources.laborPower} Arbeitskraft`
-              );
-            }
+              if (
+                buildReqResources.laborPower &&
+                player.resources.laborPower < buildReqResources.laborPower
+              ) {
+                canBuild = false;
+                missingResources.push(
+                  `${buildReqResources.laborPower - player.resources.laborPower} Arbeitskraft`
+                );
+              }
 
-            if (resources.rawMaterials) {
-              for (const [material, amount] of Object.entries(
-                resources.rawMaterials
-              )) {
-                const playerAmount =
-                  player.resources.rawMaterials[
-                    material as keyof typeof player.resources.rawMaterials
-                  ] || 0;
-                const amountNumber = amount as number;
-                if (playerAmount < amountNumber) {
-                  canBuild = false;
-                  missingResources.push(
-                    `${amountNumber - playerAmount} ${material}`
-                  );
+              if (buildReqResources.rawMaterials) {
+                for (const [material, amount] of Object.entries(
+                  buildReqResources.rawMaterials
+                )) {
+                  const playerAmount =
+                    player.resources.rawMaterials[
+                      material as keyof typeof player.resources.rawMaterials
+                    ] || 0;
+                  const amountNumber = amount as number;
+                  if (playerAmount < amountNumber) {
+                    canBuild = false;
+                    missingResources.push(
+                      `${amountNumber - playerAmount} ${material}`
+                    );
+                  }
                 }
               }
             }
@@ -1177,7 +1172,7 @@ export class ConsoleUI {
                       facility: newFacility,
                       propertyId: selectedProperty.id,
                       success: true,
-                      resourceCosts: resources,
+                      resourceCosts: buildReqResources || {}, // Pass original or empty if undefined
                     },
                     apply: (state) => {
                       const player = {
@@ -1190,20 +1185,22 @@ export class ConsoleUI {
                       // Update player resources
                       player.resources = {
                         ...player.resources,
-                        gold: player.resources.gold - (resources.gold || 0),
+                        gold:
+                          player.resources.gold -
+                          (buildReqResources?.gold || 0),
                         laborPower:
                           player.resources.laborPower -
-                          (resources.laborPower || 0),
+                          (buildReqResources?.laborPower || 0),
                       };
 
                       // Update raw materials if needed
-                      if (resources.rawMaterials) {
+                      if (buildReqResources?.rawMaterials) {
                         const updatedRawMaterials = {
                           ...player.resources.rawMaterials,
                         };
 
                         for (const [material, amount] of Object.entries(
-                          resources.rawMaterials
+                          buildReqResources.rawMaterials
                         )) {
                           const materialKey =
                             material as keyof typeof updatedRawMaterials;
@@ -1252,7 +1249,9 @@ export class ConsoleUI {
               console.log('Die Aktion konnte nicht ausgeführt werden.');
             }
 
-            this.showActionMenu();
+            this.waitForEnter(() => {
+              this.showActionMenu();
+            });
           }
         );
       }
@@ -1262,7 +1261,6 @@ export class ConsoleUI {
   // Helper method to wait for Enter
   private waitForEnter(callback: () => void): void {
     this.rl.question('Drücke Enter, um fortzufahren...', () => {
-      this.clearScreen();
       callback();
     });
   }
@@ -1271,10 +1269,8 @@ export class ConsoleUI {
   private promptEndTurn(): void {
     this.rl.question('Runde beenden? (j/n): ', (answer) => {
       if (answer.toLowerCase() === 'j') {
-        this.clearScreen();
         this.endTurn();
       } else {
-        this.clearScreen();
         this.showActionMenu();
       }
     });

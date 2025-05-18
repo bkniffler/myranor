@@ -1,6 +1,6 @@
-import { DataLoader } from '../data/loaders/DataLoader';
 import { GameEventType, createGameEvent } from '../events/GameEvent';
 import type { GameState } from '../models';
+import { DataLoader } from '../utils';
 import type { GameEngine } from './GameEngine';
 
 export class PhaseManager {
@@ -233,48 +233,12 @@ export class PhaseManager {
       type: GameEventType.RESOURCES_PRODUCED,
       playerId,
       payload: {
-        properties: {
-          // Map properties to their production data
-          ...Object.fromEntries(
-            player.propertyIds
-              .filter((id) => state.properties[id]?.active)
-              .map((id) => [
-                id,
-                {
-                  production: {
-                    gold: goldProduction[id] || 0,
-                    laborPower: laborProduction[id] || 0,
-                    influence: influenceProduction[id] || 0,
-                    rawMaterials: rawMaterialsProduction[id] || {},
-                    specialMaterials: specialMaterialsProduction[id] || {},
-                  },
-                },
-              ])
-          ),
-        },
-        totalProduction: {
-          gold: totalGoldProduction,
-          laborPower: totalLaborProduction,
-          influence: totalInfluenceProduction,
-          rawMaterials: Object.values(rawMaterialsProduction).reduce(
-            (acc, val) => {
-              for (const [material, amount] of Object.entries(val)) {
-                acc[material] = (acc[material] || 0) + amount;
-              }
-              return acc;
-            },
-            {}
-          ),
-          specialMaterials: Object.values(specialMaterialsProduction).reduce(
-            (acc, val) => {
-              for (const [material, amount] of Object.entries(val)) {
-                acc[material] = (acc[material] || 0) + amount;
-              }
-              return acc;
-            },
-            {}
-          ),
-        },
+        goldProduction,
+        laborProduction,
+        influenceProduction,
+        permanentInfluenceProduction,
+        rawMaterialsProduction,
+        specialMaterialsProduction,
       },
       apply: (state: GameState): GameState => {
         const player = { ...state.players[playerId] };
@@ -453,16 +417,7 @@ export class PhaseManager {
           type: GameEventType.RESOURCES_CONVERTED,
           playerId,
           payload: {
-            rawMaterialsConverted: Object.fromEntries(
-              Object.entries(rawMaterials)
-                .map(([material, amount]) => [
-                  material,
-                  (player.resources.rawMaterials[material] || 0) - amount,
-                ])
-                .filter(([_, amount]) => Number(amount) > 0)
-            ),
-            specialMaterialsConverted: specialMaterialsToAdd,
-            goldGained: 0, // Workshop conversions don't generate gold directly
+            workshopConversions: specialMaterialsToAdd,
           },
           apply: (state: GameState): GameState => {
             const player = { ...state.players[playerId] };
@@ -648,22 +603,12 @@ export class PhaseManager {
   processResourceResetPhase(): void {
     const state = this.engine.getCurrentState();
     const playerId = state.currentPlayerId;
-    const player = state.players[playerId];
 
     // Create resource reset event
     const resetEvent = createGameEvent({
       type: GameEventType.RESOURCES_RESET,
       playerId,
-      payload: {
-        previousState: {
-          laborPower: player.resources.laborPower,
-          influence: player.resources.temporaryInfluence,
-        },
-        newState: {
-          laborPower: player.resources.baseLaborPower,
-          influence: 0,
-        },
-      },
+      payload: {},
       apply: (state: GameState): GameState => {
         const player = { ...state.players[playerId] };
 

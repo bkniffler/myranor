@@ -10,5 +10,5 @@ export * from './commands';
 // Engine
 export * from './engine';
 
-// Data (new organized structure)
-export * from './data';
+// Config
+export * from './config';

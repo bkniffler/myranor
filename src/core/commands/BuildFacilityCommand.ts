@@ -1,8 +1,7 @@
-import { FacilityTypes } from '../data/factories/FacilityFactory';
+import { FacilityTypes } from '../config';
 import { GameEventType, createGameEvent } from '../events/GameEvent';
 import type { GameEvent } from '../events/GameEvent';
 import type { Facility, GameState } from '../models';
-import { rollD20 } from '../utils';
 import { generateUniqueId } from '../utils/idGenerator';
 import type { GameCommand } from './GameCommand';
 
@@ -24,6 +23,11 @@ export interface BuildFacilityCommand extends GameCommand {
     // Property ID to build on
     propertyId: string;
   };
+}
+
+// For V1, use a simple d20 roll for building success
+function rollD20(): number {
+  return Math.floor(Math.random() * 20) + 1;
 }
 
 // Command handler for building facilities
@@ -109,7 +113,7 @@ export const buildFacilityHandler = {
             player.resources.rawMaterials[
               material as keyof typeof player.resources.rawMaterials
             ] || 0;
-          if (playerAmount < (amount as number)) {
+          if (playerAmount < amount) {
             return false;
           }
         }
@@ -123,7 +127,7 @@ export const buildFacilityHandler = {
             player.resources.specialMaterials[
               material as keyof typeof player.resources.specialMaterials
             ] || 0;
-          if (playerAmount < (amount as number)) {
+          if (playerAmount < amount) {
             return false;
           }
         }
@@ -191,7 +195,7 @@ export const buildFacilityHandler = {
           )) {
             const materialKey = material as keyof typeof updatedRawMaterials;
             updatedRawMaterials[materialKey] =
-              (updatedRawMaterials[materialKey] || 0) - (amount as number);
+              (updatedRawMaterials[materialKey] || 0) - amount;
           }
 
           player.resources.rawMaterials = updatedRawMaterials;
@@ -209,7 +213,7 @@ export const buildFacilityHandler = {
             const materialKey =
               material as keyof typeof updatedSpecialMaterials;
             updatedSpecialMaterials[materialKey] =
-              (updatedSpecialMaterials[materialKey] || 0) - (amount as number);
+              (updatedSpecialMaterials[materialKey] || 0) - amount;
           }
 
           player.resources.specialMaterials = updatedSpecialMaterials;

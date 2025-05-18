@@ -3,7 +3,6 @@ import type { GameEvent } from '../events/GameEvent';
 import type { GameState } from '../models';
 import { PropertyType } from '../models';
 import type { Property } from '../models/Property';
-import { rollD20 } from '../utils';
 import type { GameCommand } from './GameCommand';
 
 // Command to gather materials by spending labor
@@ -15,6 +14,11 @@ export interface GatherMaterialsCommand extends GameCommand {
     // Optional: specific property ID to gather from
     propertyId?: string;
   };
+}
+
+// For V1, use a simple d20 roll
+function rollD20(): number {
+  return Math.floor(Math.random() * 20) + 1;
 }
 
 // Define the difficulty class (DC) for gathering resources

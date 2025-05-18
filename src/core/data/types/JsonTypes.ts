@@ -2,6 +2,7 @@
  * Type definitions for JSON data files
  * These types represent the raw shape of JSON data before conversion to domain models
  */
+import type { AveProfile } from '../config/ave_config';
 
 // Raw material from JSON file
 export interface RawMaterialData {
@@ -72,8 +73,12 @@ export interface PropertyTypeData {
   cost: {
     gold: number;
     influence?: number;
+    laborPower?: number; // Added for potential one-time labor costs
+    rawMaterials?: Record<string, number>; // Added for potential RM costs
+    specialMaterials?: Record<string, number>; // Added for potential SM costs
   };
   specialFeatures?: Record<string, any>;
+  aveProfile?: AveProfile; // Optional field for storing calculated AVE data
 }
 
 // Facility effect from JSON file
@@ -141,6 +146,7 @@ export interface FacilityTypeData {
     influence?: number;
   };
   effects: FacilityEffectData;
+  aveProfile?: AveProfile; // Optional field for storing calculated AVE data
 }
 
 // Game state configuration from JSON file

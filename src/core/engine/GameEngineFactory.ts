@@ -1,4 +1,3 @@
-import { DataLoader } from '../data/loaders/DataLoader';
 import {
   GameActionType,
   GamePhase,
@@ -6,7 +5,7 @@ import {
   MarketPriceCategory,
   MaterialCategory,
 } from '../models';
-import { generateUniqueId } from '../utils/idGenerator';
+import { DataLoader } from '../utils';
 import { GameEngine } from './GameEngine';
 
 // Create game engine from JSON data
@@ -175,4 +174,9 @@ export function createFromJsonData(): GameEngine {
   };
 
   return new GameEngine(initialState);
+}
+
+// Generate a unique ID (simple implementation)
+function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 }

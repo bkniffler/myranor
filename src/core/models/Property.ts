@@ -1,3 +1,5 @@
+import type { AveProfile } from '../data/config/ave_config';
+
 export enum PropertySize {
   SMALL = 'small',
   MEDIUM = 'medium',
@@ -124,9 +126,13 @@ export interface Property {
 
   // For specialized properties that need additional data
   specialData?: Record<string, any>;
+
+  // Calculated AVE profile for this property type
+  aveProfile?: AveProfile;
 }
 
 // Export a type for property configurations that will be used to create properties
 export type PropertyConfig = Omit<Property, 'id' | 'facilityIds' | 'active'> & {
   defaultActive?: boolean;
+  aveProfile?: AveProfile; // Ensure PropertyConfig can hold the profile
 };

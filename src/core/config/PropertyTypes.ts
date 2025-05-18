@@ -3,9 +3,8 @@ import {
   type PropertySize,
   type PropertyType,
   SpecializationType,
-} from '../../models/Property';
-import { AveCalculator } from '../../utils/AveCalculator';
-import { DataLoader } from '../loaders/DataLoader';
+} from '../models';
+import { DataLoader } from '../utils/DataLoader';
 
 // Property type IDs (for TypeScript type checking)
 export const PropertyTypeID = {
@@ -27,34 +26,29 @@ export type PropertyTypeIDType =
  */
 export function getPropertyTypes(): Record<string, PropertyConfig> {
   const dataLoader = new DataLoader();
-  const aveCalculator = new AveCalculator(); // Instantiate AveCalculator
-  const propertyTypesData = dataLoader.loadPropertyTypes();
+  const propertyTypes = dataLoader.loadPropertyTypes();
 
   const result: Record<string, PropertyConfig> = {};
 
   // Convert from array to record with keys in uppercase
-  for (const propertyData of propertyTypesData) {
-    const key = propertyData.id.toUpperCase();
+  for (const property of propertyTypes) {
+    const key = property.id.toUpperCase();
 
     // Convert string types to enum types where needed
-    const propertyType = propertyData.type as unknown as PropertyType;
-    const size = propertyData.size as unknown as PropertySize;
-
-    // Calculate AVE profile
-    const aveProfile = aveCalculator.calculatePropertyAveProfile(propertyData);
+    const propertyType = property.type as unknown as PropertyType;
+    const size = property.size as unknown as PropertySize;
 
     result[key] = {
-      name: propertyData.name,
+      name: property.name,
       type: propertyType,
       size: size,
       specialization: SpecializationType.NONE,
-      defaultActive: propertyData.defaultActive,
-      maintenanceCost: propertyData.maintenance,
-      baseProduction: propertyData.production,
-      dcModifiers: propertyData.dcModifiers,
-      facilitySlots: propertyData.facilitySlots,
-      specialData: propertyData.specialFeatures || {},
-      aveProfile: aveProfile, // Add the calculated profile
+      defaultActive: property.defaultActive,
+      maintenanceCost: property.maintenance,
+      baseProduction: property.production,
+      dcModifiers: property.dcModifiers,
+      facilitySlots: property.facilitySlots,
+      specialData: property.specialFeatures || {},
     };
   }
 
@@ -70,5 +64,5 @@ export function getPropertyConfigById(
   return getPropertyTypes()[id];
 }
 
-// Cached property types - loaded on demand
+// Exportable property types - loaded on demand
 export const PropertyTypes = getPropertyTypes();

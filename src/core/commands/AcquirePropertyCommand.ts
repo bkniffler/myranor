@@ -1,4 +1,4 @@
-import { PropertyTypes } from '../data/factories/PropertyFactory';
+import { PropertyTypes } from '../config';
 import { GameEventType, createGameEvent } from '../events/GameEvent';
 import type { GameEvent } from '../events/GameEvent';
 import type { GameState, Property } from '../models';

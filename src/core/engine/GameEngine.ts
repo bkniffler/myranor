@@ -54,28 +54,16 @@ export class GameEngine {
   }
 
   // Start a new game
-  startGame(playerId: string, playerName = 'Player 1'): void {
+  startGame(playerId: string): void {
     const _state = this.getCurrentState();
     const event = createGameEvent({
       type: GameEventType.GAME_STARTED,
       playerId,
-      payload: { playerId, playerName },
-      apply: (state: GameState): GameState => {
-        // Update the player name in state
-        const player = state.players[playerId];
-
-        return {
-          ...state,
-          phase: GamePhase.MAINTENANCE,
-          players: {
-            ...state.players,
-            [playerId]: {
-              ...player,
-              name: playerName,
-            },
-          },
-        };
-      },
+      payload: { playerId },
+      apply: (state: GameState): GameState => ({
+        ...state,
+        phase: GamePhase.MAINTENANCE,
+      }),
     });
 
     this.eventStore.addEvent(event);
@@ -123,20 +111,14 @@ export class GameEngine {
   }
 
   // Change to a specific phase
-  private changePhase(newPhase: GamePhase, playerId: string): void {
-    const state = this.getCurrentState();
-    const previousPhase = state.phase;
-
+  private changePhase(phase: GamePhase, playerId: string): void {
     const event = createGameEvent({
       type: GameEventType.PHASE_CHANGED,
       playerId,
-      payload: {
-        newPhase,
-        previousPhase,
-      },
+      payload: { phase },
       apply: (state: GameState): GameState => ({
         ...state,
-        phase: newPhase,
+        phase,
       }),
     });
 
