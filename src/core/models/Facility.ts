@@ -88,6 +88,12 @@ export interface FacilityEffect {
     specialMaterials?: Record<string, number>;
   };
 
+  // Direct material production (e.g., marketplace producing perfume every X rounds)
+  materialProduction?: {
+    rawMaterials?: Record<string, { amount: number; frequency: number }>;
+    specialMaterials?: Record<string, { amount: number; frequency: number }>;
+  };
+
   // Production conversion rates (for workshops)
   conversionRate?: {
     inputType: string;

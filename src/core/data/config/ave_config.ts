@@ -32,8 +32,7 @@ export interface AveResourceValues {
 // Values for different types of effects in AVE
 export interface AveEffectValues {
   dcReductionPoint: number; // AVE per 1 point of DC reduction for an action
-  // Example: AVE per point of combat power
-  // combatPowerPoint?: number;
+  combatPowerPoint: number; // AVE per 1 point of combat power
   // Example: AVE per unit of storage capacity (proxy for value of preventing decay)
   // storageUnitRaw?: number;
   // storageUnitSpecial?: number;
@@ -101,6 +100,7 @@ export const DEFAULT_AVE_CONFIG: AveConfig = {
   },
   effects: {
     dcReductionPoint: 0.075, // DC-Punkt (Senkung um 1) ≈ 0.05 - 0.1 AVE
+    combatPowerPoint: 0.1, // Example: 1 CP = 0.1 AVE (needs balancing)
   },
   balancing: {
     paybackPeriodRounds: 15, // Standard period to evaluate return on investment

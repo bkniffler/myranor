@@ -2,13 +2,16 @@ import * as readline from 'node:readline';
 import { type GameEngine, GameEventType, GamePhase } from '../../core';
 import { FacilityTypes, PropertyTypes } from '../../core';
 import type { GameEvent } from '../../core/events/GameEvent';
+import { PlayerStrengthCalculator } from '../../core/utils'; // Corrected import path
 
 export class ConsoleUI {
   private engine: GameEngine;
   private rl: readline.Interface;
+  private strengthCalculator: PlayerStrengthCalculator; // Add instance
 
   constructor(engine: GameEngine) {
     this.engine = engine;
+    this.strengthCalculator = new PlayerStrengthCalculator(); // Initialize
 
     // Create readline interface
     this.rl = readline.createInterface({
@@ -56,19 +59,69 @@ export class ConsoleUI {
         console.log(
           `\nUnterhalt bezahlt: ${event.payload.goldCost} Gold, ${event.payload.laborCost} Arbeitskraft`
         );
+        this.displayGameInfo(); // Show updated player info after maintenance
         break;
 
       case GameEventType.RESOURCES_PRODUCED:
         console.log('\nProduktion abgeschlossen');
+        this.displayGameInfo(); // Show updated player info after production
         break;
 
       case GameEventType.RESOURCES_RESET:
         console.log('\nRessourcen zurückgesetzt');
+        this.displayGameInfo(); // Show updated player info after reset
         break;
 
       case GameEventType.ROUND_ADVANCED:
         console.log(`\nRunde ${event.payload.round} beginnt`);
         break;
+
+      // Player action events - refresh the display for each player action
+      case GameEventType.INFLUENCE_GAINED:
+        console.log(
+          `\nEinfluss gewonnen: ${event.payload.influenceGained} (Kosten: ${event.payload.goldSpent} Gold)`
+        );
+        this.displayGameInfo();
+        break;
+
+      case GameEventType.MATERIALS_SOLD:
+        console.log(
+          `\nMaterialien verkauft für ${event.payload.goldGained} Gold`
+        );
+        this.displayGameInfo();
+        break;
+
+      case GameEventType.MATERIALS_GATHERED: {
+        console.log('\nMaterialien gesammelt:');
+        const materials = event.payload.materialsGained as Record<
+          string,
+          number
+        >;
+        for (const [material, amount] of Object.entries(materials)) {
+          console.log(`  ${material}: ${amount}`);
+        }
+        this.displayGameInfo();
+        break;
+      }
+
+      case GameEventType.PROPERTY_ACQUIRED: {
+        const property = event.payload.property as {
+          name: string;
+          type: string;
+        };
+        console.log(
+          `\nNeuer Besitz erworben: ${property.name} (${property.type})`
+        );
+        this.displayGameInfo();
+        break;
+      }
+
+      case GameEventType.FACILITY_BUILT: {
+        const facility = event.payload.facility as { name: string };
+        console.log(`\nEinrichtung gebaut: ${facility.name}`);
+        this.displayGameInfo();
+        break;
+      }
     }
   }
 
@@ -216,6 +269,32 @@ export class ConsoleUI {
         `Beispiel Spezialmaterial: ${sampleKey}, Preis: ${state.market.specialMaterials[sampleKey].basePrice}`
       );
     }
+
+    // Display Player Strength Profile
+    console.log('\n=== DEBUG: SPIELERSTÄRKE ===');
+    const strengthProfile = this.strengthCalculator.calculatePlayerStrength(
+      player,
+      state
+    );
+    console.log(
+      `  Liquid Resources AVE: ${strengthProfile.liquidResourcesAVE.toFixed(2)}`
+    );
+    console.log(
+      `  Net Income Per Round AVE: ${strengthProfile.netIncomePerRoundAVE.toFixed(2)}`
+    );
+    console.log(
+      `  Asset Potential AVE: ${strengthProfile.assetPotentialAVE.toFixed(2)}`
+    );
+    console.log(
+      `  Permanent Influence Per Round AVE: ${strengthProfile.permanentInfluencePerRoundAVE.toFixed(2)}`
+    );
+    console.log(
+      `  Combat Strength AVE: ${strengthProfile.combatStrengthAVE.toFixed(2)}`
+    );
+    console.log(
+      `  Total Strength Score: ${strengthProfile.totalStrengthScore.toFixed(2)}`
+    );
+    console.log('---------------------------');
   }
 
   // Show the main action menu
@@ -358,6 +437,7 @@ export class ConsoleUI {
           console.log(
             `Du hast ${amount} Gold ausgegeben und ${amount * 2} Einfluss gewonnen.`
           );
+          // Game event will trigger UI update
         } else {
           console.log('Die Aktion konnte nicht ausgeführt werden.');
         }
@@ -565,6 +645,7 @@ export class ConsoleUI {
               console.log(
                 `Du hast ${amount} ${materialName} für ${goldGained} Gold verkauft.`
               );
+              // Game event will trigger UI update
             } else {
               console.log('Die Aktion konnte nicht ausgeführt werden.');
             }
@@ -760,24 +841,8 @@ export class ConsoleUI {
             });
 
             if (result) {
-              const state = this.engine.getCurrentState();
-              const event = state.players[state.currentPlayerId].resources;
-
               console.log('Sammeln abgeschlossen!');
-
-              // Show what materials were gathered by comparing before and after
-              for (const [material, amount] of Object.entries(
-                event.rawMaterials
-              )) {
-                if (player.resources.rawMaterials[material] !== amount) {
-                  const difference =
-                    (amount || 0) -
-                    (player.resources.rawMaterials[material] || 0);
-                  if (difference > 0) {
-                    console.log(`Du hast ${difference} ${material} gesammelt.`);
-                  }
-                }
-              }
+              // Game event will trigger UI update with gathered materials
             } else {
               console.log('Die Aktion konnte nicht ausgeführt werden.');
             }
@@ -934,6 +999,7 @@ export class ConsoleUI {
 
         if (result) {
           console.log('Du hast ein neues Besitztum erworben!');
+          // Game event will trigger UI update
         } else {
           console.log('Die Aktion konnte nicht ausgeführt werden.');
         }
@@ -1245,6 +1311,7 @@ export class ConsoleUI {
               console.log(
                 `Du hast eine neue Einrichtung gebaut: ${facilityConfig.name}`
               );
+              // Game event will trigger UI update
             } else {
               console.log('Die Aktion konnte nicht ausgeführt werden.');
             }
