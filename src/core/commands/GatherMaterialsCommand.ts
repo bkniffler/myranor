@@ -6,14 +6,15 @@ import type { Property } from '../models/Property';
 import type { GameCommand } from './GameCommand';
 
 // Command to gather materials by spending labor
+export interface GatherMaterialsCommandPayload {
+  laborAmount: number; // Amount of labor to spend
+  propertyId?: string; // Optional: specific property ID to gather from
+  [key: string]: any; // For GameCommand compatibility
+}
+
 export interface GatherMaterialsCommand extends GameCommand {
   type: 'GATHER_MATERIALS';
-  payload: {
-    // Amount of labor to spend
-    laborAmount: number;
-    // Optional: specific property ID to gather from
-    propertyId?: string;
-  };
+  payload: GatherMaterialsCommandPayload;
 }
 
 // For V1, use a simple d20 roll

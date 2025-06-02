@@ -148,6 +148,10 @@ export function createFromJsonData(): GameEngine {
         name: 'Player 1',
         resources: gameStateConfig.initialResources,
         propertyIds: playerPropertyIds,
+        influenceGainedThisRound: {
+          // Added initialization
+          semiPermanentPerOffice: {},
+        },
       },
     },
     properties,

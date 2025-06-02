@@ -1,48 +1,52 @@
 {
-    "initialResources": {
-        "gold": 4,
-        "laborPower": 4,
-        "baseLaborPower": 4,
-        "temporaryInfluence": 0,
-        "permanentInfluence": 0,
-        "combatPower": 0,
-        "rawMaterials": {
-            "grain": 4
-        },
-        "specialMaterials": {
-            "tools": 1
-        }
+  "initialResources": {
+    "gold": 4,
+    "laborPower": 4,
+    "baseLaborPower": 4,
+    "temporaryInfluence": 0,
+    "permanentInfluence": 0,
+    "combatPower": 0,
+    "rawMaterials": {
+      "grain": 4
     },
-    "startingProperties": [
-        {
-            "type": "small_rural_domain",
-            "active": true
-        },
-        {
-            "type": "small_city_property",
-            "active": true,
-            "rented": true
-        }
-    ],
-    "startingFacilities": [
-        {
-            "type": "basic_housing",
-            "attachedToProperty": 0
-        }
-    ],
-    "gameSettings": {
-        "startingActionPoints": 2,
-        "maxTurns": 30,
-        "gameOverGoldThreshold": -20,
-        "initialRound": 1
-    },
-    "marketSettings": {
-        "rollFrequency": 1,
-        "maxPriceModifier": {
-            "notInDemand": -0.5,
-            "inDemand": 0.25,
-            "highDemand": 0.5,
-            "coveted": 1.0
-        }
+    "specialMaterials": {
+      "tools": 1
     }
+  },
+  "startingProperties": [
+    {
+      "type": "small_rural_domain",
+      "active": true
+    },
+    {
+      "type": "small_city_property",
+      "active": true,
+      "rented": true
+    },
+    {
+      "type": "small_workshop",
+      "active": true
+    }
+  ],
+  "startingFacilities": [
+    {
+      "type": "basic_housing",
+      "attachedToProperty": 0
+    }
+  ],
+  "gameSettings": {
+    "startingActionPoints": 2,
+    "maxTurns": 30,
+    "gameOverGoldThreshold": -20,
+    "initialRound": 1
+  },
+  "marketSettings": {
+    "rollFrequency": 1,
+    "maxPriceModifier": {
+      "notInDemand": -0.5,
+      "inDemand": 0.25,
+      "highDemand": 0.5,
+      "coveted": 1.0
+    }
+  }
 }

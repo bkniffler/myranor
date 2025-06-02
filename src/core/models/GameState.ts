@@ -28,6 +28,9 @@ export interface Player {
   name: string;
   resources: PlayerResources;
   propertyIds: string[];
+  influenceGainedThisRound: {
+    semiPermanentPerOffice: Record<string, number>; // Key: propertyId of Office, Value: points gained for that office this round
+  };
 }
 
 // Main game state

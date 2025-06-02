@@ -1,4 +1,30 @@
-import type { GameCommand } from '../commands/GameCommand';
+import {
+  type AcquirePropertyCommand,
+  type BuildFacilityCommand,
+  type GainInfluenceCommand,
+  type GatherMaterialsCommand,
+  type LendMoneyCommand,
+  LendMoneyCommandHandler, // Corrected (was already correct in intent)
+  type SellMaterialsCommand,
+  type SystemAutoConversionRawCommand,
+  SystemAutoConversionRawCommandHandler,
+  type SystemAutoConversionSpecialCommand,
+  SystemAutoConversionSpecialCommandHandler,
+  type SystemConversionCommand,
+  SystemConversionCommandHandler,
+  // System Commands
+  type SystemMaintenanceCommand,
+  SystemMaintenanceCommandHandler,
+  type SystemProductionCommand,
+  SystemProductionCommandHandler,
+  type SystemResetCommand,
+  SystemResetCommandHandler,
+  acquirePropertyHandler, // Corrected
+  buildFacilityHandler, // Corrected
+  gainInfluenceHandler, // Corrected
+  gatherMaterialsHandler, // Corrected
+  sellMaterialsHandler, // Corrected
+} from '../commands';
 import {
   type GameEvent,
   GameEventType,
@@ -7,6 +33,23 @@ import {
 import { GamePhase, type GameState } from '../models';
 import { type EventStore, InMemoryEventStore } from './EventStore';
 import { PhaseManager } from './PhaseManager';
+
+// Union type of all specific command objects
+export type AppCommand =
+  | GainInfluenceCommand
+  | SellMaterialsCommand
+  | GatherMaterialsCommand
+  | AcquirePropertyCommand
+  | BuildFacilityCommand
+  | LendMoneyCommand
+  // System Command Types
+  | SystemMaintenanceCommand
+  | SystemProductionCommand
+  | SystemConversionCommand
+  | SystemAutoConversionRawCommand
+  | SystemAutoConversionSpecialCommand
+  | SystemResetCommand;
+// Add other command types here
 
 export class GameEngine {
   private eventStore: EventStore;
@@ -18,16 +61,182 @@ export class GameEngine {
   }
 
   // Execute a game command
-  executeCommand(command: GameCommand): boolean {
+  executeCommand(command: AppCommand): boolean {
     const currentState = this.getCurrentState();
+    let isValid = false;
+    let events: GameEvent[] = [];
 
-    // Validate command
-    if (!command.validate(currentState)) {
-      return false;
+    switch (command.type) {
+      case 'GAIN_INFLUENCE':
+        isValid = gainInfluenceHandler.validate(
+          // Corrected
+          command as GainInfluenceCommand,
+          currentState
+        );
+        if (isValid) {
+          events = gainInfluenceHandler.execute(
+            // Corrected
+            command as GainInfluenceCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SELL_MATERIALS':
+        isValid = sellMaterialsHandler.validate(
+          // Corrected
+          command as SellMaterialsCommand,
+          currentState
+        );
+        if (isValid) {
+          events = sellMaterialsHandler.execute(
+            // Corrected
+            command as SellMaterialsCommand,
+            currentState
+          );
+        }
+        break;
+      case 'GATHER_MATERIALS':
+        isValid = gatherMaterialsHandler.validate(
+          // Corrected
+          command as GatherMaterialsCommand,
+          currentState
+        );
+        if (isValid) {
+          events = gatherMaterialsHandler.execute(
+            // Corrected
+            command as GatherMaterialsCommand,
+            currentState
+          );
+        }
+        break;
+      case 'ACQUIRE_PROPERTY':
+        isValid = acquirePropertyHandler.validate(
+          // Corrected (was AcquirePropertyCommandHandler)
+          command as AcquirePropertyCommand,
+          currentState
+        );
+        if (isValid) {
+          events = acquirePropertyHandler.execute(
+            // Corrected (was AcquirePropertyCommandHandler)
+            command as AcquirePropertyCommand,
+            currentState
+          );
+        }
+        break;
+      case 'BUILD_FACILITY':
+        isValid = buildFacilityHandler.validate(
+          // Corrected
+          command as BuildFacilityCommand,
+          currentState
+        );
+        if (isValid) {
+          events = buildFacilityHandler.execute(
+            // Corrected
+            command as BuildFacilityCommand,
+            currentState
+          );
+        }
+        break;
+      case 'LEND_MONEY':
+        isValid = LendMoneyCommandHandler.validate(
+          command as LendMoneyCommand,
+          currentState
+        );
+        if (isValid) {
+          events = LendMoneyCommandHandler.execute(
+            command as LendMoneyCommand,
+            currentState
+          );
+        }
+        break;
+      // System Command Cases
+      case 'SYSTEM_MAINTENANCE':
+        isValid = SystemMaintenanceCommandHandler.validate(
+          command as SystemMaintenanceCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemMaintenanceCommandHandler.execute(
+            command as SystemMaintenanceCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SYSTEM_PRODUCTION':
+        isValid = SystemProductionCommandHandler.validate(
+          command as SystemProductionCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemProductionCommandHandler.execute(
+            command as SystemProductionCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SYSTEM_CONVERSION':
+        isValid = SystemConversionCommandHandler.validate(
+          command as SystemConversionCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemConversionCommandHandler.execute(
+            command as SystemConversionCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SYSTEM_AUTO_CONVERSION_RAW':
+        isValid = SystemAutoConversionRawCommandHandler.validate(
+          command as SystemAutoConversionRawCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemAutoConversionRawCommandHandler.execute(
+            command as SystemAutoConversionRawCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SYSTEM_AUTO_CONVERSION_SPECIAL':
+        isValid = SystemAutoConversionSpecialCommandHandler.validate(
+          command as SystemAutoConversionSpecialCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemAutoConversionSpecialCommandHandler.execute(
+            command as SystemAutoConversionSpecialCommand,
+            currentState
+          );
+        }
+        break;
+      case 'SYSTEM_RESET':
+        isValid = SystemResetCommandHandler.validate(
+          command as SystemResetCommand,
+          currentState
+        );
+        if (isValid) {
+          events = SystemResetCommandHandler.execute(
+            command as SystemResetCommand,
+            currentState
+          );
+        }
+        break;
+      default: // Optionally handle unknown command types
+      // Ensure all command types in AppCommand union are handled, or add a check:
+      {
+        // Block scope for _exhaustiveCheck
+        const _exhaustiveCheck: never = command;
+        console.warn(
+          `Unknown command type: ${(_exhaustiveCheck as AppCommand).type}`
+        );
+        return false;
+      }
     }
 
-    // Generate events from the command
-    const events = command.execute(currentState);
+    if (!isValid) {
+      return false;
+    }
 
     // Add events to the store
     for (const event of events) {

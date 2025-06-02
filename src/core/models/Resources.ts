@@ -29,6 +29,7 @@ export interface PlayerResources {
   baseLaborPower: number;
   temporaryInfluence: number;
   permanentInfluence: number;
+  semiPermanentInfluenceBase: number; // Added for semi-permanent influence
   combatPower: number;
   rawMaterials: RawMaterials;
   specialMaterials: SpecialMaterials;
@@ -42,6 +43,7 @@ export function createInitialPlayerResources(): PlayerResources {
     baseLaborPower: 0,
     temporaryInfluence: 0,
     permanentInfluence: 0,
+    semiPermanentInfluenceBase: 0, // Initialize
     combatPower: 0,
     rawMaterials: createEmptyRawMaterials(),
     specialMaterials: createEmptySpecialMaterials(),
@@ -239,6 +241,7 @@ export interface GameStateConfig {
     baseLaborPower: number;
     temporaryInfluence: number;
     permanentInfluence: number;
+    semiPermanentInfluenceBase: number; // Added here as well
     combatPower: number;
     rawMaterials: Record<string, number>;
     specialMaterials: Record<string, number>;

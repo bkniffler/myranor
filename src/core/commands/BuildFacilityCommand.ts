@@ -6,7 +6,8 @@ import { generateUniqueId } from '../utils/idGenerator';
 import type { GameCommand } from './GameCommand';
 
 // Supported facility types for V1
-type V1FacilityType =
+export type V1FacilityType =
+  // Added export
   | 'BASIC_HOUSING'
   | 'FOOD_STORAGE'
   | 'LAND_EXPANSION'
@@ -15,14 +16,15 @@ type V1FacilityType =
   | 'MARKETPLACE';
 
 // Command to build a facility on a property
+export interface BuildFacilityCommandPayload {
+  facilityConfigKey: V1FacilityType; // Facility config key to build
+  propertyId: string; // Property ID to build on
+  [key: string]: any; // For GameCommand compatibility
+}
+
 export interface BuildFacilityCommand extends GameCommand {
   type: 'BUILD_FACILITY';
-  payload: {
-    // Facility config key to build
-    facilityConfigKey: V1FacilityType;
-    // Property ID to build on
-    propertyId: string;
-  };
+  payload: BuildFacilityCommandPayload;
 }
 
 // For V1, use a simple d20 roll for building success

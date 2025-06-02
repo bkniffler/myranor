@@ -12,11 +12,8 @@ export interface GameCommand {
   // Command data
   payload: Record<string, unknown>;
 
-  // Validate if this command can be executed given the current state
-  validate: (state: GameState) => boolean;
-
-  // Execute the command and return the events it produces
-  execute: (state: GameState) => GameEvent[];
+  // validate and execute are now handled by dedicated CommandHandler objects
+  // and are no longer part of the command data object itself.
 }
 
 export type CommandHandler<T extends GameCommand> = {

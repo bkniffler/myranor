@@ -1,4 +1,3 @@
-Neues System:
 Das System:
 Die Runde:
 Unterhalt:
@@ -50,7 +49,6 @@ Wurf	Kategorie	Nachfrage	Preiseffekt
 10	Einfaches Verbrauchsgut	Sehr gefragt	+1d6 Gold, andere normal
 11	Teures Baumaterial	Gefragt	+1d8 Gold, andere -1d2
 12	Teures Material	Nicht Gefragt	-1d8 Gold, billiges Material +1d6
-
  
 Billiges Rohmaterial: 
 Arten:
@@ -102,7 +100,6 @@ Wurf	Kategorie	Nachfrage	Preiseffekt
 10	Teure Bauprodukte	Sehr gefragt	+1d10 Gold, andere normal
 11	Teure Handwerksprodukte	Begehrt	+2d6 Gold, andere -1d2
 12	Teures Luxusgut	Marktumschwung	Würfle 1d6: 1-2=Luxus -2d6, 3-6=Luxus +3d6
-
  
  
 Billige Sondermaterial: 
@@ -161,9 +158,9 @@ DC-Senkungen: Manche Posten ermöglichen eine Senkung des DC bei manchen Aktione
 Schwierigkeitsgrade (DC)
 - Grund-DC: Abhängig von der Aktion.
 - Modifikatoren des DC:
-            - Kleine Investition oder Unternehmung oder Erwerb: DC unverändert.
-            - Mittlere Investition oder Unternehmung oder Erwerb: +3 Aufschlag auf DC.
-            - Große Investition oder Unternehmung oder Erwerb: +6 Aufschlag auf DC.
+         - Kleine Investition oder Unternehmung oder Erwerb: DC unverändert.
+         - Mittlere Investition oder Unternehmung oder Erwerb: +3 Aufschlag auf DC.
+         - Große Investition oder Unternehmung oder Erwerb: +6 Aufschlag auf DC.
 Als Kleine Investition zähle alle kleinen Einrichtungen, alle als Klein angegeben Investitionen und 
  
 Erfolgsskala von Aktionen:
@@ -218,11 +215,11 @@ Temporärer Einfluss: Investiere je 1 Gold per 4 Temporären Einfluss (Investiti
 Semipermanenter Einfluss: Investiere je 3 Gold pro 1 semipermanenter Einflussstufe: Dieser Einfluss steht jede Runde erneut zur Verfügung, akkumuliert aber nicht. Maximal 2 Punkte per Runde und per Amtsstufe (Klein/Mittel/Groß), wobei jedes Amt als eigene Stufe gilt.
 DC: 12 (WIS/INT/CH), Ab 4 Investitionen gelten sie als Mittlere Unternehmung, ab 8 Investitionen als Große Unternehmung
 Erfolge:
-            - Sehr gut geschafft: +4 Temporären Einfluss oder +1 Semi-permaneten Einfluss pro Investition zusätzlich.
-            - Gut geschafft: +2 Temporären Einfluss oder +1 Semi-permaneten Einfluss pro Investition zusätzlich. 
-            - Geschafft: Erhalte standardmäßigen Einfluss oder Semi-Permanenten Einfluss.
-            - Schlecht geschafft: Nur den halben Einfluss pro Investition (runde auf mindestens 1).
-            - Fehlschlag: Keine Gewinne, Gold verloren.
+         - Sehr gut geschafft: +4 Temporären Einfluss oder +1 Semi-permaneten Einfluss pro Investition zusätzlich.
+         - Gut geschafft: +2 Temporären Einfluss oder +1 Semi-permaneten Einfluss pro Investition zusätzlich. 
+         - Geschafft: Erhalte standardmäßigen Einfluss oder Semi-Permanenten Einfluss.
+         - Schlecht geschafft: Nur den halben Einfluss pro Investition (runde auf mindestens 1).
+         - Fehlschlag: Keine Gewinne, Gold verloren.
  
 2. Geldgewinn
 Beschreibung: Erhöhe dein Gold durch Investitionen, Handel oder Verkauf von Materialien.
@@ -252,26 +249,27 @@ Fehlschlag: Keine Gewinne, Investition verloren.
  
 4. Gewinn permanenter Posten oder Sondereinrichtungen
 Beschreibung: Erweitere dein Reich durch den Erwerb von Domänenland, Werkstätten oder Ämtern.
+Beschränkungen: 2/4/8 Pächterstufen per Domäne, 2/3/4 per Städtischem Besitz, 2/3/4 per Stufe eines Kultes oder Unterweltcircels; 
 Kosten und Anforderungen:
 Domänen: Domänenland kostet ein Viertel des Preises.
-                        - Klein: 30 Gold.
-                        - Mittel: 60 Gold
-                        - Groß: 120 Gold
+                   - Klein: 25 Gold.
+                   - Mittel: 60 Gold
+                   - Groß: 120 Gold
 Städtischer Grundbesitz: Pures Bauland kostet die Hälfte. 
 - Klein: 12 Gold.
-                        - Mittel: 24 Gold
-                        - Groß: 40 Gold.
+                   - Mittel: 24 Gold
+                   - Groß: 40 Gold.
 Werkstätten:
-                        - Klein: 8 Gold.
-                        - Mittel: 16 Gold.
-                        - Groß: 40 Gold.
+                   - Klein: 8 Gold.
+                   - Mittel: 16 Gold.
+                   - Groß: 40 Gold.
 Ämter:
-                        - Klein: 10 Gold, 2 Einfluss benötigt.
-                        - Mittel: 16 Gold, 8 Einfluss benötigt.
-                        - Groß: 60 Gold, 20 Einfluss benötigt.
+                   - Klein: 10 Gold, 2 Einfluss benötigt.
+                   - Mittel: 16 Gold, 8 Einfluss benötigt.
+                   - Groß: 60 Gold, 20 Einfluss benötigt.
 -       DC(per Stufe): 14 (CHA/INT) statt 12.
-Pächter/Anhänger anwerben:
--       Je 250: 
+Pächter/Anhänger/Untertanen anwerben:
+-       Je 250: 12 Gold, 4 Einfluss
 -       DC(per Stufe): 14 (CHA/INT) statt 12.
 Handelsunternehmung:
 -       Klein: 10 Gold, 2 Einfluss benötigt.
@@ -279,14 +277,18 @@ Handelsunternehmung:
 -       Groß: 60 Gold, 20 Einfluss benötigt.
 Unterweltcircel oder Spionagering
 -       Kosten (mal Stufe):  20 Gold, 8 Einfluss.
--       DC(per Stufe): 14 (CHA/INT) statt 12.
+-       DC(per Stufe): 14 (CHA/INT).
 Kult
 -       Kosten (mal Stufe):  10 Gold, 6 Einfluss.
--       DC (per Stufe):  15 (CHA/WIS) statt 12.
+-       DC (per Stufe):  14 (CHA/WIS).
 Handwerks-/Handelscollegium 
 -       Kosten (mal Stufe): 20 Gold, 2 Einfluss
--       DC (per Stufe):  13 (INT/CHA) statt 12.
-Fachleute/Gefolgsleute anwerben:
+-       DC (per Stufe):  12 (INT/CHA).
+Truppen:
+-       Milizen: 6 Gold, 1 SM (Waffen) pro Einheit
+-       Schläger/Protectoren: : 4 Gold, 2 Einfluss pro Einheit
+-       Leibgarde: 12 Gold, 4 Einfluss, 1SM (Rüstung), 1 SM (Waffen) pro Einheit
+-       Söldner: 8 Gold pro Einheit
 DC: 12 (WIS/CH), außer für Handels und Handwerks-Collegien (13), Unterweltcircel, Pächter und Ämter (14), Kulte (15)
 Mittlere Posten und Circel der 2. Stufe gelten als Mittlere Unternehmung (+4 auf DC), Große Posten oder Circel der 3.Stufe gelten als Große Unternehmungen (+8 auf DC);
 Erfolge:
@@ -299,13 +301,15 @@ Fehlschlag: Aktion nicht erfolgreich, Ressourcen bleiben aber erhalten.
 5. Politische Schritte
 Beschreibung: Führe politische Aktionen durch, wie Reformen, Bündnisse oder Intrigen.
 Kosten: 1 Einfluss und 1 Gold pro Größenstufe.
-DC: 12 (WIS/INT/CH)
+Beschädigen: Investiere je 1 Kampfkraft – Verdeckt oder Offen (Investition) oder 6 Einfluss (Investition). Deckelung: Max 4 Investitionen per Stufe (Klein/Mittel/Große) von Amt oder Unterweltcircel/Spionagering oder Kult möglich.
+Manipulieren: Investiere je 6 Einfluss und 2 Gold oder 6 Gold und 2 Einfluss (= 1 Investition). Deckelung: Max 2 Investitionen per Stufe (Klein/Mittel/Große Werkstatt) von Amt oder Unterweltcircel/Spionagering oder Kult möglich.
+DC: 12 (WIS/INT/CH) + Modifikator für beide je nach Investition: Ab 4 Investitionen Mittel, ab 8 Investitionen Groß
 Erfolge:
-Sehr gut geschafft: Kosten um 2 reduziert.
-Gut geschafft: Kosten um 1 reduziert.
-Geschafft: Aktion erfolgreich, Kosten unverändert.
-Schlecht geschafft: -1 Einfluss oder Ansehensverlust.
-Fehlschlag: -1 Einfluss und Ansehensverlust.
+Sehr gut geschafft: Kosten um 2 reduziert. Konsequenzen um 4 reduziert; Erhalte eine 3 Informationen.
+Gut geschafft: Kosten um 1 reduziert. Konsequenzen um 2 reduziert; Erhalte 2 Information.
+Geschafft: Aktion erfolgreich, Kosten unverändert. Erhalte eine Information.
+Schlecht geschafft: -1 Einfluss oder Ansehensverlust. Konsequenzen um 2 erhöht;
+Fehlschlag: -1 Einfluss und Ansehensverlust. Konsequenzen um 4 erhöht;
  
 6. Einrichtungen errichten/ausbauen (Sonderaktion)
 Diese Sonderaktion gelingt automatisch bei Kleinen Unternehmungen/Werkstätten/Lagern und ist immer einmal zur Runde zulässig. 
@@ -325,38 +329,46 @@ Städtischer Besitz Spezialisierungen: Ab Mittlerem Besitz;
 -       Metallverarbeitung: 20 Gold, 2 AK (Permanent, Zusätzlich), 3 SM (Sonderwerkzeug - Amboss, Esse). Zusätzlicher Unterhalt: 4 Holz;
 Allgemeine Einrichtungen: 
 - Klein: 8 Gold.
-                        - Mittel: 12 Gold.
-                        - Groß: 30 Gold.
+                   - Mittel: 12 Gold.
+                   - Groß: 30 Gold.
 Besondere Einrichtungen:
 - Klein: 10 Gold.
-                        - Mittel: 20 Gold.
-                        - Groß: 40 Gold.
+                   - Mittel: 20 Gold.
+                   - Groß: 40 Gold.
 Werkstätten und Lager:
 - Klein: 8 Gold.
-                        - Mittel: 16 Gold.
-                        - Groß: 40 Gold.
+                   - Mittel: 16 Gold.
+                   - Groß: 40 Gold.
+Fachkraft: 
+-       Einfach: 10 Gold
+-       Erfahren: 25 Gold
+-       Meisterlich: 50 Gold
+ 
+ 
+Die Reaktionen:
+Diese Sonderaktion kann als Reaktion auf ein Gelegenheits-Geschehnis der Zufallstabellen oder eine Gegnerreaktion durchgeführt werden. Bonusreaktionen erlauben mehrere Reaktionen, wenn sie auf das Geschehen passen;
  
 Bestehende Posten 
  
 Domänen:
 - Kleine Domäne:
-            - Unterhaltskosten: 2 Gold Unterhalt pro Runde.
-            - Ertrag: 2 Arbeitskraft, 12 Rohmaterialien.
-            - Vorteil: Senkt Materialgewinn-DC bei Kleinen Aktionen um 1.
+         - Unterhaltskosten: 2 Gold Unterhalt pro Runde.
+         - Ertrag: 2 Arbeitskraft, 12 Rohmaterialien.
+         - Vorteil: Senkt Materialgewinn-DC bei Kleinen Aktionen um 1.
 - Mittlere Domäne:
-            - Unterhaltskosten: 4 Gold Unterhalt.
-            - Ertrag: 4 Arbeitskraft, 20 Rohmaterial.
-            - Vorteil: Senkt Materialgewinn-DC bei Mittleren Aktionen um 1.
+         - Unterhaltskosten: 4 Gold Unterhalt.
+         - Ertrag: 4 Arbeitskraft, 20 Rohmaterial.
+         - Vorteil: Senkt Materialgewinn-DC bei Mittleren Aktionen um 1.
 - Große Domäne:
-            - Unterhaltskosten: 8 Gold Unterhalt.
-            - Ertrag: 8 Arbeitskraft, 36 Rohmaterial.
-            - Vorteil: Senkt Materialgewinn-DC bei Großen Aktionen um 1.
+         - Unterhaltskosten: 8 Gold Unterhalt.
+         - Ertrag: 8 Arbeitskraft, 36 Rohmaterial.
+         - Vorteil: Senkt Materialgewinn-DC bei Großen Aktionen um 1.
 Domänenausbau: 
 Allgemeine Einrichtungen der Domäne – Zulässig auf allen Domänen; 
 Beschränkung der Einrichtungen: Je Bis zu einem Maximum der Doppelten Domänengröße (2 bis 6).
 Werkstatt: Siehe unter Besondere Einrichtungen: Werkstatt; Zählt als 1 Einrichtungsplatz unabhängig von Größe – aber Werkstatt Einschränkungen unterworfen;
 Einfache Verteidigungsanlagen: 3 Gold, 3 RM (Bauholz), 1 AK (einmalig), Effekt: Verbesserte Sicherheit, reduziert die Wahrscheinlichkeit von Überfällen
-Landgewinnung: 4 Gold, 2 AK (einmalig), Effekt: +2 RM des Hauptertrags der Domäne pro Runde, Mehrfach baubar, je nach Domänengröße (max. 1/2/3 für kleine/mittlere/große Domänen)
+Landgewinnung: 4 Gold, 2 AK (einmalig), Effekt: +4 RM des Hauptertrags der Domäne pro Runde, Mehrfach baubar, je nach Domänengröße (max. 1/2/3 für kleine/mittlere/große Domänen)
 Kornspeicher: 4 Gold, Effekt: Ermöglicht Lagerung von 5 RM Nahrung ohne ein dediziertes Lager 
 Erweiterte Arbeiterunterkünfte: 5 Gold, Effekt: +1 AK permanent, Mehrfach baubar, je 
 nach Domänengröße (max. 2/3/5 für kleine/mittlere/große Domänen)
@@ -364,7 +376,7 @@ Großer Oktaden-Schrein: 8 Gold, Effekt: +4 Einfluss pro Runde, + 250 Pächter;
 Ansiedeln von Pächtern: 10 Gold, siedelt 250 Pächter an (nächste Runde), Mehrfach baubar, je nach Domänengröße (max. 2/4/6 für kleine/mittlere/große Domänen)
 Marktplatz und Handelsposten: 16 Gold, Unterhalt: 1 AK, Effekt: +2 Gold, + 1 Teure SM
 Experimental-Cammern: 30 Gold, 2 AK, 1 Fachkraft (Gelehrter), Effekt: Ermöglicht Forschung und Experimente auf dem Land 
-Luxuriöse Domänenvilla: 30/60 Gold (Mittel/Große Domäne), 5/10 RM (teures Material), 4/8 SM (Teures Material); Unterhalt: 4 Gold per Domäenstufe; Effekt: Repräsentationsgebäude, +1 Permanenter Einfluss jede zweite Runde (Mittlere Domäne), oder jede Runde (Große Domäne); Kann als temporärer Wohnsitz für Adelige oder wichtige Gäste dienen und deren Loyalität erhöhen;
+Luxuriöse Domänenvilla: 30/60 Gold (Mittel/Große Domäne), 5/10 RM (teures Material), 4/8 SM (Teures Material); Unterhalt: 4 Gold per Domäenstufe; Effekt: Repräsentationsgebäude, +1 Permanenter Einfluss jede zweite Runde (Mittlere Domäne), oder jede Runde (Große Domäne); Kann als temporärer Wohnsitz für Adelige oder wichtige Fachkräfte dienen und deren Loyalität um +1/2 per Stufeerhöhen;
  
 Domänenspezialisierung: 
 Je 1 der hier aufgeführten Spezialisierungen und 1 Zusätzliche Besonderen Einrichtungen ist zusätzlich per Stufe Domänengröße Mittel/Groß möglich.
@@ -414,20 +426,20 @@ Städtischer Besitz:
 Städtischer Grundbesitz:
 Kann gekauft oder gepachtet werden – wenn gepachtet wurde – Unterhalt wie angegeben. Wenn gekauft wurde: Verpachten oder für Eigenproduktion benutzen.
 - Kleiner Besitz:
-            - Unterhaltskosten: 2 Gold Unterhalt pro Runde – fällt nur an wenn nicht verpachtet.
-            - Ertrag wenn Verpachtet: 1 Arbeitskraft, 1 Einfluss, 3 Gold.
+         - Unterhaltskosten: 2 Gold Unterhalt pro Runde – fällt nur an wenn nicht verpachtet.
+         - Ertrag wenn Verpachtet: 1 Arbeitskraft, 1 Einfluss, 3 Gold.
 - Vorteil wenn Verpachtet: Senkt Einflussgewinn- und Politische Schritte DC bei Kleinen Aktionen um 1.
 - Ertrag wenn Eigenproduktion: 2 AK
 - Vorteil wenn Eigenproduktion: Erlaubt 2 Kleine oder 1 Mittlere Werkstatt oder Lager
 - Mittlerer Besitz:
-            - Unterhaltskosten: 4 Gold Unterhalt pro Runde– fällt nur an wenn nicht verpachtet
-            - Ertrag wenn Verpachtet: 2 Arbeitskraft, 2 Einfluss, 6 Gold.
+         - Unterhaltskosten: 4 Gold Unterhalt pro Runde– fällt nur an wenn nicht verpachtet
+         - Ertrag wenn Verpachtet: 2 Arbeitskraft, 2 Einfluss, 6 Gold.
 - Vorteil wenn Verpachtet: Senkt Einflussgewinn- und Politische Schritte DC um 1 bei Mittleren Aktionen.
 - Ertrag wenn Eigenproduktion: 3 AK
 - Vorteil wenn Eigenproduktion: Erlaubt 2 Mittlere oder 1 Große Werkstatt oder Lager
 - Großer Besitz:
-            - Unterhaltskosten: 8 Gold Unterhalt pro Runde– fällt nur an wenn nicht verpachtet
-            - Ertrag wenn Verpachtet: 4 Arbeitskraft, 4 Einfluss, 12 Gold.
+         - Unterhaltskosten: 8 Gold Unterhalt pro Runde– fällt nur an wenn nicht verpachtet
+         - Ertrag wenn Verpachtet: 4 Arbeitskraft, 4 Einfluss, 12 Gold.
 - Vorteil wenn Verpachtet: Senkt Einflussgewinn- und Politische Schritte DC um 1 bei Großen Aktionen.
 - Ertrag wenn Eigenproduktion: 6 AK
 - Vorteil wenn Eigenproduktion: Erlaubt 2 Große Werkstätte oder Lager
@@ -441,6 +453,7 @@ Beschränkung der Einrichtungen: Je Bis zu 2 Einrichtungen per Kleinem Besitz, 3
 -       Insulaebau: 10 Gold, 4 RM Ziegel, 4 RM Bauholz, siedelt 250 Pächter an (nächste Runde), Mehrfach baubar, je nach Besitzgröße (max. 2/4/6 für kleine/mittlere/große Stadtbesitzungen)
 -       Pacht von Marktständen: 14 Gold, 4 Einfluss; Senkt Geldgewinn-DC (Verkauf) um 1 bei kleinen Unternehmungen, dient als Mittleres Lager;
 -       Manufakturbetriebe: 20 Gold, 1 SM Maschinenteile; Mittlere Einrichtung, benötigt mindestens Mittlere Werkstatt. Verbessert die Investitionskapazitäten der Werkstätten um +1 bei Materialgewinn: Werkstattüberwachung
+-       Luxuriöses Atriumhaus: 30/60 Gold (Mittel/Großer Stadtbesitz), 5/10 RM (teures Material), 4/8 SM (Teures Material); Unterhalt: 4 Gold per Domäenstufe; Effekt: Repräsentationsgebäude, +1 Permanenter Einfluss jede zweite Runde (Mittlere Domäne), oder jede Runde (Große Domäne); Kann als temporärer Wohnsitz für Adelige oder wichtige Fachkräfte dienen und deren Loyalität um +1/2 per Stufen erhöhen;
 -       Magomanufaktur: 100 Gold, 20 Einfluss, 10 Zauberkraft, 8 SM Magische Maschinenteile; Große Einrichtung, benötigt Große Werkstatt. Unterhalt: +2 Zauberkraft; +2 SM (Magomechanische); Verbessert die Aktion Materialgewinn: Werkstattüberwachung von Großen Werkstätten auf einen Umtauschkurs von 4:1 bei Aktion; Bei Großer Werkstatt + Manufakturbetrieb – Bonusaktion Materialgewinnung: Werkstattüberwachung
 Städtische Spezialisierungen:
 Spezialisierung ist nur einmal per städtischem Besitz zulässig. Vorteil: +1 Zusätzliche Besondere Einrichtung per Spezialisierung zulässig;
@@ -510,20 +523,29 @@ Besondere Einrichtungen:
 Circel und Collegien:
 Allgemein: Permanente Posten. 
 Allgemeiner Ertrag: Erlauben den Bau von 1 Zusätzlichen Allgemeinen oder Besonderen Städtischen Besitz Einrichtungen pro Stufe des Circels und Städtischem Besitz; 
-Beschränkung: Brauchen einen Kleine/Mittleren/Großen Städtischen Besitz per Stufe als Hauptquartier. Die DC Senkungen sind nur einmal fällig und akumulieren nicht bei weiteren Circeln der selben Art. Je 1 Allgemeine Einrichtung pro Stufe des Zirkels +1 Zusätzliche Besodnere Einrichtung je nach Circelart. 
-Unterweltcircel/Spionagering
-Beschränkung: Muss Unterweltcircel oder Spionagering wählen;
-* Unterhalt: 1 AK und 1 Gold (Unterweltbande) per Stufe, bzw. 2 Gold (Spionagering) per Stufe
-* Ertrag: +3 Gold und +1 Einfluss (Unterweltbande) oder +4 Einfluss (Spionagering) pro Stufe/Runde
+Anhänger/Klienten: Die Circl und Collegien können Klienten/Anhänger von 1/2/3 Stufen per Sufe des Circels erreichen; Kulte und Banden weichen davon ab;
+Beschränkung: Brauchen einen Kleine/Mittleren/Großen Städtischen Besitz per Stufe als Hauptquartier. Die DC Senkungen sind nur einmal fällig und akumulieren nicht bei weiteren Circeln der selben Art. Je 1 Allgemeine Einrichtung pro Stufe des Zirkels +1 Zusätzliche Besondere Einrichtung je nach Circelart. 
+Unterweltcircel
+* Unterhalt: 1 AK und 1 Gold per Stufe
+* Ertrag: +3 Gold und +1 Einfluss (Unterweltbande) 
+* Ertrag ab 2 Stufe: +3 Gold +2 Einfluss per Stufe und Stufe Städtischen Besitzes
+* Ertrag ab 3 Stufe: +4 Gold +3 Einfluss per Stufe und Stufe Städtischen Besitzes
+* Vorteile: -1 DC auf Politische Schritte per Stufe; 
+* Anhänger: Unterweltcircel können Anhänger (Pächter) bis zu 2/4/6 per Stufe erlangen, zahlen dafür aber 12 Gold und 10 Einfluss per Anhängerstufe;
+Spionagering
+* Unterhalt: 2 Gold per Stufe
+* Ertrag: +4 Einfluss (Spionagering) pro Stufe/Runde
 * Ertrag ab 2 Stufe: +1 Permanenter Einfluss
 * Ertrag ab 3 Stufe: +2 Permanenter Einfluss; Bonusaktion: Politische Schritte alle 2 Runden;
 * Vorteile: -1 DC auf Politische Schritte per Stufe; 
+* Anhänger: Spionageringe haben keine Anhänger;
 Kult
 * Unterhalt: 1 Gold per Stufe
 * Ertrag: +5 Einfluss, +1 AK per Stufe und Runde
 * Ertrag ab 2 Stufe: +2 Permanenter Einfluss
 * Ertrag ab 3 Stufe: +4 Permanenter Einfluss; Bonusaktion: Einflussgewinn;
 * Vorteile: -1 DC auf Einfluss Gewinnen per Stufe
+* Anhänger: Kulte können Anhänger (Pächter) bis zu 2/4/8 erlangen, zahlen dafür aber 8 Gold und 8 Einfluss per Anhängerstufe;
 Handwerkscollegium/Handelscollegium (Gilde)
 Beschränkung: Muss Handwerkscollegium oder Handelscollegium wählen;
 * Unterhalt: 2 Gold
@@ -534,47 +556,51 @@ Allgemeine Einrichtungen der Circel:
 Festes Hauptquartier: Kosten: 4 Gold, 2 Einfluss; Unterhalt: 1 Gold pro Runde; Effekt: +1 auf Reaktionen gegen Angriffe.
 Botennetz: Kosten: 8 Gold; Unterhalt: 1 AK, 1 Gold pro Runde; Effekt: +1 auf Proben für politische Schritte.
 Veteranen-Protectoren: Kosten: 8 Gold, 2 Einfluss; Unterhalt: 1 Gold pro Runde; Ertrag: +2 Verdeckte Kampfkraft;
-Gemeinsames Warenager: Kosten: 8 Gold, 4 Einfluss; Unterhalt: 1 Einfluss pro Runde; Effekt: Ermöglicht die Lagerung von 5 Rohmaterialien oder 3 Sondermaterialien pro Circelstufe ohne dediziertes Lager.
+Gemeinsames Warenlager: Kosten: 8 Gold, 4 Einfluss; Unterhalt: 1 Einfluss pro Runde; Effekt: Ermöglicht die Lagerung von 5 Rohmaterialien oder 3 Sondermaterialien pro Circelstufe ohne dediziertes Lager.
 Fähige Ausbilder: Kosten: 8 Gold, 4 Einfluss; Unterhalt: 1 Gold pro Runde; Effekt: +1 Arbeitskraft pro Circelstufe.
 Repräsentationsräume: Kosten: 12 Gold, 2 RM (teures Material); Unterhalt: 2 Gold pro Runde; Effekt: +1 Einfluss pro Runde, Vorteil: Senkt Einflussgewinn-DC um 1 für kleine Aktionen.
 Schmuggelunternehmungen Kosten: 12 Gold, 6 Einfluss, Unterhalt: 2 Gold pro Runde; Effekt: +1 teures RM pro Runde oder +1 teures SM alle 2 Runden.
 Sonderbeiträge: Kosten (Einmalig): 15 Einfluss; Vorteil (Einmalig): +1 Bonusaktion Geldgewinn (max. 2 Investitionen); Nachteil (Einmalig): Erhöht den DC für Politische Aktionen und Einflussgewinn-Aktionen um 4 für die nächste Runde.
+Besondere Einrichtungen:
+Erst ab Mittlerem Circel;
 Besondere Einrichtungen Unterweltcircel:
-Gnadenlose Geldeintreiber: Kosten: 12 Einfluss; Unterhalt: 2 Einfluss pro Runde; Ertrag: +1 Gold per Städtischem Besitz und 500 Pächter und Circelstufe; Geldgewinn-DC für kleine Unternehmungen -1, ermöglicht Umgehen von Zöllen und Kontrollen.
-Tiefe Kriegskassen: Kosten: 12 Gold, 4 Einfluss; Unterhalt: 2 Gold pro Runde
+Gnadenlose Geldeintreiber: Kosten: 10 Einfluss; Unterhalt: 2 Einfluss pro Runde; Ertrag: +1 Gold per Städtischem Besitz und 500 Pächter und Circelstufe; Geldgewinn-DC für kleine Unternehmungen -1, ermöglicht Umgehen von Zöllen und Kontrollen.
+Tiefe Kriegskassen: Kosten: 10 Gold, 4 Einfluss; Unterhalt: 2 Gold pro Runde
 Effekt: -1 DC auf Politische Schritte: Manipulieren für Städtische Behörden, verbesserte Verteidigungsreaktion um +2 gegen feindliche Einflussnahme.
-Geheime Waffenarsenale (nur Circel Stufe 2+); Kosten: 20 Gold, 5 Einfluss, Unterhalt: 2 Gold, 1 AK pro Runde, Effekt: +2 Kampfkraft, Zugang zu illegalem Waffenhandel, +1 Gold pro Runde bei entsprechenden Marktwürfen.
+Geheime Waffenarsenale (nur Circel Stufe 2+); Kosten: 16 Gold, 5 Einfluss, Unterhalt: 2 Gold, 1 AK pro Runde, Effekt: +2 Kampfkraft, Zugang zu illegalem Waffenhandel, +1 Gold pro Runde bei entsprechenden Marktwürfen.
 Besondere Einrichtungen Kultcircel:
 Fanatiker: Kosten: 4 Gold, 4 Einfluss; Unterhalt: 1 Einfluss pro Runde; Ertrag: +2 Verdeckte Kampfkraft;
 Geheime Kultstätte: Kosten: 8 Gold, 3 Einfluss, Unterhalt: 1 Gold pro Runde, Effekt: +1 Einfluss pro Runde, ermöglicht geheime Rituale.
-Heilige Artefakte: Kosten: 15 Gold, 6 Einfluss, Effekt: +1 Permanenter Schip oder +2 Einfluss pro Runde; Vorteil: +1 auf Proben im Zusammenhang mit religiösen Aktivitäten.
-Große Gemeinschaftsmahle/Armenfürsorge (nur Kult Stufe 2+) Kosten: 18 Gold, 8 Einfluss, Unterhalt: 4 RM (Nahrung), 1 (Tiere), 2 Gold pro Runde; Effekt: +3 Einfluss pro Runde, +1 Permaneneter Einfluss (Akkumulieredn) alle 2 Runden; Ermöglicht spezielle Zeremonien mit entsprechenden Vorteilen.
+Heilige Artefakte: Kosten: 12 Gold, 6 Einfluss, Effekt: +1 Permanenter Schip oder +2 Einfluss pro Runde; Vorteil: +1 auf Proben im Zusammenhang mit religiösen Aktivitäten.
+Große Gemeinschaftsmahle/Armenfürsorge (nur Kult Stufe 2+) Kosten: 16 Gold, 8 Einfluss, Unterhalt: 4 RM (Nahrung), 1 (Tiere), 2 Gold pro Runde; Effekt: +3 Einfluss pro Runde, +1 Permaneneter Einfluss (Akkumulieredn) alle 2 Runden; Ermöglicht spezielle Zeremonien mit entsprechenden Vorteilen.
 Handels/Handwerkscollegien:
 Garantierte Qualitätsstandards: Kosten: 8 Gold, 2 Einfluss; Unterhalt: 1 Gold pro Runde; Ertrag: +1 Sondermaterial pro Runde durch verbesserte Produkteffizienz.
-Interne Warenbörse: Kosten: 12 Gold, 3 Einfluss; Unterhalt: 1 Gold pro Runde
-Effekt: +1 auf Marktwürfe.
-Collegiumsprozessionen (nur Collegium Stufe 2+), Kosten: 18 Gold, 5 Einfluss
+Interne Warenbörse: Kosten: 8 Gold, 3 Einfluss; Unterhalt: 1 Gold pro Runde
+Effekt: +/-1 auf Marktwürfe.
+Collegiumsprozessionen (nur Collegium Stufe 2+), Kosten: 12 Gold, 5 Einfluss
 Unterhalt: 2 Gold, 1 AK pro Runde; +2 Einfluss pro Runde und Collegiumsstufe;
 Anwerben von Fachkräften: Kosten: 18 Gold, 5 Einfluss, Unterhalt: 3 Gold, Ertrag: +1 Fachkraft alle 3 Runden, verbessert die Stufe einer produzierten Ware zu Einfach oder Teuer.
  
 Ämter:
 Permanente Posten: Besonderheit: Ämter werden nicht ausgebaut: Alle Ämter werden behalten und kumuliert. Kleine Ämter können unbegrenzt erlangt werden. Je 2 Kleine Ämter erlauben je ein Großes Amt anzutreten, Je 2 Mittlere Ämter erlauben ein Großes Amt.
 - Kleines Amt: Keine Voraussetzungen
-            - Ertrag: 4 Einfluss oder 5 Gold pro Runde.
-            - Vorteil: Senkt Politische-Schritte und Einfluss Gewinnen DC um 1 bei kleinen Aktionen.
+         - Ertrag: 4 Einfluss oder 5 Gold pro Runde.
+         - Vorteil: Senkt Politische-Schritte und Einfluss Gewinnen DC um 1 bei kleinen Aktionen.
 - Mittleres Amt: Pro Mittleres Amt sind 2 vorige Kleine Ämter Voraussetzung
-            - Ertrag: 8 Einfluss oder 10 Gold pro Runde.
-            - Vorteil: Senkt Politische-Schritte und Einfluss Gewinnen DC bei Mittleren Aktionen um 1.
+         - Ertrag: 8 Einfluss oder 10 Gold pro Runde.
+         - Vorteil: Senkt Politische-Schritte und Einfluss Gewinnen DC bei Mittleren Aktionen um 1.
 - Großes Amt: Pro Großes Amt sind 2 vorige Mittlere Ämter Voraussetzung
-            - Ertrag: 16 Einfluss oder 20 Gold pro Runde.
-            - Vorteil: Bonusaktion Einfluss gewinnen oder Politische Schritte; Senkt Politische-Schritte und Einfluss Gewinnen DC um 1 bei Großen Aktionen.
+         - Ertrag: 16 Einfluss oder 20 Gold pro Runde.
+         - Vorteil: Bonusaktion Einfluss gewinnen oder Politische Schritte; Senkt Politische-Schritte und Einfluss Gewinnen DC um 1 bei Großen Aktionen.
 Allgemeine Einrichtungen:
 Beschränkung der Einrichtungen: Je Bis zu 2 Einrichtungen per Kleinem Amt, 3 für Mittleres und 4 für Großes.
+Kleine Unternehmung:
 -       Regelmäßige Politische Gefälligkeiten: 6 Gold, 1 AK (einmalig). Unterhalt: 1 Gold pro Runde. Effekt: Senkt Kosten für Politische Schritte, Einflussgewinnaktionen um -1 Einfluss, -1 Gold; 
 -       Anmieten von Schreibstuben: 8 Gold, 1 AK, + Unterhalt: 1 Gold pro Runde
 -       1 Einfluss pro Runde, reduziert Kosten anderer Einrichtungen um je 1 Gold;
 -       Klienten als Botenläufer und Amtsdiener: 8 Gold, Vorteil: Schnellere Informationsübermittlung, +1 auf Politische Schritte, Verteidigung, Unterhalt: 1 AK, 1 Gold pro Runde
 -       Rekrutierung fähiger Subalterne: Kosten: 8 Gold, 1 Fachkraft , Unterhalt: 2 Gold pro Runde.
+Mittlere Unternehmung:
 -       Reiche Repräsentationsräumen, Amtssiegel und Trachten: 15 Gold, 2 RM (teures Material), Ertrag: +1 Einfluss pro Runde, Vorteil: Senkt alle Einflussgewinn-DC um 1, Unterhalt: 2 Gold pro Runde
 -       Anlegen eines Sonderarchivs: 12 Gold, 1 AK; Unterhalt: 1 Gold pro Runde. Verteidigung gegen Intrigen; Kosten für Politische Schritte Informationsgewinn gesenkt;
 -       Griff in die Kassen: Kosten (Einmalig): 12 Einfluss; Vorteil (Einmalig): + 1 Bonusaktion Geldgewinn (max. 2 Investments); Nachteil (Einmalig): Erhöht den DC für Politische Aktionen und Einflussgewinn-Aktionen um 4 für die nächste Runde.
@@ -593,8 +619,9 @@ o   Verstärkte Kultüberwachung: Kosten: 6 Gold, 2 Einfluss. Unterhalt: 1 Go
 o   Vergabe von Kirchlichen Kredite: Kosten: 8 Gold. Effekt: Geldgewinn: Geldverleih DC für Mittlere Investitionen -1 und Einflussgewinn: Temporärer Einfluss für Kleine Investitionen -1
 o   Klosterkontakte: Kosten: 8 Gold. +1 Arbeitskraft (permanent), bis zu 2 mal per Amtsstufe.
 o   Förderung des Echten Klerus: Kosten: 12 Gold, 8 Einfluss. +1 Fachkraft (Kleriker), +1 Großer Schip*, +1 Gelegenheitstabelle;
+·       Ab Großem Amt:
 o   Organisieren von Großen Prozession/ Opferfesten: Kosten: 14 Gold, 8 Einfluss. Unterhalt: 1 Gold, 1 AK, 2 Teure RM (Tiere). +6 Einfluss jede Runde.
-o   Unterhalt von Armenhaus & Hospital: Kosten: 14 Gold, 8 Einfluss, 1 AK. Unterhalt: 2 Gold, 1 AK, 4 RM (Nahrung). Effekt: +1 Permanenten Einfluss per Runde (Akkumulierend); +1 Arbeitskraft (permanent) pro 500 Pächter/Untertanen.
+o   Unterhalt von Armenhäusern & Hospital: Kosten: 14 Gold, 8 Einfluss, 1 AK. Unterhalt: 2 Gold, 1 AK, 4 RM (Nahrung). Effekt: +1 Permanenten Einfluss per Runde (Akkumulierend); +1 Arbeitskraft (permanent) pro 500 Pächter/Untertanen.
 o   Allianz mit Kirchenoberhaupt (Nur Großes Amt): Kosten: 18 Gold, 12 Einfluss (permanent), Unterhalt: 2 Gold pro Runde; Ertrag: +2 Einfluss pro Runde; Vorteil: -2 DC auf Politische Schritte: Manipulieren von Klerus;
 ·  Spezialisierung: Städtische Verwaltung
 ·       Effekt (Basis): +1 Einfluss oder +1 Gold pro Runde per 500 Pächter. Senkt den DC für Politische Schritte DC für kleine Unternehmungen um 1.
@@ -609,6 +636,7 @@ o   Organisieren der Arbeitsdienste: Kosten: 4 Gold; +1 Arbeitskraft (permane
 o   Vergabe von Sondererlaubnissen: Kosten: 8 Gold. Effekt: +2 Gold, DC-Senkung für Einflussgewinn: Temporärer Einfluss für Kleine Investitionen um 1
 o   Zollaufsicht: Kosten: 10 Gold, 2 Einfluss, 1 AK. Unterhalt: 1 Gold oder 1 Einfluss. Effekt: +1/-1 auf den Lokalen Marktwurf je nach Wunsch. +1 Gold oder +1 Einfluss per Runde (das Gegengesetzte vom Unterhalt).
 o   Katasterprüfungen: Kosten: 12 Gold, 4 Einfluss, 1 Fachkraft (Baumeister). Effekt: Reduziert die Kosten für den Bau/Ausbau von Städtischem Besitz und städtischen Einrichtungen um je -2 Gold.
+·       Ab Großem Amt:
 o   Netzwerk städtischer Kontakte: 12 Gold, 8 Einfluss; Unterhalt: 2 Gold, 1 Einfluss pro Runde; Ertrag: +1 Gold, +1 Einfluss pro Runde, -2 DC auf Posten Gewinnen (nur für Circel und Collegien); Vorteil: Frühzeitige Kenntnis über Ereignisse und Entwicklungen im Stadtgebiet
 o   Curator von Stadteinrichtung: Kosten: 16 Gold, 8 Einfluss. Unterhalt: 1 Gold, 1 AK. +3 Einfluss jede Runde.
 ·  Spezialisierung: Hof- und Ehrenämter
@@ -622,6 +650,7 @@ o   Fälschen von Privilegien: 10 Gold, 2 Einfluss; Unterhalt: 2 Einfluss oder
 o   Etablieren neuer Titel: 10 Gold, 4 Einfluss; Vorteil: Senkt Kosten für Gewinn Permanenter Posten: Kleine Ämter um -2 Gold, -1 Einfluss;
 o   Renovieren von Prunkgemächer: Kosten: 15 Gold, 2 RM (teures Material), 2 SM (teures Material). Unterhalt: 2 Gold. Effekt: +2 Einfluss pro Runde zusätzlich zum Fokus-Bonus. Senkt den DC für große Einflussgewinn-Aktionen um 1.
 o   Exklusiver Zirkel: 20 Gold, 15 Einfluss; Ertrag: +1 Magische Kraft oder +2 Einfluss pro Runde, Vorteile: +1 Bonusaktion "Politische Schritte" jede zweite Runde .
+·       Ab Großem Amt:
 o   Ausrichten von Empfängen (Nur Großes Amt): 30 Gold, 20 Einfluss; Unterhalt: 3 RM (Teuer), 1 SM (Teuer); Ertrag: +1 Permanenter Einfluss (Akkumulierend) jede zweite Runde; Senkt Kosten für Gewinn Permanenter Posten: Mittlere Ämter um -5 Gold, -5 Einfluss; 
 o   Vertrauter des Herrschers (Nur Großes Amt): 30 Gold, 30 Einfluss (permanent); Ertrag: +1 Permanenter Einfluss (Akkumulierend) pro Runde, Unterhalt: 6 Einfluss pro Runde; Vorteil: Möglichkeit, einmal pro 5 Runden um direkte Intervention zu bitten
 o   Kontakte zum Horashof (Nur Großes Amt): Kosten: 40 Gold, 40 Einfluss. Unterhalt: 4 Einfluss, 4 Gold. Effekt: +1 Bonusaktion "Einfluss Gewinnen" pro Runde. Politische Schritte Große Investments DC -1, Kosten von Mittleren und Großen Ämter -10 Gold, -10 Einfluss;
@@ -636,7 +665,8 @@ o   Stundung der Abgaben: Kosten: 8 Einfluss; Ertrag: +2 Einfluss per Runde;
 o   Prospektorberichte: Kosten: 8 Gold, 1 Fachkraft (Aufseher). Unterhalt: 1 Gold, 1 AK. Effekt: +1 Rohmaterial (beliebiges einfaches/teures RM aus Bergbau-Spezialisierten Domönen) pro Runde zusätzlich zum Fokus-Bonus.
 o   Zwangsumsiedelungen: 8 Gold, 8 Einfluss, + 250 Pächter/Untertanen per Amtsstufe.
 o   Umleiten von Arbeitsdiensten: Kosten: 10 Gold, 6 Einfluss. Unterhalt: 1 Gold. Effekt: +2 Rohmaterial (beliebiges billiges/einfaches RM aus Landwirtschaft) pro Runde. Senkt den DC für Materialgewinn (Domänenverwaltung) um 1.
-o   Neue Landvermessungen: Kosten: 10 Gold, 10 Einfluss. Unterhalt: 1 Gold, 1 AK. Effekt: - 10 Gold für den Erwerb kleiner Domänen.
+·       Ab Großem Amt:
+o   Anordnung Neuer Landvermessungen: Kosten: 10 Gold, 10 Einfluss. Unterhalt: 1 Gold, 1 AK. Effekt: - 10 Gold für den Erwerb kleiner Domänen.
 o   Erfinden von Steuerprivilegien: Kosten: 12 Einfluss; Unterhalt: 1 Einfluss; Vorteile: Reduziert die Unterhaltskosten von Domänen um 1 Gold.
 o   Nutzen der Staatlichen Lagerhäuser: Kosten: 15 Gold, 1 AK. Unterhalt: 1 Gold. Effekt: Dient als Mittleres Lager (kostenlos) per Amtsstufe.
 o   Nutzen der Staatlichen Werkstätten: Kosten: 15 Gold, 1 AK. Unterhalt: 1 Gold. Effekt: Dient als Kleine Werkstatt (kostenlos) per Amtsstufe.
@@ -648,79 +678,409 @@ o   Fokus: Militärverwaltung: +1 Gold per Runde;
 o   Fokus: Offizier der Horasialen Taxiarcha: Ertrag: +1 Einfluss, +1 Kampfkraft; 
 ·       Besondere Einrichtungen (Militär):
 o   Private Waffensammlung: 4 Einfluss, Unterhalt: 1 Gold; Ertrag: +1 Kampfkraft der Leibgarde, Besondere Waffen erhältlich; 
-o   Abwerben von Soldaten: 8 Einfluss; Unterhalt: 1 Gold; Ertrag: +1 Kampfkraft für Leibgarde;
+o   Abwerben von Soldaten: 8 Einfluss; Unterhalt: 1 Gold; Ertrag: +1 Kampfkraft für eigene Leibgarde;
 o   Versorgungskontrakte verhandeln: 8 Einfluss; Ertrag +1 Gold per Runde; Im Marktsystem gibt es auf Waffen und Rüstungen stets +1d4 Gold;
 o   Versorgungsgüter abzweigen: 8 Einfluss; +2 einfache RM per Runde; Materialgewinnungs
+·       Ab Großem Amt:
 o   Söldnerkontrakte Verhandeln: 12 Einfluss; Wähle +3 Gold oder +3 Einfluss per Runde; Unterhalt: 2 Gold oder 2 Einfluss per Runde (das jeweils gegengesetzte)
 o   Permanenter Stab: Kosten: 15 Gold, 1 Fachkraft (Militärberater). Unterhalt: 2 Gold. Effekt: +4 Kampfkraft; Bietet Boni auf Proben im Zusammenhang mit militärischer Planung oder Führung. 
 o   Nutzen der Staatlichen Arsenale: Kosten: 15 Gold, 1 AK. Unterhalt: 1 Gold. Effekt: Dient als Kleines Lager (kostenlos) per Amtsstufe.
 o   Nutzen der Staatlichen Werkstätten: Kosten: 15 Gold, 1 AK. Unterhalt: 1 Gold. Effekt: Dient als Kleine Werkstatt (kostenlos) per Amtsstufe.
-o   Proionar Miliz Aufstellen: 20 Gold, 12 Einfluss, Ertrag: +1 Kampkraft (permanent) pro 250 Pächter/Untertanen in deinen Domänen. Vorteile: Erhöht die Sicherheit in deinen Domänen
+o   Kommando über Proionare: 20 Gold, 20 Einfluss, Ertrag: +1 Kampkraft (permanent) pro 250 Pächter/Untertanen in deinen Domänen. Vorteile: Erhöht die Sicherheit in deinen Domänen
 Handelsunternehmungen:
 Permanente Posten: Stellt ein zusätzliches Marktsystem zur Verfügung für jede Stufe der Handelsunternehmung; 
-Beschränkung: Nur 1 Handelsunternehmung per Markt;
+Beschränkung: Nur 1 Handelsunternehmung per Markt; 2 Einrichtungen bei Kleiner Handelsunternehmung, 4 für Mittel, 6 für Große; 
 - Klein:
-            - Unterhaltskosten: 2 Gold.
-            - Ertrag: Entweder 1 Sondermaterial in der nächsten Runde oder für 1 investiertes Sondermaterial 4 Gold in der folgenden Runde +/- Marktsystem.
-            - Vorteil: Senkt Geldgewinn-DC um 1 für Kleine Investments.
+         - Unterhaltskosten: 2 Gold.
+         - Ertrag: Entweder 1 Sondermaterial in der nächsten Runde oder für 1 investiertes Sondermaterial 4 Gold in der folgenden Runde +/- Marktsystem.
+         - Vorteil: Senkt Geldgewinn-DC um 1 für Kleine Investments.
 - Mittel:
-            - Unterhaltskosten: 3 Gold, 1 Rohmaterial.
-            - Ertrag: Entweder 2 Sondermaterial in der nächsten Runde oder für 2 investierte Sondermaterial 10 Gold in der folgenden Runde +/- Marktsystem.
-            - Vorteil: Senkt Geldgewinn-DC um 1 für mittlere Investments.
+         - Unterhaltskosten: 3 Gold, 1 Rohmaterial.
+         - Ertrag: Entweder 2 Sondermaterial in der nächsten Runde oder für 2 investierte Sondermaterial 10 Gold in der folgenden Runde +/- Marktsystem.
+         - Vorteil: Senkt Geldgewinn-DC um 1 für mittlere Investments.
 - Groß:
-            - Unterhaltskosten: 4 Gold, 2 Rohmaterial, 1 Arbeitskraft.
-            - Ertrag: Entweder 4 Sondermaterial in der nächsten Runde oder für 4 investiertes Sondermaterial 24 Gold in der folgenden Runde +/- Marktsystem.
-            - Vorteil: Senkt Geldgewinn-DC um 1 für Große Investments.
+         - Unterhaltskosten: 4 Gold, 2 Rohmaterial, 1 Arbeitskraft.
+         - Ertrag: Entweder 4 Sondermaterial in der nächsten Runde oder für 4 investiertes Sondermaterial 24 Gold in der folgenden Runde +/- Marktsystem.
+         - Vorteil: Senkt Geldgewinn-DC um 1 für Große Investments.
 Allgemeine Einrichtungen der Handelsunternehmungen:
+Kleine Unternehmung:
 Günstige Abnahmeverträge: Kosten: 8 Gold, 2 Einfluss, Unterhalt: 1 AK pro Runde; Effekt: Senkt Geldgewinn-DC: Verkauf um 1 für kleine Investitionen, ermöglicht besseren Marktzugang.
-Mieten von Lagerplätzen: Kosten: 10 Gold, 1 AK (einmalig), Unterhalt: 1 AK pro Runde
-Effekt: Ermöglicht die Lagerung von 10 Rohmaterialien oder 5 Sondermaterialien pro Handelsunternehmungsstufe.
+Mieten von Lagerplätzen: Kosten: 10 Gold, 1 AK (einmalig), Unterhalt: 1 AK pro Runde. Effekt: Ermöglicht die Lagerung von 10 Rohmaterialien oder 5 Sondermaterialien pro Handelsunternehmungsstufe.
 Schreibstuben: Kosten: 12 Gold, 1 AK, Unterhalt: 1 Gold pro Runde, Effekt: -1 DC auf Proben für Geldgewinn: Verkauf, reduziert Kosten für Handelsunternehmungs-Ausbauten um je 2 Gold.
+Ab Mittlerer Unternehmung:
 Honoratische Handelsagenten: Kosten: 15 Gold, 3 Einfluss; Unterhalt: 2 Gold pro Runde, Ertrag: +1 Gold pro Runde, Vorteile: +1 auf Proben für politische Schritte in Handelsfragen.
 Konstante Handels-Missionen: Kosten: 16 Gold, 4 Einfluss; Unterhalt: 2 Gold, 1 RM pro Runde; Effekt: +2 Gold und +1 Einfluss pro Runde; 
 Investitionsgemeinschaft: Erst für Mittlere Handelsunternehmungen; Kosten: 20 Gold, 10 Einfluss; Unterhalt: +2 Gold +2 Einfluss pro Runde; Effekt: Erhöht die maximale Anzahl der Investitionen bei Geldverleih um +1 pro Handelsunternehmungsstufe.
 Regionaler Handelsstützpunkt: Kosten: 20 Gold, 12 Einfluss; Unterhalt: 3 Gold, 1 SM (teures Material) pro Runde; Ertrag: +2 Einfluss pro Runde; +1 Absatzmarkt für das Marktsystem;
+Nur für Große Handelsunternehmungen:
 Lokales Warenmonopol (Nur Für Große Handelsunternehmungen): Kosten: 40 Gold, 30 Einfluss; Unterhalt: 4 Gold, 4 Einfluss pro Runde; Effekt: Kontrolle über eine Warengruppe. +1d8 Gold pro Runde im Marktsystem, +1 Bonusaktion: Geldgewinn: Verkauf alle 2 Runden.
 Besondere Einrichtungen der Handelsunternehmungen: 
-Nicht gedeckelt, aber Unterhalt steigt per Schiff um +1 alle 2 Schiffe;
+Nicht gedeckelt, aber Unterhalt steigt per Schiff um +1 alle 4 Schiffe;
 Handelsschiff: Kosten: 1 Fachkraft (Kapitän), 20 Gold, 20 RM (Bauholz), 6 SM (Werkzeug, Tuch); Unterhalt: 3 AK, 2 Gold; Ertrag: +5 Kampfkraft zur See; Entweder +4 Sondermaterial jede zweite Runde oder für je 4 investiertes Sondermaterial 16 Gold alle zwei Runden.
  
+Truppen:
+ 
+Leibgarde/Haustruppen:
+Kosten: 12 Gold, 4 Einfluss, 1SM (Rüstung), 1 SM (Waffen) pro Stufe
+Ertrag: Leibgardenstufe (10 Gardisten): +2 Offene Kampfkraft, +1 Verdeckte Kampfkraft, 
+Unterhalt: 4 Gold, 2 Einfluss pro 10er-Einheit
+Beschränkungen:
+Anfangs nur 3 Stufen erlaubt; Ab 4 ist Mittlere Größe;
+Für kleine Ämter auf +1 Leibgardestufen, für mittlere auf +3 und für große auf +4 möglich;
+Vorteile: Bonusreaktion bei Angriffen auf den Inhaber, +2 auf Verteidigungswürfe
+ 
+Milzen:
+ 
+Kosten: 6 Gold, 1 SM (Waffen) pro 25er-Einheit
+Einheitengröße: Je Milizstufe (25 Milizionäre): +1 Offene Kampfkraft
+Unterhalt: 1 Gold, 1 Einfluss pro 50er-Einheit, Ab 100 Mann 2 Einfluss per zusätzlichem Trupp; Ab 5 Einheiten ist Mittlere Größe;
+Beschränkungen: Für kleine Domänen auf 2 Milizstufen beschränkt, für mittlere auf 4 und für große auf 8
+Besonderheiten: +2 auf Verteidigungswürfe gegen Überfälle und Plünderungen im eigenen Gebiet
+ 
+Söldner:
+Einheitengröße: Je Söldnerstufe (25 Krieger): +2 Offene Kampfkraft, +1 Verdeckte Kampfkraft, 1 SM (Waffen) pro Stufe
+Kosten: 8 Gold pro 25er-Einheit
+Unterhalt: 3 Gold pro 25er-Einheit
+Beschränkungen: Anfänglich auf 4 beschränkt; Ab 5 ist Mittlere Größe;
+Besonderheiten: Können entlassen werden (Unterhalt entfällt), müssen aber neu angeworben werden
+ 
+Protectoren und Schläger:
+Einheitengröße: Je Protektorenstufe (25 Schläger): +1 Verdeckte Kampfkraft, +1 Offene Kampfkraft für 50 Schläger;
+Kosten: 4 Gold, 2 Einfluss pro 25er-Einheit
+Unterhalt: 1 Gold, 1 Einfluss pro 25er-Einheit
+Beschränkungen: 
+Für städtische Besitze auf 1/2/3 Protektorenstufen je nach Größe beschränkt
+Für Circel und Collegien auf 2 Protektorenstufen pro Circelstufe beschränkt
+Ab 4 ist Mittlere Größe;
+Besonderheiten: +2 auf Städtische Verteidigung
+ 
+Allgemeine Truppeneinrichtungen:
+Kleine Truppen: 
+Loyalität Sichern: 8 Gold, 5 Einfluss, +1 auf Loyalität für Runde 
+Waffenkammer
+* Kosten: 10 Gold, 4 RM (Waffen)
+* Unterhalt: 1 Gold pro Runde
+* Effekt: +1 Offene Kampfkraft pro 2 Stufen jeder Kampfkrafteinheit
+* Besonderheit: Kann für mehrere Kampfkrafttypen am selben Standort genutzt werden
+Unterkünfte
+* Kosten: 12 Gold, 6 RM (Bauholz/Ziegel)
+* Unterhalt: 1 Gold pro Runde
+* Effekt: Schnellere Mobilisierung der Truppen, reduziert Unterhalt um 1 Gold pro 2 Kampfkraftstufen
+* Besonderheit: Bei Überraschungsangriffen +2 Kampfkraft für die erste Runde
+Erfahrene Ausbilder
+* Kosten: 18 Gold, 2 Fachkräfte (Kampftrainer)
+* Unterhalt: 3 Gold pro Runde
+* Effekt: +1 Kampfkraft für alle Truppentypen, 
+Mittlere Truppen: 
+Aktive Rekrutierung: 
+* Kosten: 14 Gold, 8 Einfluss
+* Unterhalt: 1 Gold pro Runde
+* Effekt: -2 Gold Rekrutierungskosten per Einheit
+Veteranen-Unterführer
+* Kosten: 16 Gold, 8 Einfluss
+* Unterhalt: 3 Gold pro Runde
+* Effekt: Erfahrene Kämpfer als Ausbilder und Gruppenführer; +2 auf alle Kampfkoordinationsproben, +1 Kampfkraft pro 2 Truppenstufen
+* Besonderheit: Können jungen Kämpfern wichtige Lektionen beibringen (10% Chance pro Runde, einen verbesserten Kämpfer zu entwickeln)
+Feldscher und Wundärzte:
+* Kosten: 20 Gold, 3 SM (Medizin), 1 Fachkraft (Chirurg)
+* Unterhalt: 3 Gold, 1 SM (Medizin) pro Runde
+* Effekt: Spezialisierte Heilkundige für Kampfverletzungen; reduziert Verluste um 35%, beschleunigt Genesung um 50%
+* Besonderheit: Kampfkraft bleibt auch bei Verlusten stabil (erst ab 30% Verluste sinkt die Kampfkraft)
+Altenteile und Pensionskasse
+* Kosten: 25 Gold, 10 Einfluss
+* Unterhalt: 2 Gold pro Kampfkraftstufe alle 5 Runden
+* Effekt: Altersversorgung für ausgediente Kämpfer; +4 auf Loyalitätsproben, +2 auf Rekrutierungsproben
+* Besonderheit: Pensionierte Veteranen stehen in Krisenzeiten als Reserve zur Verfügung (+1 temporäre Kampfkraftstufe pro 3 reguläre Stufen im Notfall)
+ 
+Besondere Einrichtungen Leibgarde:
+Kleine Truppen: 
+Prunkrüstungen:
+* Kosten: 8 Gold, 1 SM (teure Tuche) pro 2 Leibgardestufen
+* Effekt: +2 Einfluss pro 2 Leibgardestufen
+Göttliche Treueschwüre: 
+* Kosten: 8 Gold, 5 Einfluss,
+·       Effekt: +2 auf Loyalitätsproben der Leibgarde, reduziert Überläuferrisiko auf 0
+Spezialwaffen
+* Kosten: 10 Gold, 2 SM (Waffen)
+* Unterhalt: 2 Gold pro Runde
+* Effekt: +1 Offene Kampfkraft pro Leibgardestufe, verbessert Verteidigungsproben um +2
+Waffen- und Rüstungssiegel
+* Kosten: 15 Gold, 2 SM (Waffen)
+* Unterhalt: 2 Gold pro Runde, 1 Zauberkraft
+* Effekt: +1 Offene Kampfkraft pro Leibgardestufe, verbessert Verteidigungsproben um +2
+Mittlere Truppen: 
+Elite der Garde
+* Kosten: 15 Gold, 5 Einfluss, 1 Fachkraft (Waffenmeister)
+* Unterhalt: 2 Gold pro Runde
+* Effekt: Verwandelt eine 10er-Einheit in eine Elite-Einheit (zählt als 2 Leibgardestufen für Kampfkraft)
+* Voraussetzung: Mindestens 4 Leibgardestufen
+Berittene Garde (Mehrmals wählbar)
+* Kosten: 20 Gold, 2 Teures RM (Pferde) per Leibgardestufe
+* Unterhalt: 4 Gold pro Runde per Leibgardestufe
+* Effekt: +2 Offene Kampfkraft pro Leibgardestufe, +1 Bonusreaktion bei Überfällen
+Magische Waffenkammer
+* Kosten: 30 Gold, 4 SM (magische Komponenten), 1 Fachkraft (Magier)
+* Unterhalt: 4 Gold, 1 Zauberkraft, 1 SM (magische Komponenten) pro Runde
+* Effekt: Magische Ausrüstung für ausgewählte Einheiten, +3 Kampfkraft pro 2 Stufen, wirksam gegen magische Gegner
+* Besonderheit: Erfordert eine Cammer des Hauses oder Zugang zu magischen Ressourcen
+ 
+Besondere Einrichtungen Milz:
+Kleine Truppen: 
+Waffenübungen
+* Kosten: 3 Gold, 1 AK
+* Effekt: +1 Offene Kampfkraft pro 4 Milizstufen
+Schützenwettbewerbe
+* Kosten: 2 Gold
+* Unterhalt: 1 SM (Wein, Brandt)
+* Effekt: +1 Offene Kampfkraft pro 4 Milizstufen
+Allgemeine Waffenpflicht
+* Kosten: 3 Gold, 3 Einfluss, 2 SM (Waffen)
+* Unterhalt: 1 Einfluss pro Runde
+* Effekt: Erhöht die potentielle maximale Anzahl von Milizeinheiten um 1 pro 250 Pächter/Untertanen; Im Notfall können zusätzliche temporäre Milizen mobilisiert werden (+1 Milizstufe für 2 Runden, einmal pro 5 Runden)
+Wach- und Glockentürme 
+* Kosten: 5 Gold, 5 RM (Bauholz)
+* Unterhalt: 1 AK pro Runde
+* Effekt: +2 auf Verteidigungswürfe gegen Überfälle, Frühwarnvorteile für die Dorfgemeinschaft
+Mittlere Truppen: 
+Gewählte Kentiarchen
+* Kosten: 8 Gold, 1 Fachkraft (Veteran)
+* Unterhalt: 2 Einfluss pro Runde
+* Effekt: +1 Offene Kampfkraft pro 2 Milizstufen
+* Voraussetzung: Mindestens 3 Milizstufen
+Regelmäßige Patrouillen
+* Kosten: 6 Gold, 2 AK
+* Unterhalt: 1 Gold, 1 AK pro Runde
+* Effekt: Verringert die Wahrscheinlichkeit von Überfällen und Schmugglern; 
+Erbprivilegien und Pronoia 
+* Kosten: 16 Gold, 10 Einfluss
+* Unterhalt: 2 Gold, 4 Einfluss pro Runde
+* Effekt: +1 Offene Kampfkraft pro 4 Milizstufen, +2 auf Loyalität
+* Besonderheit: Generationsübergreifendes Wissen wird weitergegeben; alle 5 Runden wird ein neuer Milizionär mit besonderer Ausbildung geboren (zählt als Fachkraft)
+* Thematik: Bestimmte Familien im Dorf oder der Region haben eine lange Tradition des Milizdienstes mit eigenen Traditionen, überliefertem Wissen und Familienwaffen
+ 
+ 
+Besondere Einrichtungen Söldner:
+Kleine Truppen: 
+Feste Lager
+* Kosten: 8 Gold, 4 RM (Bauholz)
+* Effekt: Reduziert den Unterhalt einer Söldnereinheit um 1 Gold
+* Kapazität: 2 25er-Einheiten (pro Domäne oder städtischem Besitz)
+Regelmäßige Kontrakte
+* Kosten: 12 Einfluss
+* Unterhalt: 1 Einfluss pro Runde
+* Effekt: +2 Gold pro Söldnerstufe und Runde,
+Plünderungsrecht und Beuteanteil
+* Kosten: 10 Gold, 10 Einfluss
+* Unterhalt: 4 Einfluss pro Runde
+* Effekt: - Reduziert den Unterhalt einer Söldnereinheit um 1 Gold; Geringere Plünderungsanteile; 
+* Voraussetzung: Mindestens 2 Söldnerstufen
+Späher und Botenreiter
+* Kosten: 10 Gold, 2 SM (Waffen)
+* Unterhalt: 2 Gold pro Runde
+* Effekt: +2 Verdeckte Kampfkraft
+* Besonderheit: Kann Hinterhalte vorbereiten (+3 Kampfkraft für die erste Kampfrunde)
+Mittlere Truppen: 
+Quartier und Zahlmeister
+* Kosten: 20 Gold, 1 AK
+* Unterhalt: 2 Gold pro Runde
+* Effekt: Reduziert den Unterhalt aller Söldnereinheiten um 1 Gold, erhöht maximale Anzahl der Söldnereinheiten um 2
+Brutale Zuchtmeister
+* Kosten: 18 Gold, 10 Einfluss, 1 Fachkraft (ehemaliger Folterer/Kerkermeister)
+* Unterhalt: 2 Gold pro Runde
+* Effekt: Erzwingt eiserne Disziplin durch Furcht; +2 Offene Kampfkraft
+Rekrutierung von Barbaren
+* Kosten: 25 Gold, 8 Einfluss
+* Unterhalt: 4 Gold pro Runde
+* Effekt: Ermöglicht die Anwerbung von Ausländischen Kriegern; +2 Offene Kampfkraft pro Barbareneinheit (25 Mann)
+ Feldkleriker/Kampfpriester
+* Kosten: 15 Gold, 12 Einfluss, 1 Fachkraft (Priester)
+* Unterhalt: 2 Gold, 1 Einfluss pro Runde
+* Effekt: +1 auf Loyalität, +1 Kampfkraft pro 3 Truppenstufen
+* Besonderheit: Segen vor der Schlacht erhöht die Kampfkraft temporär (+2 für 1 Runde), Letzte Riten für Gefallene stärken die Moral der Überlebenden
+Besondere Einrichtungen Schläger:
+Kleine Truppen: 
+Persönliches Schutzgeldsystem
+* Kosten: 8 Gold, 6 Einfluss
+* Unterhalt: 1 Einfluss pro Runde
+* Effekt: - Reduziert den Unterhalt einer Söldnereinheit um 1 Gold;
+Blutbruderschaft-Zeremonie
+* Kosten: 8 Gold, 8 Einfluss
+* Effekt: +1 Loyalität
+Kampfgrube
+* Kosten: 10 Gold, 3 RM (Bauholz)
+* Unterhalt: 2 Gold pro Runde
+* Effekt: Arena für Zweikämpfe und Trainingsübungen; +1 Offene Kampfkraft, 
+Loyalität durch Blut
+* Kosten: 12 Gold, 8 Einfluss
+* Unterhalt: 2 Einfluss pro Runde
+* Effekt: +1 auf Loyalität
+Mittlere Truppen:
+Gefürchtete Vollstrecker
+* Kosten: 10 Gold, 10 Einfluss
+* Unterhalt: 3 Gold, 2 Einfluss pro Runde
+* Effekt: Verwandelt eine 25er-Einheit in Elite-Vollstrecker (zählt als 2 Protektorenstufen für Verdeckte Kampfkraft)
+* Voraussetzung: Mindestens 2 Protektorenstufen
+Politische Gewalt
+* Kosten: 10 Gold, 20 Einfluss
+* Effekt: +1 Permanenter Einfluss (Akkumulierend) alle 2 Runden 
+* Voraussetzung: Mindestens 4 Protektorenstufen
+Mystische Initiationsrituale (Nur Kulte)
+* Kosten: 18 Gold, 3 SM (magische Komponenten), 1 Fachkraft (Schamane)
+* Unterhalt: 2 SM (magische Komponenten) pro 6 Runden
+* Effekt: Führt Neulinge durch spirituelle Prüfungen; +2 auf alle Kampfproben, +3 auf Schmerzresistenzproben
+* Besonderheit: Initiierte können geheime Erkennungszeichen nutzen (+2 auf Infiltrationsproben)
+Hüter des Sanktums (Nur Kulte): 
+* Kosten: 20 Gold, 15 Einfluss, 2 SM (Goldene Reliquien)
+* Unterhalt: 4 Gold, 4 Einfluss
+* Effekt: Segen und Rituale für die Truppe; +2 Verdeckte Kampfkraft
+* Besonderheit: 10% Chance auf "göttliche Intervention" bei kritischen Kämpfen (+4 temporäre Kampfkraft für 1 Runde)
  
 Besondere Einrichtungen:
- 
 Werkstätten und Warenlager:
 Beschränkungen von Werkstatt/Lagerplätzen: Diese Einrichtungen sind strikt an Städtischen Besitz (siehe dort) oder Domänen gekoppelt.
 Eine Kleine Domäne erlaubt eine kleine Werkstatt/Lager, eine Mittlere Domäne eine Mittlere Werkstatt/Lager und eine Große Domäne eine kleine + eine Mittlere Werkstatt/Lager;
 Ein kleiner Städtischer Besitz (Eigenproduktion) erlaubt 2 Kleine oder 1 Mittlere Werkstatt, ein Mittlerer Besitz (Eigenproduktion) ermöglicht 2 Mittlere oder 1 Große Werkstatt oder Lager, ein Großer Besitz (Eigenproduktion) erlaubt 2 Große Werkstätte oder Lager
 Werkstätten: 
 - Kleine Werkstatt:
-            - Funktion: Wandelt 5 Rohmaterial in 1 Sondermaterial um. 
-            - Unterhaltskosten: 1 Arbeitskraft, 1 Gold.
+         - Funktion: Wandelt 4 Rohmaterial in 1 Sondermaterial um. 
+         - Unterhaltskosten: 1 Arbeitskraft, 1 Gold.
 - Mittlere Werkstatt:
-            - Funktion: Wandelt 5 bis 15 Rohmaterial in 1 bis 3 Sondermaterial (5:1).
-            - Unterhaltskosten: 2 Arbeitskraft, 2 Gold.
+         - Funktion: Wandelt 4 bis 12 Rohmaterial in 1 bis 3 Sondermaterial (4:1).
+         - Unterhaltskosten: 2 Arbeitskraft, 2 Gold.
 - Große Werkstatt:
-            - Funktion: Wandelt 5 bis 25 Rohmaterial in 1 bis 5 Sondermaterial (5:1).
-            - Unterhaltskosten: 4 Arbeitskraft, 3 Gold.
+         - Funktion: Wandelt 4 bis 20 Rohmaterial in 1 bis 5 Sondermaterial (4:1).
+         - Unterhaltskosten: 4 Arbeitskraft, 3 Gold.
 Warenlager:
 Kleines Lager:
-            - Funktion: Lagert 10 Rohmaterialien oder 5 Sondermaterialien. 
-            - Unterhaltskosten: 1 Arbeitskraft.
+         - Funktion: Lagert 10 Rohmaterialien oder 5 Sondermaterialien. 
+         - Unterhaltskosten: 1 Arbeitskraft.
 - Mittleres Lager:
-            - Funktion: Lagert 20 Rohmaterialien oder 10 Sondermaterialien. 
-            - Unterhaltskosten: 2 Arbeitskraft.
+         - Funktion: Lagert 20 Rohmaterialien oder 10 Sondermaterialien. 
+         - Unterhaltskosten: 2 Arbeitskraft.
 - Großes Lager:
-            Funktion: Lagert 40 Rohmaterialien oder 20 Sondermaterialien. 
-            - Unterhaltskosten: 3 Arbeitskräfte.
+         Funktion: Lagert 40 Rohmaterialien oder 20 Sondermaterialien. 
+         - Unterhaltskosten: 3 Arbeitskräfte.
  
-Pächter und Untertanen: 
--       Je Pächterstufe (250 Ew.): +1 AK, +1 Gold, +1 RM (Ist variabel)
--       Für Kleine Domänen auf 2 Pächterstufen Beschränkt, für Mittlere auf 4 und für Große auf 8;
-Beraterstab, Verwalter und Leibgarde:
-Leibgarde: Loyalität
-Postenverwalter/Inhaber: Loyalität
+Pächter, Anhänger und Klienten: 
+Eine Sondereinrichtung von Domänen (Pächter), Kulten, Städtischen Einrichtungen und Circeln (Anhänger/Klienten);
+ 
+Die Pächterstufen: Je Pächterstufe (250 Ew.): +1 AK, +1 Gold; Für Pächter auf Domänen +1 Einfaches RM (Spezialisierung nach Domäne);
+Beschränkungen: Für Kleine Domänen auf 2 Pächterstufen Beschränkt, für Mittlere auf 4 und für Große auf 8; Für Städtischen Besitz beschränkt auf 2/3/4 Pächterstufen; Circel und Collegien können 1 Stufe Anhänger per Stufe rekrutieren; Kulte können Anhänger (Pächter) bis zu 2/4/8 erlangen, zahlen dafür aber 8 Gold und 8 Einfluss;
+Loyalität: Haben Loyalität und können in Aufruhr geraten, was die Posten lahmlegt;
+Abwanderung: Können bei geringer Loyalität abwandern;
+Fachkräfte, Berater und Handlanger:
 Engster Beraterstab: 2-5; Finanz und Handel, Sicherheit, Einfluss, Strategie und Taktik. Loyalität
-Die Cammer des Hauses: 
-Celle etablieren > Optimatiker > Beschwörercircel > Eleven finden > Verwaltungsapperat,
+Postenverwalter/Inhaber: Loyalität – die Loyalität wird nach der Einstellung ermittelt;
+Beschränkungen: Startet mit 2 möglichen Beratern und 2 möglichen Fachkräften; Mögliche Fachkräfte für Posten steigen für jeden Mittleren Posten (Circel, Ämter, Truppen, Domänen, Städtischer Besitz, Handelsunternehmungen) und jede Großen Posten um 1;
+ 
+Einfache Fachkraft
+* Kosten: 10 Gold
+* Unterhalt: 2 Gold pro Runde
+* Basiseffekt: +1 auf relevante Aktions-Proben (wenn Berater), +1 Steigern der Erträge/Kampfkraft (wenn an Posten gebunden)
+* Bonusaktion: Keine
+* Einrichtungsäquivalent: Kleine Einrichtung
+Erfahrene Fachkraft
+* Kosten: 25 Gold
+* Unterhalt: 3 Gold pro Runde
+* Basiseffekt: +2 auf relevante Aktions-Proben, (wenn Berater), +2 Steigern der Erträge/Kampfkraft (wenn an Posten gebunden)
+* Bonusaktion: 1 zusätzliche Spezialaktion alle 4 Runden
+* Einrichtungsäquivalent: Mittlere Einrichtung
+Meisterliche Fachkraft
+* Kosten: 50 Gold
+* Unterhalt: 5 Gold pro Runde
+* Basiseffekt: +4 auf relevante Proben (wenn Berater), +4 Steigern der Erträge/Kampfkraft (wenn an Posten gebunden)
+* Bonusaktion: 1 zusätzliche Spezialaktion pro Runde
+* Einrichtungsäquivalent: Große Einrichtung
+Allgemeine Handlanger:
+Erster Wert wenn als Berater/zweiter Wert wenn an Posten gebunden;
+ 
+Taktiker: Verwendbar als Ausbilder, Unterführer, Anführer
+* Einfach: +1 auf Kampfkoordinationsproben/ +1 Kampfkraft aller Truppen
+* Erfahren: +2 auf Kampfkoordinationsproben/ +2 Kampfkraft aller Truppen
+* Meisterlich: +3 auf Kampfkoordinationsproben/ +3 Kampfkraft, -1 Unterhalt für alle Truppen
+Zauberer: Verwendbar als Alchemist, Hermetiker, Unterführer, Verwalter
+* Einfach: -1 DC auf Magie-bezogene Proben/ +1 Zauberkraft pro Runde, 
+* Erfahren: -2 DC auf Magie-bezogene Proben/ +2 Zauberkraft pro Runde, Möglichkeit auf Artefakt
+* Meisterlich: -4 DC auf Magie-bezogene Proben/ +4 Zauberkraft pro Runde, Möglichkeit auf Artefakt 
+Verwalter: Verwendbar als Verwalter, Quartiermeister
+* Einfach: -1 DC auf Materialgewinn / +4/1 Roh/Sondermaterialertrag, +1 Kampfkraft, -1 Gold Unterhalt
+* Erfahren: -2 DC auf Materialgewinn / +6/2 Roh/Sondermaterialertrag, +2 Kampfkraft, -2 Gold Unterhalt
+* Meisterlich: -4 DC auf Materialgewinn / +8/3 Roh/Sondermaterialertrag, +3 Kampfkraft, -3 Gold Unterhalt
+Stratege: Als Berater, Verwalter oder Anführer
+* Einfach: +1 auf Politische Schritte/ +2 Einfluss per Runde oder +2 RM per Runde
+* Erfahren: +2 auf Politische Schritte/ +4 Einfluss per Runde oder +4 RM per Runde
+* Meisterlich: +4 auf Politische Schritte/ +8 Einfluss per Runde oder +8 RM per Runde
+Kleriker: Als Berater, Verwalter oder Anführer
+* Einfach: +2 Einfluss bei religiösen Aktionen/ +1 auf Loyalitätsproben
+* Erfahren: +4 Einfluss bei religiösen Aktionen, Bonus bei Kultaktionen/ +2 auf Loyalitätsproben
+* Meisterlich: +6 Einfluss bei religiösen Aktionen, kann religiöse Wunder wirken/ +3 auf Loyalitätsproben
+Finanzier/Händler: Als Verwalter oder Handelsagent; Handelsunternehmungen, Geldgewinn, Marktoperationen
+* Einfach: -1 DC auf Geldgewinn/ +1 Gold pro Unternehmungsstufe
+* Erfahren: -2 DC auf Geldgewinn/ +3 Gold pro Unternehmungsstufe
+* Meisterlich: -4 DC auf Geldgewinn, kann Marktfluktuationen vorhersagen/ +6 Gold pro Unternehmungsstufe
+Politiker: Verwalter, Sekretär, Amtsträger; Ämter, Einflussgewinn, Netzwerke
+* Einfach: -1 DC auf Einflussgewinn, +1 Abwehr auf Politische Angriffe/ +4 Einfluss pro Runde, 
+* Erfahren: -2 DC auf Einflussgewinn, +2 Abwehr auf Politische Angriffe/ +8 Einfluss pro Runde,
+* Meisterlich: -4 DC auf Einflussgewinn, +3 Abwehr auf Politische Angriffe/ +16 Einfluss pro Runde,
+Baumeister: 
+* Einfach: +1 Sonderaktion Einrichtungen, - 10% Baukosten/ +2 RM, Kosten konstruierbarer Einrichtung halbiert; Bei Langzeitvorhaben -1 Abschnitt Bauzeit;
+* Erfahren: +2 Sonderaktion Einrichtungen, - 20% Baukosten/ +2 RM, Kosten konstruierbarer Einrichtung halbiert; Bei Langzeitvorhaben -2 Abschnitte Bauzeit;
+* Meisterlich: +3 Sonderaktion Einrichtungen, - 30% Baukosten/ +2 RM, Kosten konstruierbarer Einrichtung halbiert; Bei Langzeitvorhaben -3 Abschnitte Bauzeit;
+Werkstatt-Fachkräfte
+* Einfach: -2 DC auf Materialgewinn: Werkstattüberwachung / +2 Teure SM pro Runde 
+* Erfahren: -2 DC auf Materialgewinn: Werkstattüberwachung / +4 Teure SM pro Runde
+* Meisterlich: -2 DC auf Materialgewinn: Werkstattüberwachung / +6 Teure SM pro Runde
+Handlanger/Vollstrecker
+* Einfach: +2 Abwehr auf Direkte Angriffe / +2 Verdeckte Kampfkraft, +2 Offene Kampfkraft
+* Erfahren: +3 Abwehr auf Direkte Angriffe / +3 Verdeckte Kampfkraft, +3 Offene Kampfkraft
+* Meisterlich: +4 Abwehr auf Direkte Angriffe / +4 Verdeckte Kampfkraft, +4 Offene Kampfkraft
+ 
+Besondere Handlanger:
+ 
+Rhogolanen Rüstungsschmiede
+* Kosten: 30 Gold, 5 SM (seltene Metalle), 1 Fachkraft (Zwergenschmied)
+* Unterhalt: 4 Gold, 1 SM (seltene Metalle) pro Runde
+* Effekt: Produziert überlegene Rüstungen; +3 defensive Kampfkraft, -25% Verluste nach Kämpfen
+* Besonderheit: Kann einmal pro 5 Runden eine spezielle Meisterrüstung herstellen (+1 permanente Kampfkraft für eine Einheit)
+ 
+Charaktertabelle:
+ 
+Eigenschaft	Positive Seite	Negative Kehrseite	Wirkung (positiv)	Wirkung (negativ)
+1.Ambitioniert	Zielstrebig	Illoyal	-2 DC auf alle Proben	-2 auf Loyalität
+2.Akribisch	Genauig	Übervorsichtig	-1 DC auf alle Proben	+1 Gold Unterhalt
+3.Diszipliniert	Zuverlässigkeit	Pedanterie	- DC auf alle Proben, +1 Loyalität	-1 Loyalität Posten/Pächter
+4.Charmant	Überzeugend	Manipulativ	+1 Einfluss -1 DC Einflussgewinn	-2 Loyalität
+5.Kreativ	Innovativ	Sprunghaft	-1 DC auf alle Proben	+2 Unterhalt
+6.Mutig	Risikobereit	Leichtsinn	+2 Kampfkraft	-2 auf Verteidigung
+7.Analytisch	Problemlösung	Nervös	-4 Unterhalt	Bonusaktion 1 Runde später
+8.Gelehrt	Fachwissen	Weltfremd	Zweitbereich als einfache Fachkraft	+1 auf Proben-DC
+9.Energisch	Produktivität	Ungeduld	+2 RM/SM Gewinn	+1 DC auf alle Proben
+10.Diplomat	Vermittlung	Unentschlossen	+2 Einfluss per Runde, +2 DC auf Diplomatie	-1 Loyalität
+11.Traditionell	Erfahrung	Verbohrt	-1 auf DC, +1 Loyalität	+2 Gold Unterhalt
+12.Ehrgeizig	Motiviert	Rücksichtslos	+2 Ertrag	-1 Loyalität Kollegen
+13.Intuitiv	Bauchgefühl	Irrational	+2 Ertrag	-1 Loyalität
+14.Perfektionist	Hervorragende Qualität	Ineffizienz	+1 Qualitätsstufe bei RM/SM	+4 Gold Unterhalt
+15.Autoritär	Führungsstark	Tyrann	+2 Einfluss, +2 Ertrag	-1 Loyalität Anhänger/Pächter/Truppen
+16.Pragmatisch	Lösungsorientiert	Prinzipienlos	+2 Ertrag, +1 Gold	-2 auf Loyalität
+17.Stoisch	Belastbar	Emotionslos	+1 Loyalität	+1 Gold Unterhalt
+18.Ehrlich	Loyal	Beleidigend	+2 Loyalität	+2 Einfluss Unterhalt
+19.Emotional	Sympathisch	Nicht belastbar	+1 Einfluss	+1 Einfluss, +1 Gold Unterhalt, -1 Loylität
+20.Religiös	Schicksalergeben	Fanatisch	+3 Loyaliät wenn Dienstherr Religiös	-3 Loyaliät wenn Dienstherr nicht Religiös
+ 
+Anwerbetabelle:
+2w6
+ 
+Roll	Ergebnis	Kosten	Erfahrung	Besonderheiten
+2	Außergewöhnliches Glück	+20 Gold	Meisterlich	Startet mit einer zusätzlichen nur positiven Eigenschaft und Loyalität 8.
+3	Seltene Gelegenheit	+20 Gold	Wie gewünscht	Die Fachkraft bringt einen kostenfreien Lehrling (Einfache Stufe) derselben Fachrichtung mit.
+4	Günstiger Fachmann	-10 Gold	Wie gewünscht	Startet mit Loyalität 6.
+5	Motivierter Kandidat	-10 Gold	Einfach	Motivierte, aber unerfahren: Nach 4 Runden auf Erfahren. "Ambitioniert" ist eine garantierte Zusatz-Eigenschaft.
+6	Normal	-5 Gold	Wie gewünscht	Eine solide Fachkraft ohne besondere Eigenschaften. Startet mit Loyalität 1d4+2.
+7	Normal	Normal	Wie gewünscht	Eine normale Rekrutierung ohne besondere Umstände. Würfle Eigenschaften und Loyalität wie gewohnt. Loyalitäts-Grundwurf: 1d6+2
+8	Teurer Experte	+5 Gold	Wie gewünscht	Würfle Eigenschaften und Loyalität wie gewohnt.
+9	Prestigeträchtige Anstellung	+20 Gold	Meisterlich	Die Anstellung dieser bekannten Fachkraft bringt +2 Semi-Permanenten Einfluss. Ohne repräsentative Räume oder Beraterfunktion sinkt Loyalität um 1.
+10	Schwieriger Spezialist	+25 Gold	Meisterlich	Hervorragende Fähigkeiten (+1 auf Basiseffekt), aber starke negative Charaktereigenschaft (Verdoppelt) garantiert. Startet mit Loyalität 1d4+2.
+11	Fachfremdes Talent	Normal	Wie gewünscht	Die gewünschte Fachkraft ist nicht verfügbar, aber ein Talent anderer Art (zufälliger Fachkrafttyp) mit vergleichbarer Erfahrung.
+12	Schicksalswende	+50 Gold	Meisterlich	Die gesuchte Fachkraft ist nicht verfügbar, stattdessen bietet sich eine herausragende Persönlichkeit aus einem anderen Bereich an. +1 auf Basiseffekt, Verdoppelte Charakterauswirkungen;
  
  

@@ -1,5 +1,16 @@
-import { GameEventType, createGameEvent } from '../events/GameEvent';
+import type {
+  SystemAutoConversionRawCommand,
+  SystemAutoConversionSpecialCommand,
+  SystemConversionCommand,
+  SystemMaintenanceCommand,
+  SystemProductionCommand,
+  SystemResetCommand, // Added SystemResetCommand
+} from '../commands'; // Import system command types
+import { GameEventType, createGameEvent } from '../events/GameEvent'; // Ensured GameEvent type import
 import type { GameState } from '../models';
+import { FacilityType } from '../models/Facility';
+import { PropertyType } from '../models/Property';
+import type { SpecialMaterialData } from '../models/Resources';
 import { DataLoader } from '../utils';
 import type { GameEngine } from './GameEngine';
 
@@ -92,10 +103,8 @@ export class PhaseManager {
     this.engine.executeCommand({
       type: 'SYSTEM_MAINTENANCE',
       playerId,
-      payload: {},
-      validate: () => true,
-      execute: () => [maintenanceEvent],
-    });
+      payload: { gameEvent: maintenanceEvent },
+    } as SystemMaintenanceCommand);
 
     // Move to next phase
     this.engine.advancePhase();
@@ -308,10 +317,8 @@ export class PhaseManager {
     this.engine.executeCommand({
       type: 'SYSTEM_PRODUCTION',
       playerId,
-      payload: {},
-      validate: () => true,
-      execute: () => [productionEvent],
-    });
+      payload: { gameEvent: productionEvent },
+    } as SystemProductionCommand);
 
     // Move to next phase
     this.engine.advancePhase();
@@ -322,143 +329,152 @@ export class PhaseManager {
     const state = this.engine.getCurrentState();
     const playerId = state.currentPlayerId;
     const player = state.players[playerId];
+    const allSpecialMaterialDefinitions =
+      this.dataLoader.loadSpecialMaterials();
+    const availableRawMaterials = { ...player.resources.rawMaterials };
+    const specialMaterialsProducedThisPhase: Record<string, number> = {};
 
-    // Process automatic workshop conversions from raw to special materials
-    const hasWorkshops = player.propertyIds.some((propertyId) => {
+    // Helper function to check and consume raw materials for one unit of an SM
+    const canAndConsumeForOneUnit = (
+      smDef: SpecialMaterialData,
+      currentRawMaterials: Record<string, number>
+    ): boolean => {
+      // Check availability
+      for (const req of smDef.conversionRequirements) {
+        if ((currentRawMaterials[req.materialId] || 0) < req.amount) {
+          return false;
+        }
+      }
+      // Consume
+      for (const req of smDef.conversionRequirements) {
+        currentRawMaterials[req.materialId] -= req.amount;
+      }
+      return true;
+    };
+
+    for (const propertyId of player.propertyIds) {
       const property = state.properties[propertyId];
-      return property?.active && property.type === 'workshop';
-    });
+      if (!property || !property.active) continue;
 
-    // Process materials conversion
-    if (hasWorkshops) {
-      // Load all special materials from JSON
-      const specialMaterials = this.dataLoader.loadSpecialMaterials();
+      // Case 1: Property is a Workshop
+      if (property.type === PropertyType.WORKSHOP) {
+        let workshopCapacity = property.specialData?.conversionsPerRound || 0;
 
-      // Get available raw materials
-      const rawMaterials = { ...player.resources.rawMaterials };
-      const specialMaterialsToAdd: Record<string, number> = {};
-
-      // Process each special material that could potentially be crafted
-      for (const specialMaterial of specialMaterials) {
-        // Check if we have the necessary raw materials for this conversion
-        const canCraft = specialMaterial.conversionRequirements.every((req) => {
-          const availableAmount = rawMaterials[req.materialId] || 0;
-          return availableAmount >= req.amount;
-        });
-
-        // Check if there's a matching workshop facility
-        let matchingWorkshop = false;
-        if (canCraft) {
-          // Look for a matching workshop type if required
-          const requiredFacilityType =
-            specialMaterial.conversionRequirements.find(
+        while (workshopCapacity > 0) {
+          let craftedThisIteration = false;
+          for (const smDef of allSpecialMaterialDefinitions) {
+            const requiredFacilityTypeBySM = smDef.conversionRequirements.find(
               (req) => req.facilityType
             )?.facilityType;
 
-          if (requiredFacilityType) {
-            // Check if we have a matching facility
-            for (const propertyId of player.propertyIds) {
-              const property = state.properties[propertyId];
-              if (property?.active) {
-                for (const facilityId of property.facilityIds) {
-                  const facility = state.facilities[facilityId];
-                  if (facility && facility.type === requiredFacilityType) {
-                    matchingWorkshop = true;
-                    break;
-                  }
-                }
-                if (matchingWorkshop) break;
-              }
-            }
-          } else {
-            // If no specific facility is required, check if we have any workshop
-            for (const propertyId of player.propertyIds) {
-              const property = state.properties[propertyId];
-              if (property?.active && property.type === 'workshop') {
-                matchingWorkshop = true;
-                break;
+            // This workshop can craft if SM requires no specific facility,
+            // or requires a generic 'workshop' type (assuming FacilityType.WORKSHOP exists and is used for this)
+            // or if the SM's required facility type matches this property's inherent workshop nature.
+            // For simplicity, we assume a PropertyType.WORKSHOP can attempt generic conversions.
+            // A more robust check might involve specific tags or capabilities on the workshop property.
+            const canPropertyWorkshopCraft =
+              !requiredFacilityTypeBySM ||
+              requiredFacilityTypeBySM === FacilityType.WORKSHOP; // Assuming FacilityType.WORKSHOP is a valid enum for generic workshop
+
+            if (canPropertyWorkshopCraft) {
+              if (canAndConsumeForOneUnit(smDef, availableRawMaterials)) {
+                specialMaterialsProducedThisPhase[smDef.id] =
+                  (specialMaterialsProducedThisPhase[smDef.id] || 0) + 1;
+                workshopCapacity--;
+                craftedThisIteration = true;
+                break; // Crafted one, try to use remaining capacity for another (or same) SM
               }
             }
           }
-        }
-
-        // If we can craft and have the right facility, process the conversion
-        if (canCraft && matchingWorkshop) {
-          // Calculate maximum conversion based on available materials
-          let maxConversion = Number.POSITIVE_INFINITY;
-          for (const req of specialMaterial.conversionRequirements) {
-            const availableAmount = rawMaterials[req.materialId] || 0;
-            const possibleConversions = Math.floor(
-              availableAmount / req.amount
-            );
-            maxConversion = Math.min(maxConversion, possibleConversions);
-          }
-
-          // Limit to 1 per workshop for basic conversions in V1
-          maxConversion = Math.min(maxConversion, 1);
-
-          if (maxConversion > 0) {
-            // Consume raw materials
-            for (const req of specialMaterial.conversionRequirements) {
-              const materialToConsume = req.amount * maxConversion;
-              rawMaterials[req.materialId] =
-                (rawMaterials[req.materialId] || 0) - materialToConsume;
-            }
-
-            // Add special material
-            specialMaterialsToAdd[specialMaterial.id] = maxConversion;
-          }
+          if (!craftedThisIteration) break; // No SM could be crafted with remaining capacity
         }
       }
 
-      // If we have changes, create a conversion event
-      if (Object.keys(specialMaterialsToAdd).length > 0) {
-        const conversionEvent = createGameEvent({
-          type: GameEventType.RESOURCES_CONVERTED,
-          playerId,
-          payload: {
-            workshopConversions: specialMaterialsToAdd,
-          },
-          apply: (state: GameState): GameState => {
-            const player = { ...state.players[playerId] };
+      // Case 2: Property has Facilities that can convert
+      for (const facilityId of property.facilityIds) {
+        const facility = state.facilities[facilityId];
+        // facility is active if its parent property is active (checked by `if (!property || !property.active) continue;` above)
+        if (facility?.effects?.conversionRate) {
+          for (const conversionRule of facility.effects.conversionRate) {
+            const targetSmDef = allSpecialMaterialDefinitions.find(
+              (s) => s.id === conversionRule.outputType
+            );
+            if (!targetSmDef) continue;
 
-            // Update raw materials (consumed)
-            player.resources.rawMaterials = { ...rawMaterials };
+            // Check if this facility type is appropriate for the SM's requirements
+            let facilityMatchesSMRequirement = true; // Assume true if SM has no specific facility requirement
+            const requiredFacilityTypeBySM =
+              targetSmDef.conversionRequirements.find(
+                (req) => req.facilityType
+              )?.facilityType;
 
-            // Update special materials (produced)
-            const updatedSpecialMaterials = {
-              ...player.resources.specialMaterials,
-            };
-            for (const [materialId, amount] of Object.entries(
-              specialMaterialsToAdd
-            )) {
-              updatedSpecialMaterials[materialId] =
-                (updatedSpecialMaterials[materialId] || 0) + amount;
+            if (requiredFacilityTypeBySM) {
+              facilityMatchesSMRequirement =
+                facility.type === requiredFacilityTypeBySM;
             }
-            player.resources.specialMaterials = updatedSpecialMaterials;
 
-            return {
-              ...state,
-              players: {
-                ...state.players,
-                [playerId]: player,
-              },
-            };
-          },
-        });
+            if (!facilityMatchesSMRequirement) continue;
 
-        // Add event to store
-        this.engine.executeCommand({
-          type: 'SYSTEM_CONVERSION',
-          playerId,
-          payload: {},
-          validate: () => true,
-          execute: () => [conversionEvent],
-        });
+            const facilityCapacityForThisSM = conversionRule.maxConversion;
+            for (let i = 0; i < facilityCapacityForThisSM; i++) {
+              if (canAndConsumeForOneUnit(targetSmDef, availableRawMaterials)) {
+                specialMaterialsProducedThisPhase[targetSmDef.id] =
+                  (specialMaterialsProducedThisPhase[targetSmDef.id] || 0) + 1;
+              } else {
+                break; // Not enough raw materials for another unit of this SM
+              }
+            }
+          }
+        }
       }
     }
 
+    // If any special materials were produced, create and dispatch an event
+    if (Object.keys(specialMaterialsProducedThisPhase).length > 0) {
+      const conversionEvent = createGameEvent({
+        type: GameEventType.RESOURCES_CONVERTED,
+        playerId,
+        payload: {
+          workshopConversions: specialMaterialsProducedThisPhase,
+          // We'll pass the final state of raw materials in the apply function
+        },
+        apply: (currentState: GameState): GameState => {
+          const newPlayerState = { ...currentState.players[playerId] };
+          newPlayerState.resources = { ...newPlayerState.resources };
+
+          // Update raw materials (reflecting all consumptions)
+          newPlayerState.resources.rawMaterials = { ...availableRawMaterials };
+
+          // Update special materials (reflecting all productions)
+          const newSpecialMaterials = {
+            ...newPlayerState.resources.specialMaterials,
+          };
+          for (const [smId, amount] of Object.entries(
+            specialMaterialsProducedThisPhase
+          )) {
+            newSpecialMaterials[smId] =
+              (newSpecialMaterials[smId] || 0) + amount;
+          }
+          newPlayerState.resources.specialMaterials = newSpecialMaterials;
+
+          return {
+            ...currentState,
+            players: {
+              ...currentState.players,
+              [playerId]: newPlayerState,
+            },
+          };
+        },
+      });
+      this.engine.executeCommand({
+        type: 'SYSTEM_CONVERSION',
+        playerId,
+        payload: { gameEvent: conversionEvent },
+      } as SystemConversionCommand);
+    }
+
     // Automatic conversion of raw materials to gold (if no storage)
+    // This logic now uses 'availableRawMaterials' which has been depleted by workshop production
     // Check if the player has any storage facilities
     const hasStorage = player.propertyIds.some((propertyId) => {
       const property = state.properties[propertyId];
@@ -474,126 +490,151 @@ export class PhaseManager {
       });
     });
 
-    // If no storage, convert raw materials to gold
+    // If no storage, convert remaining raw materials to gold
+    // This uses 'availableRawMaterials' which reflects post-workshop-conversion amounts
     if (
       !hasStorage &&
-      Object.values(player.resources.rawMaterials).some((val) => val > 0)
+      Object.values(availableRawMaterials).some((val) => val > 0)
     ) {
-      let totalGoldToAdd = 0;
-      const rawMaterialsToConvert: Record<string, number> = {};
+      let goldFromRaw = 0;
+      const rawMaterialsConsumedForGold: Record<string, number> = {};
 
-      // Calculate gold value of each raw material (4 raw = 1 gold in V1)
       for (const [materialId, amount] of Object.entries(
-        player.resources.rawMaterials
+        availableRawMaterials
       )) {
         if (amount > 0) {
           const goldValue = Math.floor(amount / 4);
           if (goldValue > 0) {
-            totalGoldToAdd += goldValue;
-            rawMaterialsToConvert[materialId] = goldValue * 4; // Amount to convert
+            goldFromRaw += goldValue;
+            const amountToConsume = goldValue * 4;
+            rawMaterialsConsumedForGold[materialId] = amountToConsume;
+            availableRawMaterials[materialId] =
+              (availableRawMaterials[materialId] || 0) - amountToConsume;
           }
         }
       }
 
-      if (totalGoldToAdd > 0) {
-        const autoConversionEvent = createGameEvent({
-          type: GameEventType.RESOURCES_AUTO_CONVERTED,
+      if (goldFromRaw > 0) {
+        const rawToGoldEvent = createGameEvent({
+          type: GameEventType.RESOURCES_AUTO_CONVERTED, // Consider a more specific type if needed
           playerId,
           payload: {
-            rawMaterialsConverted: rawMaterialsToConvert,
-            goldGained: totalGoldToAdd,
+            rawMaterialsConverted: rawMaterialsConsumedForGold,
+            goldGained: goldFromRaw,
           },
-          apply: (state: GameState): GameState => {
-            const player = { ...state.players[playerId] };
-
-            // Add gold
-            player.resources.gold += totalGoldToAdd;
-
-            // Remove converted raw materials
-            const updatedRawMaterials = { ...player.resources.rawMaterials };
-            for (const [materialId, amountToConvert] of Object.entries(
-              rawMaterialsToConvert
-            )) {
-              updatedRawMaterials[materialId] =
-                (updatedRawMaterials[materialId] || 0) - amountToConvert;
-            }
-            player.resources.rawMaterials = updatedRawMaterials;
-
+          apply: (currentState: GameState): GameState => {
+            const newPlayerState = { ...currentState.players[playerId] };
+            newPlayerState.resources = { ...newPlayerState.resources };
+            newPlayerState.resources.gold += goldFromRaw;
+            // Raw materials are already updated in availableRawMaterials,
+            // so we ensure the player state reflects this final version.
+            newPlayerState.resources.rawMaterials = {
+              ...availableRawMaterials,
+            };
             return {
-              ...state,
-              players: {
-                ...state.players,
-                [playerId]: player,
-              },
+              ...currentState,
+              players: { ...currentState.players, [playerId]: newPlayerState },
             };
           },
         });
-
         this.engine.executeCommand({
-          type: 'SYSTEM_AUTO_CONVERSION',
+          type: 'SYSTEM_AUTO_CONVERSION_RAW',
           playerId,
-          payload: {},
-          validate: () => true,
-          execute: () => [autoConversionEvent],
-        });
+          payload: { gameEvent: rawToGoldEvent }, // Corrected payload
+        } as SystemAutoConversionRawCommand);
       }
+    }
+    // Loss of unconvertible raw materials if no storage
+    if (!hasStorage) {
+      for (const materialId in availableRawMaterials) {
+        if (
+          availableRawMaterials[materialId] > 0 &&
+          availableRawMaterials[materialId] < 4
+        ) {
+          // These are lost
+          availableRawMaterials[materialId] = 0;
+        }
+      }
+      // Event for lost raw materials (optional, good for logging/UI)
+      // For now, just update the state in the next apply if needed, or ensure raw-to-gold apply sets final state.
+      // The raw-to-gold apply function now sets player.resources.rawMaterials = { ...availableRawMaterials };
+      // which will include these zeroed out amounts.
     }
 
     // Similarly, convert special materials to gold (if no storage)
+    // This should use the player's special materials *after* workshop production
+    const smForGoldConversion = { ...player.resources.specialMaterials };
+    for (const [smId, amount] of Object.entries(
+      specialMaterialsProducedThisPhase
+    )) {
+      smForGoldConversion[smId] = (smForGoldConversion[smId] || 0) + amount;
+    }
+
     if (
       !hasStorage &&
-      Object.values(player.resources.specialMaterials).some((val) => val > 0)
+      Object.values(smForGoldConversion).some((val) => val > 0)
     ) {
-      let totalGoldToAdd = 0;
-      const specialMaterialsToConvert: Record<string, number> = {};
+      let goldFromSpecial = 0;
+      const specialMaterialsConsumedForGold: Record<string, number> = {};
 
-      // Calculate gold value of each special material (1 special = 2 gold in V1)
-      for (const [materialId, amount] of Object.entries(
-        player.resources.specialMaterials
-      )) {
+      for (const [materialId, amount] of Object.entries(smForGoldConversion)) {
         if (amount > 0) {
-          const goldValue = amount * 2; // Each special material is worth 2 gold
-          totalGoldToAdd += goldValue;
-          specialMaterialsToConvert[materialId] = amount; // Convert all
+          const goldValue = amount * 2;
+          goldFromSpecial += goldValue;
+          specialMaterialsConsumedForGold[materialId] = amount;
+          // These special materials will be effectively zeroed out in the apply function
         }
       }
 
-      if (totalGoldToAdd > 0) {
-        const autoConversionEvent = createGameEvent({
-          type: GameEventType.RESOURCES_AUTO_CONVERTED,
+      if (goldFromSpecial > 0) {
+        const specialToGoldEvent = createGameEvent({
+          type: GameEventType.RESOURCES_AUTO_CONVERTED, // Consider a more specific type
           playerId,
           payload: {
-            specialMaterialsConverted: specialMaterialsToConvert,
-            goldGained: totalGoldToAdd,
+            specialMaterialsConverted: specialMaterialsConsumedForGold,
+            goldGained: goldFromSpecial,
           },
-          apply: (state: GameState): GameState => {
-            const player = { ...state.players[playerId] };
+          apply: (currentState: GameState): GameState => {
+            const newPlayerState = { ...currentState.players[playerId] };
+            newPlayerState.resources = { ...newPlayerState.resources };
+            newPlayerState.resources.gold += goldFromSpecial;
 
-            // Add gold
-            player.resources.gold += totalGoldToAdd;
+            const finalSpecialMaterials = {
+              ...newPlayerState.resources.specialMaterials,
+            };
+            for (const smId of Object.keys(specialMaterialsConsumedForGold)) {
+              finalSpecialMaterials[smId] =
+                (finalSpecialMaterials[smId] || 0) -
+                (specialMaterialsConsumedForGold[smId] || 0);
+              if (finalSpecialMaterials[smId] <= 0) {
+                delete finalSpecialMaterials[smId];
+              }
+            }
+            newPlayerState.resources.specialMaterials = finalSpecialMaterials;
 
-            // Remove converted special materials
-            player.resources.specialMaterials = {};
+            // Ensure raw materials reflect any losses if not already handled by raw-to-gold apply
+            newPlayerState.resources.rawMaterials = {
+              ...availableRawMaterials,
+            };
 
             return {
-              ...state,
-              players: {
-                ...state.players,
-                [playerId]: player,
-              },
+              ...currentState,
+              players: { ...currentState.players, [playerId]: newPlayerState },
             };
           },
         });
-
         this.engine.executeCommand({
-          type: 'SYSTEM_AUTO_CONVERSION',
+          type: 'SYSTEM_AUTO_CONVERSION_SPECIAL',
           playerId,
-          payload: {},
-          validate: () => true,
-          execute: () => [autoConversionEvent],
-        });
+          payload: { gameEvent: specialToGoldEvent },
+        } as SystemAutoConversionSpecialCommand);
       }
     }
+    // Ensure player's raw materials in the actual state are updated to availableRawMaterials
+    // if no gold conversion happened that would do it.
+    // This is best handled by ensuring the apply function of the *last* event in this phase
+    // sets the final raw/special material counts.
+    // The special-to-gold event's apply function now also sets rawMaterials.
 
     // Move to next phase
     this.engine.advancePhase();
@@ -608,16 +649,21 @@ export class PhaseManager {
     const resetEvent = createGameEvent({
       type: GameEventType.RESOURCES_RESET,
       playerId,
-      payload: {},
+      payload: {}, // Payload for the event itself, not the command
       apply: (state: GameState): GameState => {
         const player = { ...state.players[playerId] };
 
         // Reset temporary influence
         player.resources = {
-          ...player.resources,
+          ...state.players[playerId].resources, // Ensure we're using latest from state for other resources
           temporaryInfluence: 0,
-          laborPower: player.resources.baseLaborPower,
+          laborPower: state.players[playerId].resources.baseLaborPower, // Use baseLaborPower from state
         };
+
+        // Reset semi-permanent influence gained this round for each office
+        if (player.influenceGainedThisRound) {
+          player.influenceGainedThisRound.semiPermanentPerOffice = {};
+        }
 
         // Update player in state
         return {
@@ -634,10 +680,8 @@ export class PhaseManager {
     this.engine.executeCommand({
       type: 'SYSTEM_RESET',
       playerId,
-      payload: {},
-      validate: () => true,
-      execute: () => [resetEvent],
-    });
+      payload: { gameEvent: resetEvent }, // Corrected payload
+    } as SystemResetCommand);
 
     // Move to next phase
     this.engine.advancePhase();

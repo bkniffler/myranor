@@ -6,7 +6,8 @@ import { generateUniqueId } from '../utils/idGenerator';
 import type { GameCommand } from './GameCommand';
 
 // Supported property types for V1
-type V1PropertyType =
+export type V1PropertyType =
+  // Added export
   | 'SMALL_RURAL_DOMAIN'
   | 'MEDIUM_RURAL_DOMAIN'
   | 'SMALL_CITY_PROPERTY'
@@ -15,12 +16,14 @@ type V1PropertyType =
   | 'SMALL_OFFICE';
 
 // Command to acquire a new property
+export interface AcquirePropertyCommandPayload {
+  propertyConfigKey: V1PropertyType; // Property config key to acquire
+  [key: string]: any; // For GameCommand compatibility if GameCommand.payload is Record<string, unknown>
+}
+
 export interface AcquirePropertyCommand extends GameCommand {
   type: 'ACQUIRE_PROPERTY';
-  payload: {
-    // Property config key to acquire
-    propertyConfigKey: V1PropertyType;
-  };
+  payload: AcquirePropertyCommandPayload;
 }
 
 // Cost to acquire different properties (for V1 - simple fixed costs)
