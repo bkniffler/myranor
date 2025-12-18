@@ -1,78 +1,56 @@
-# Myranor Strategy Game
+# Myranor Aufbausystem (Engine + API)
 
 ## Overview
-A strategy game set in the Myranor universe where players manage resources, build properties, and make strategic decisions.
+Deterministische Engine + zentrale API für das Aufbausystem aus `Aufbausystem.md` (LLM nur als UI/Persona via Tools).
 
 ## Project Structure
 
 ```
 src/
-├── core/                   # Game core logic (framework/UI-agnostic)
-│   ├── commands/           # Command objects representing user actions
-│   ├── events/             # Events that occur as a result of commands
-│   ├── models/             # Domain models and types
-│   ├── engine/             # Game logic and event processing
-│   └── config/             # Game configuration
-│
-├── adapters/               # Interface adapters for different platforms
-│   ├── console/            # Console interface
-│   └── common/             # Shared UI code
+├── core/                   # Engine (pure TS, event-sourced)
+└── server/                 # Bun API (file backend first)
 ```
 
 ## Architecture
 
-This project follows an event sourcing pattern:
-
-1. **Commands**: Represent user intentions (e.g., GainInfluenceCommand)
-2. **Events**: Represent facts that have happened (e.g., InfluenceGainedEvent)
-3. **State**: Built by applying events sequentially
-
-## Key Concepts
-
-- **Properties (Posten)**: The main entities that players can acquire (domains, city properties, offices, etc.)
-- **Facilities**: Buildings that can be constructed on properties
-- **Resources**: Gold, labor power, influence, raw materials, and special materials
-- **Game Phases**: Maintenance → Action → Production → Resource Conversion → Resource Reset
+Siehe `ARCHITEKTUR.md`.
 
 ## Running the Game
 
 ```bash
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Start the game
-npm start
+cp .env.example .env
+bun install
+bun dev
 ```
 
-## Development
+## Playtesting (Monte Carlo)
 
 ```bash
-# Run tests
-npm test
+# Szenarien anzeigen
+bun run playtest --list-scenarios
 
-# Start in development mode
-npm run dev
+# Default-Run (200 Runs, 20 Runden)
+bun run playtest
+
+# Report als JSON speichern
+bun run playtest --runs 500 --rounds 30 --seed 42 --scenario core-v0-specialists --out playtest.json --pretty
 ```
 
-## Beschreibung
+## Playtest Analysis Prompt (optional)
 
-In diesem Spiel verwaltest du deine Ressourcen, baust dein Reich auf und triffst strategische Entscheidungen.
+```bash
+# Prompt für ein Analyse-LLM generieren (keine Netzwerkanfrage, nur Text/Markdown)
+bun run playtest:prompt --report playtest.json --out analysis-prompt.md --pretty
+```
 
-* Rundenbasiertes Spielprinzip
-* Ressourcenmanagement (Gold, Arbeitskraft, Materialien)
-* Immobilienaufbau (Domänen, Werkstätten, Lager)
-* Verschiedene Spielaktionen
+## LLM Play (Claude / Anthropic)
 
-## Voraussetzungen
+Setze `ANTHROPIC_API_KEY` (z.B. in `.env`) und starte einen einzelnen Run mit LLM-Spielern:
 
-* [Bun](https://bun.sh/) (JavaScript/TypeScript Runtime)
-* Node.js und npm
+```bash
+# Standard: nutzt MYRANOR_ANTHROPIC_MODEL (default: claude-opus-4-5)
+bun run llm-play --rounds 20 --seed 42 --scenario core-v0-all5 --out llm-run.json --pretty
 
-## Spielstart
-
-Führe den folgenden Befehl aus, um das Spiel zu starten:
-
+# Alternativ: generische Spieleranzahl
+bun run llm-play --players 4 --rounds 20 --seed 42
 ```

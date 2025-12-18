@@ -1,24 +1,31 @@
 {
   "name": "myranor-game",
   "version": "0.1.0",
-  "description": "A strategy game set in the Myranor universe",
-  "main": "dist/index.js",
+  "description": "Myranor Aufbausystem Engine + API",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "check": "bun typecheck && bun lint",
-    "start": "bun src/index.js",
-    "dev": "bun --watch src/index.ts",
-    "test": "jest",
+    "check": "bun run typecheck && bun run lint && bun run test",
+    "start": "bun src/server/index.ts",
+    "dev": "bun --watch src/server/index.ts",
+    "playtest": "bun src/playtest/index.ts",
+    "playtest:prompt": "bun src/playtest/analyzePrompt.ts",
+    "llm-play": "bun --env-file .env src/playtest/llm.ts",
+    "llm-play-20": "bun run llm-play --rounds 20 --seed 42 --scenario core-v0-all5 --out llm-run.json --pretty",
+    "test": "bun test",
     "lint": "biome lint --vcs-use-ignore-file true --vcs-enabled true --diagnostic-level=error",
     "lint:fix": "biome check --write --unsafe --skip-errors ."
   },
   "dependencies": {
-    "typescript": "^5.3.0"
+    "@ai-sdk/anthropic": "beta",
+    "@ai-sdk/google": "beta",
+    "ai": "beta",
+    "typescript": "^5.3.0",
+    "zod": "^4.0.0",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@types/bun": "^1.2.13",
-    "ts-node": "^10.9.0",
-    "eslint": "^8.56.0",
+    "@types/node": "^22.10.2",
     "@biomejs/biome": "^1.9.4"
   },
   "engines": {

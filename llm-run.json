@@ -1,0 +1,2323 @@
+{
+  "generatedAt": "2025-12-18T10:50:39.279Z",
+  "config": {
+    "rounds": 20,
+    "seed": 42,
+    "scenario": "core-v0-all5",
+    "players": null,
+    "model": null,
+    "temperature": 0.2,
+    "maxOutputTokens": 400
+  },
+  "players": [
+    {
+      "userId": "u-builder",
+      "playerId": "p-builder",
+      "displayName": "Baumeister"
+    },
+    {
+      "userId": "u-merchant",
+      "playerId": "p-merchant",
+      "displayName": "Händler"
+    },
+    {
+      "userId": "u-courtier",
+      "playerId": "p-courtier",
+      "displayName": "Höfling"
+    },
+    {
+      "userId": "u-random",
+      "playerId": "p-random",
+      "displayName": "Zufall"
+    }
+  ],
+  "steps": [
+    {
+      "round": 1,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "workshop",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.workshop",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 4
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 1,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "workshop",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.workshop",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "facility",
+      "command": {
+        "type": "BuildFacility",
+        "facility": "buildSmallStorage"
+      },
+      "ok": true
+    },
+    {
+      "round": 2,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 4
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "facility",
+      "command": {
+        "type": "BuildFacility",
+        "facility": "buildSmallStorage"
+      },
+      "ok": true
+    },
+    {
+      "round": 2,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "facility",
+      "command": {
+        "type": "BuildFacility",
+        "facility": "buildSmallStorage"
+      },
+      "ok": true
+    },
+    {
+      "round": 2,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 4
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "facility",
+      "command": {
+        "type": "BuildFacility",
+        "facility": "buildSmallStorage"
+      },
+      "ok": true
+    },
+    {
+      "round": 2,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 4
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 2,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 3,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 4,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 5,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 6,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 7,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 8,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 9,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 10,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GainInfluence",
+        "investments": 4
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "influence",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 11,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 12,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 13,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 14,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 15,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 16,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 17,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "fail"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 18,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "poor"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "LendMoney",
+        "investments": 2
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.lend",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 19,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "special",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-builder",
+      "playerName": "Baumeister",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-merchant",
+      "playerName": "Händler",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "workshop",
+        "investments": 2
+      },
+      "ok": false,
+      "error": {
+        "message": "Nicht genug Arbeitskraft für diese Investitionen.",
+        "code": "RESOURCES"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "good"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-courtier",
+      "playerName": "Höfling",
+      "kind": "action",
+      "command": {
+        "type": "GainInfluence",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "influence",
+        "tier": "success"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "GatherMaterials",
+        "mode": "domain",
+        "investments": 3
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "material.domain",
+        "tier": "veryGood"
+      }
+    },
+    {
+      "round": 20,
+      "playerId": "p-random",
+      "playerName": "Zufall",
+      "kind": "action",
+      "command": {
+        "type": "SellMaterials",
+        "resource": "raw",
+        "investments": 1
+      },
+      "ok": true,
+      "outcome": {
+        "actionKey": "money.sell",
+        "tier": "fail"
+      }
+    }
+  ],
+  "final": {
+    "round": 21,
+    "phase": "maintenance",
+    "byPlayer": [
+      {
+        "playerId": "p-random",
+        "displayName": "Zufall",
+        "gold": 277,
+        "rawMaterials": 20,
+        "specialMaterials": 2,
+        "officesGold": 0,
+        "infrastructure": {
+          "domainTier": "starter",
+          "workshopTier": "small",
+          "storageTier": "small"
+        }
+      },
+      {
+        "playerId": "p-merchant",
+        "displayName": "Händler",
+        "gold": 203,
+        "rawMaterials": 20,
+        "specialMaterials": 2,
+        "officesGold": 0,
+        "infrastructure": {
+          "domainTier": "starter",
+          "workshopTier": "small",
+          "storageTier": "small"
+        }
+      },
+      {
+        "playerId": "p-courtier",
+        "displayName": "Höfling",
+        "gold": 182,
+        "rawMaterials": 20,
+        "specialMaterials": 2,
+        "officesGold": 0,
+        "infrastructure": {
+          "domainTier": "starter",
+          "workshopTier": "small",
+          "storageTier": "small"
+        }
+      },
+      {
+        "playerId": "p-builder",
+        "displayName": "Baumeister",
+        "gold": 172,
+        "rawMaterials": 20,
+        "specialMaterials": 2,
+        "officesGold": 0,
+        "infrastructure": {
+          "domainTier": "starter",
+          "workshopTier": "small",
+          "storageTier": "small"
+        }
+      }
+    ]
+  }
+}

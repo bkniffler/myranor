@@ -1,0 +1,533 @@
+{
+  "generatedAt": "2025-12-17T21:27:32.150Z",
+  "config": {
+    "runs": 500,
+    "rounds": 30,
+    "seed": 1
+  },
+  "scenario": {
+    "name": "core-v0-all5",
+    "players": [
+      {
+        "agentId": "builder",
+        "displayName": "Baumeister",
+        "checks": {
+          "influence": 5,
+          "money": 5,
+          "materials": 5
+        }
+      },
+      {
+        "agentId": "merchant",
+        "displayName": "Händler",
+        "checks": {
+          "influence": 5,
+          "money": 5,
+          "materials": 5
+        }
+      },
+      {
+        "agentId": "courtier",
+        "displayName": "Höfling",
+        "checks": {
+          "influence": 5,
+          "money": 5,
+          "materials": 5
+        }
+      },
+      {
+        "agentId": "random",
+        "displayName": "Zufall",
+        "checks": {
+          "influence": 5,
+          "money": 5,
+          "materials": 5
+        }
+      }
+    ]
+  },
+  "outcomes": {
+    "giniGold": {
+      "mean": 0.2125360665704748,
+      "p50": 0.2005487558552974,
+      "p90": 0.3183291891078434
+    },
+    "byAgent": {
+      "builder": {
+        "samples": 500,
+        "wins": 38,
+        "winRate": 0.076,
+        "finalGold": {
+          "mean": 207.5,
+          "p50": 205,
+          "p10": 55.80000000000001,
+          "p90": 356.30000000000007
+        },
+        "finalOfficesGold": {
+          "mean": 13.038,
+          "p50": 13
+        },
+        "milestones": {
+          "firstOfficeRound": {
+            "mean": 8.249496981891348,
+            "p50": 7,
+            "neverRate": 0.006
+          },
+          "firstDomainUpgradeRound": {
+            "mean": 2.3253333333333335,
+            "p50": 2,
+            "neverRate": 0.25
+          },
+          "firstStorageBuiltRound": {
+            "mean": 4.666,
+            "p50": 4,
+            "neverRate": 0
+          }
+        },
+        "idleActionRate": 0.008,
+        "meanGoldByRound": [
+          11.726,
+          4.25,
+          6.984,
+          5.082,
+          5.46,
+          5.362,
+          5.662,
+          6.028,
+          6.45,
+          7.748,
+          9.412,
+          11.498,
+          14.396,
+          17.564,
+          22.014,
+          26.9,
+          32.188,
+          38.776,
+          46.73,
+          55.35,
+          65.344,
+          75.636,
+          87.782,
+          100.646,
+          115.174,
+          131.256,
+          148.636,
+          167.056,
+          186.524,
+          207.5
+        ],
+        "actions": {
+          "influence": {
+            "count": 14858,
+            "tiers": {
+              "veryGood": 298,
+              "good": 3841,
+              "success": 3583,
+              "poor": 3660,
+              "fail": 3476
+            }
+          },
+          "material.domain": {
+            "count": 2342,
+            "tiers": {
+              "veryGood": 509,
+              "good": 565,
+              "success": 592,
+              "poor": 498,
+              "fail": 178
+            }
+          },
+          "money.sell": {
+            "count": 4794,
+            "tiers": {
+              "veryGood": 613,
+              "good": 1138,
+              "success": 1137,
+              "poor": 1238,
+              "fail": 668
+            }
+          },
+          "acquire.office": {
+            "count": 7766,
+            "tiers": {
+              "veryGood": 931,
+              "good": 1823,
+              "success": 1899,
+              "poor": 1998,
+              "fail": 1115
+            }
+          }
+        },
+        "facilities": {
+          "buildSmallStorage": 500,
+          "upgradeStarterDomainToSmall": 375
+        },
+        "errors": {}
+      },
+      "merchant": {
+        "samples": 500,
+        "wins": 216,
+        "winRate": 0.432,
+        "finalGold": {
+          "mean": 343.832,
+          "p50": 346.5,
+          "p10": 272.9,
+          "p90": 418
+        },
+        "finalOfficesGold": {
+          "mean": 0,
+          "p50": 0
+        },
+        "milestones": {
+          "firstOfficeRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          },
+          "firstDomainUpgradeRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          },
+          "firstStorageBuiltRound": {
+            "mean": 2.03,
+            "p50": 2,
+            "neverRate": 0
+          }
+        },
+        "idleActionRate": 0.00016666666666666666,
+        "meanGoldByRound": [
+          11.722,
+          14.346,
+          25.214,
+          37.902,
+          50.168,
+          62.666,
+          73.986,
+          83.85,
+          96.084,
+          108.668,
+          120.356,
+          133.254,
+          144.4,
+          155.07,
+          168.322,
+          179.612,
+          191.202,
+          203.916,
+          215.268,
+          225.468,
+          238.098,
+          249.654,
+          260.964,
+          273.61,
+          285.576,
+          296.15,
+          308.424,
+          319.954,
+          330.888,
+          343.832
+        ],
+        "actions": {
+          "money.lend": {
+            "count": 14962,
+            "tiers": {
+              "veryGood": 1318,
+              "good": 3785,
+              "success": 3867,
+              "poor": 3632,
+              "fail": 2360
+            }
+          },
+          "material.domain": {
+            "count": 3517,
+            "tiers": {
+              "veryGood": 794,
+              "good": 908,
+              "success": 914,
+              "poor": 751,
+              "fail": 150
+            }
+          },
+          "money.sell": {
+            "count": 11516,
+            "tiers": {
+              "veryGood": 1147,
+              "good": 2973,
+              "success": 2739,
+              "poor": 2811,
+              "fail": 1846
+            }
+          }
+        },
+        "facilities": {
+          "buildSmallStorage": 500
+        },
+        "errors": {}
+      },
+      "courtier": {
+        "samples": 500,
+        "wins": 247,
+        "winRate": 0.494,
+        "finalGold": {
+          "mean": 350.79,
+          "p50": 355,
+          "p10": 260.9,
+          "p90": 445
+        },
+        "finalOfficesGold": {
+          "mean": 17.102,
+          "p50": 17
+        },
+        "milestones": {
+          "firstOfficeRound": {
+            "mean": 3.092,
+            "p50": 3,
+            "neverRate": 0
+          },
+          "firstDomainUpgradeRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          },
+          "firstStorageBuiltRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          }
+        },
+        "idleActionRate": 0,
+        "meanGoldByRound": [
+          11.726,
+          9.806,
+          10.982,
+          10.922,
+          11.274,
+          11.14,
+          12.116,
+          14.34,
+          17.348,
+          22.01,
+          26.608,
+          32.442,
+          39.524,
+          47.844,
+          57.694,
+          68.358,
+          80.34,
+          93.848,
+          108.194,
+          123.956,
+          141.042,
+          159.442,
+          178.466,
+          198.618,
+          220.748,
+          244.538,
+          269.064,
+          295.268,
+          322.384,
+          350.79
+        ],
+        "actions": {
+          "influence": {
+            "count": 15000,
+            "tiers": {
+              "veryGood": 0,
+              "good": 3930,
+              "success": 3639,
+              "poor": 3548,
+              "fail": 3883
+            }
+          },
+          "material.domain": {
+            "count": 4674,
+            "tiers": {
+              "veryGood": 565,
+              "good": 1093,
+              "success": 1089,
+              "poor": 1367,
+              "fail": 560
+            }
+          },
+          "acquire.office": {
+            "count": 10326,
+            "tiers": {
+              "veryGood": 1160,
+              "good": 2493,
+              "success": 2513,
+              "poor": 2483,
+              "fail": 1677
+            }
+          }
+        },
+        "facilities": {},
+        "errors": {}
+      },
+      "random": {
+        "samples": 500,
+        "wins": 0,
+        "winRate": 0,
+        "finalGold": {
+          "mean": 154.388,
+          "p50": 154,
+          "p10": 120,
+          "p90": 190
+        },
+        "finalOfficesGold": {
+          "mean": 0,
+          "p50": 0
+        },
+        "milestones": {
+          "firstOfficeRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          },
+          "firstDomainUpgradeRound": {
+            "mean": 2.678,
+            "p50": 2,
+            "neverRate": 0
+          },
+          "firstStorageBuiltRound": {
+            "mean": 0,
+            "p50": 0,
+            "neverRate": 1
+          }
+        },
+        "idleActionRate": 0.008266666666666667,
+        "meanGoldByRound": [
+          5,
+          2.946,
+          6.58,
+          11.606,
+          16.656,
+          21.83,
+          26.748,
+          32.07,
+          37.738,
+          43.156,
+          49.048,
+          54.438,
+          60.142,
+          65.664,
+          71.13,
+          76.716,
+          81.94,
+          87.426,
+          92.938,
+          98.612,
+          104.322,
+          110.122,
+          115.416,
+          121.154,
+          126.73,
+          132.31,
+          137.764,
+          143.322,
+          148.956,
+          154.388
+        ],
+        "actions": {
+          "money.lend": {
+            "count": 14793,
+            "tiers": {
+              "veryGood": 1517,
+              "good": 3873,
+              "success": 3558,
+              "poor": 3539,
+              "fail": 2306
+            }
+          },
+          "influence": {
+            "count": 14711,
+            "tiers": {
+              "veryGood": 2934,
+              "good": 3545,
+              "success": 3538,
+              "poor": 3813,
+              "fail": 881
+            }
+          },
+          "money.sell": {
+            "count": 36,
+            "tiers": {
+              "veryGood": 5,
+              "good": 4,
+              "success": 7,
+              "poor": 10,
+              "fail": 10
+            }
+          },
+          "material.domain": {
+            "count": 212,
+            "tiers": {
+              "veryGood": 17,
+              "good": 65,
+              "success": 64,
+              "poor": 46,
+              "fail": 20
+            }
+          }
+        },
+        "facilities": {
+          "upgradeStarterDomainToSmall": 500
+        },
+        "errors": {}
+      }
+    }
+  },
+  "checkMath": {
+    "examples": [
+      {
+        "name": "Materialgewinn (Domäne) DC10 +5",
+        "dc": 10,
+        "modifier": 5,
+        "probs": {
+          "veryGood": 0.3,
+          "good": 0.25,
+          "success": 0.25,
+          "poor": 0.2,
+          "fail": 0
+        }
+      },
+      {
+        "name": "Materialgewinn (Werkstatt) DC12 +5",
+        "dc": 12,
+        "modifier": 5,
+        "probs": {
+          "veryGood": 0.2,
+          "good": 0.25,
+          "success": 0.25,
+          "poor": 0.25,
+          "fail": 0.05
+        }
+      },
+      {
+        "name": "Geldgewinn (Verkauf/Verleih) DC14 +5",
+        "dc": 14,
+        "modifier": 5,
+        "probs": {
+          "veryGood": 0.1,
+          "good": 0.25,
+          "success": 0.25,
+          "poor": 0.25,
+          "fail": 0.15000000000000002
+        }
+      },
+      {
+        "name": "Einflussgewinn DC12 +5",
+        "dc": 12,
+        "modifier": 5,
+        "probs": {
+          "veryGood": 0.2,
+          "good": 0.25,
+          "success": 0.25,
+          "poor": 0.25,
+          "fail": 0.05
+        }
+      }
+    ]
+  }
+}
