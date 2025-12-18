@@ -32,8 +32,11 @@ bun run playtest --list-scenarios
 # Default-Run (200 Runs, 20 Runden)
 bun run playtest
 
-# Report als JSON speichern
-bun run playtest --runs 500 --rounds 30 --seed 42 --scenario core-v0-specialists --out playtest.json --pretty
+# Report als JSON+Markdown speichern
+bun run playtest --runs 500 --rounds 30 --seed 42 --scenario core-v1-specialists --out playtest.json --md-out playtest.md --pretty
+
+# One-command: 5 Strategie-Personas (Output nach reports/)
+bun run playtest:mc:strategies
 ```
 
 ## Playtest Analysis Prompt (optional)
@@ -41,6 +44,9 @@ bun run playtest --runs 500 --rounds 30 --seed 42 --scenario core-v0-specialists
 ```bash
 # Prompt für ein Analyse-LLM generieren (keine Netzwerkanfrage, nur Text/Markdown)
 bun run playtest:prompt --report playtest.json --out analysis-prompt.md --pretty
+
+# One-command: Prompt passend zu playtest:mc:strategies
+bun run playtest:prompt:strategies
 ```
 
 ## LLM Play (Claude / Anthropic)
@@ -49,7 +55,10 @@ Setze `ANTHROPIC_API_KEY` (z.B. in `.env`) und starte einen einzelnen Run mit LL
 
 ```bash
 # Standard: nutzt MYRANOR_ANTHROPIC_MODEL (default: claude-opus-4-5)
-bun run llm-play --rounds 20 --seed 42 --scenario core-v0-all5 --out llm-run.json --pretty
+bun run llm-play --rounds 20 --seed 42 --scenario core-v1-all5 --out llm-run.json --md-out llm-run.md --pretty
+
+# One-command: 5 Strategie-Personas (Output nach reports/)
+bun run llm-play:strategies
 
 # Alternativ: generische Spieleranzahl
 bun run llm-play --players 4 --rounds 20 --seed 42

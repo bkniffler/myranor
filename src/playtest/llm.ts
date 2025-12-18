@@ -1,6 +1,7 @@
 import {
   type ActorContext,
   type CampaignState,
+  type GameCommand,
   type GameEvent,
   GameRuleError,
   type PlayerChecks,
@@ -12,7 +13,6 @@ import {
 } from '../core';
 
 import { createLLM } from '../llm';
-import { llmEnv } from '../llm/env';
 
 import {
   type AgentCommand,
@@ -29,6 +29,7 @@ type CliArgs = {
   players: number | null;
   model: string | null;
   out: string | null;
+  mdOut: string | null;
   json: boolean;
   pretty: boolean;
   listScenarios: boolean;
@@ -57,14 +58,7 @@ type StepLog = {
 
 type LlmPlayReport = {
   generatedAt: string;
-  config: Pick<
-    CliArgs,
-    'rounds' | 'seed' | 'scenario' | 'players' | 'model'
-  > & {
-    // modelUsed: string;
-    temperature: number;
-    maxOutputTokens: number;
-  };
+  config: Pick<CliArgs, 'rounds' | 'seed' | 'scenario' | 'players' | 'model'>;
   players: Array<Pick<PlayerProfile, 'userId' | 'playerId' | 'displayName'>>;
   steps: StepLog[];
   final: {
@@ -74,17 +68,24 @@ type LlmPlayReport = {
       playerId: string;
       displayName: string;
       gold: number;
-      rawMaterials: number;
-      specialMaterials: number;
-      officesGold: number;
-      infrastructure: PlayerState['infrastructure'];
+      rawTotal: number;
+      specialTotal: number;
+      holdings: {
+        domains: Array<{ id: string; tier: string }>;
+        cityProperties: Array<{ id: string; tier: string; mode: string }>;
+        offices: Array<{ id: string; tier: string; yieldMode: string }>;
+        organizations: Array<{ id: string; kind: string; tier: string }>;
+        tradeEnterprises: Array<{ id: string; tier: string; mode: string }>;
+        workshops: Array<{ id: string; tier: string }>;
+        storages: Array<{ id: string; tier: string }>;
+      };
     }>;
   };
 };
 
 function usage(): string {
   return [
-    'LLM Runner (Myranor Aufbausystem, v0)',
+    'LLM Runner (Myranor Aufbausystem, v1)',
     '',
     'Usage:',
     '  bun src/playtest/llm.ts [options]',
@@ -92,10 +93,11 @@ function usage(): string {
     'Options:',
     '  --rounds <n>        Runden spielen (default: 10)',
     '  --seed <n>          RNG-Seed für Engine (default: 1)',
-    '  --scenario <name>   Szenario-Name (default: core-v0-all5)',
+    '  --scenario <name>   Szenario-Name (default: core-v1-all5)',
     '  --players <n>       Statt Szenario: N generische Spieler (Checks +5)',
     '  --model <id>        Model-ID überschreiben (default via MYRANOR_ANTHROPIC_MODEL)',
     '  --out <file>        Report als JSON schreiben',
+    '  --md-out <file>     Report als Markdown schreiben',
     '  --json              Report als JSON nach stdout',
     '  --pretty            JSON pretty-print (Indent=2)',
     '  --list-scenarios    Szenarien auflisten',
@@ -104,11 +106,9 @@ function usage(): string {
     'Env:',
     '  ANTHROPIC_API_KEY              (required)',
     '  MYRANOR_ANTHROPIC_MODEL        (default: claude-opus-4-5)',
-    '  MYRANOR_LLM_TEMPERATURE        (default: 0.2)',
-    '  MYRANOR_LLM_MAX_OUTPUT_TOKENS  (default: 400)',
     '',
     'Example:',
-    '  bun src/playtest/llm.ts --rounds 20 --seed 42 --scenario core-v0-all5 --out llm-run.json --pretty',
+    '  bun src/playtest/llm.ts --rounds 20 --seed 42 --scenario core-v1-strategies --out llm-run.json --pretty',
   ].join('\n');
 }
 
@@ -123,10 +123,11 @@ function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
     rounds: 10,
     seed: 1,
-    scenario: 'core-v0-all5',
+    scenario: 'core-v1-all5',
     players: null,
     model: null,
     out: null,
+    mdOut: null,
     json: false,
     pretty: false,
     listScenarios: false,
@@ -161,6 +162,9 @@ function parseArgs(argv: string[]): CliArgs {
       case '--out':
         args.out = inline ?? argv[++i] ?? null;
         break;
+      case '--md-out':
+        args.mdOut = inline ?? argv[++i] ?? null;
+        break;
       case '--json':
         args.json = true;
         break;
@@ -183,22 +187,14 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-function capturePublicLog(events: GameEvent[], sink: string[]): void {
-  for (const event of events) {
-    if (event.type === 'PublicLogEntryAdded') {
-      sink.push(event.message);
-    }
-  }
-}
-
 function execute(
   state: CampaignState | null,
-  command: Parameters<typeof decide>[1],
+  command: GameCommand,
   actor: ActorContext,
   rng: ReturnType<typeof createSeededRng>
 ): { state: CampaignState | null; events: GameEvent[]; error: Error | null } {
   try {
-    const events = decide(state, command as any, { actor, rng });
+    const events = decide(state, command, { actor, rng });
     const next = reduceEvents(state, events);
     return { state: next, events, error: null };
   } catch (error) {
@@ -215,17 +211,99 @@ function getPlayerByUserId(state: CampaignState, userId: string) {
   return state.players[playerId];
 }
 
+function sumStock(stock: Record<string, number>): number {
+  let sum = 0;
+  for (const v of Object.values(stock)) sum += v;
+  return sum;
+}
+
+function canonicalActionKey(actionKey: string): string {
+  const idx = actionKey.indexOf('@');
+  return idx === -1 ? actionKey : actionKey.slice(0, idx);
+}
+
+function hasUsedCanonicalAction(me: PlayerState, canonical: string): boolean {
+  return me.turn.actionKeysUsed.some(
+    (k) => canonicalActionKey(k) === canonical
+  );
+}
+
+function hasUsedMarker(me: PlayerState, marker: string): boolean {
+  const needle = `@${marker}`;
+  return me.turn.actionKeysUsed.some((k) => k.includes(needle));
+}
+
+function bonusInfluenceSlots(me: PlayerState): number {
+  const largeOffices = me.holdings.offices.filter(
+    (o) => o.tier === 'large'
+  ).length;
+  const hasLargeCult = me.holdings.organizations.some(
+    (o) => o.kind === 'cult' && o.tier === 'large' && !o.followers.inUnrest
+  );
+  return largeOffices + (hasLargeCult ? 1 : 0);
+}
+
+function bonusMoneySlots(me: PlayerState): number {
+  const hasLargeTradeCollegium = me.holdings.organizations.some(
+    (o) =>
+      o.kind === 'collegiumTrade' && o.tier === 'large' && !o.followers.inUnrest
+  );
+  return hasLargeTradeCollegium ? 1 : 0;
+}
+
+function bonusMaterialsSlots(me: PlayerState): number {
+  const hasLargeCraftCollegium = me.holdings.organizations.some(
+    (o) =>
+      o.kind === 'collegiumCraft' && o.tier === 'large' && !o.followers.inUnrest
+  );
+  return hasLargeCraftCollegium ? 1 : 0;
+}
+
+function hasRemainingInfluenceBonus(me: PlayerState): boolean {
+  const slots = bonusInfluenceSlots(me);
+  for (let i = 1; i <= slots; i += 1) {
+    const canonical = `influence.bonus.${i}`;
+    if (!hasUsedCanonicalAction(me, canonical)) return true;
+  }
+  return false;
+}
+
+function hasAnyActionCapacity(
+  me: PlayerState,
+  actionsPerRound: number
+): boolean {
+  if (me.turn.actionsUsed < actionsPerRound) return true;
+  if (bonusMoneySlots(me) > 0 && !hasUsedMarker(me, 'bonus.money.1'))
+    return true;
+  if (bonusMaterialsSlots(me) > 0 && !hasUsedMarker(me, 'bonus.materials.1'))
+    return true;
+  if (hasRemainingInfluenceBonus(me)) return true;
+  return false;
+}
+
 function extractOutcome(
   events: GameEvent[]
 ): { actionKey: string; tier: string } | null {
-  for (const event of events) {
-    switch (event.type) {
-      case 'PlayerGatherMaterialsResolved':
-      case 'PlayerGainInfluenceResolved':
-      case 'PlayerLendMoneyResolved':
-      case 'PlayerSellMaterialsResolved':
+  for (const e of events) {
+    switch (e.type) {
+      case 'PlayerMaterialsGained':
+        return { actionKey: e.actionKey, tier: e.tier };
+      case 'PlayerInfluenceGained':
+        return { actionKey: e.actionKey, tier: e.tier };
+      case 'PlayerMoneyLent':
+        return { actionKey: e.actionKey, tier: e.tier };
+      case 'PlayerMoneySold':
+        return { actionKey: e.actionKey, tier: e.tier };
+      case 'PlayerMoneyBought':
+        return { actionKey: e.actionKey, tier: e.tier };
+      case 'PlayerDomainAcquired':
+      case 'PlayerCityPropertyAcquired':
       case 'PlayerOfficeAcquired':
-        return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerOrganizationAcquired':
+      case 'PlayerTradeEnterpriseAcquired':
+      case 'PlayerTenantsAcquired':
+      case 'PlayerTroopsRecruited':
+        return { actionKey: e.actionKey, tier: e.tierResult };
       default:
         break;
     }
@@ -233,40 +311,36 @@ function extractOutcome(
   return null;
 }
 
-function defaultChecks() {
-  return { influence: 5, money: 5, materials: 5 };
-}
+function formatMarkdown(report: LlmPlayReport): string {
+  const lines: string[] = [];
+  lines.push(`# LLM-Play Report — ${report.config.scenario}`);
+  lines.push('');
+  lines.push(`Generated: ${report.generatedAt}`);
+  lines.push(
+    `Config: rounds=${report.config.rounds}, seed=${report.config.seed}, model=${report.config.model ?? '(default)'}`
+  );
+  lines.push('');
 
-function buildProfiles(args: CliArgs): PlayerProfile[] {
-  if (args.players && args.players > 0) {
-    return Array.from({ length: args.players }, (_, i) => {
-      const n = i + 1;
-      return {
-        userId: `u-llm-${n}`,
-        playerId: `p-llm-${n}`,
-        displayName: `LLM ${n}`,
-        checks: defaultChecks(),
-        systemPreamble: `Du spielst als Spieler ${n}.`,
-        lastPublicLogIndex: 0,
-      };
-    });
-  }
-
-  const scenario = getScenario(args.scenario);
-  if (!scenario) {
-    throw new Error(
-      `Unknown scenario "${args.scenario}". Available: ${listScenarioNames().join(', ')}`
+  lines.push('## Final');
+  for (const p of report.final.byPlayer) {
+    lines.push(
+      `- ${p.displayName}: gold=${p.gold} raw=${p.rawTotal} special=${p.specialTotal}`
     );
   }
+  lines.push('');
 
-  return scenario.players.map((p) => ({
-    userId: p.userId,
-    playerId: p.playerId,
-    displayName: p.displayName,
-    checks: p.checks,
-    systemPreamble: `Du spielst als ${p.displayName}.`,
-    lastPublicLogIndex: 0,
-  }));
+  lines.push('## Steps (gekürzt)');
+  for (const step of report.steps.slice(-60)) {
+    const outcome = step.outcome
+      ? ` → ${step.outcome.actionKey}/${step.outcome.tier}`
+      : '';
+    const ok = step.ok ? 'OK' : `ERR(${step.error?.code ?? ''})`;
+    lines.push(
+      `- R${step.round} ${step.playerName} ${step.kind}: ${step.command.type} ${ok}${outcome}`
+    );
+  }
+  lines.push('');
+  return lines.join('\n');
 }
 
 async function main() {
@@ -283,103 +357,92 @@ async function main() {
     return;
   }
 
-  const players = buildProfiles(args);
+  const scenario = args.players ? null : getScenario(args.scenario);
+  if (!args.players && !scenario) {
+    throw new Error(
+      `Unknown scenario "${args.scenario}". Available: ${listScenarioNames().join(', ')}`
+    );
+  }
+
+  const model = createLLM();
   const rng = createSeededRng(args.seed);
-  const model = createLLM(args.model ?? undefined);
-
-  const startedAt = Date.now();
-  const progress = (message: string) => {
-    console.error(message);
-  };
-
-  const campaignId = `llm-${args.seed}-${Date.now()}`;
+  const campaignId = `llm-${args.seed}`;
   const gm: ActorContext = { role: 'gm', userId: 'gm' };
 
-  let state: CampaignState | null = null;
+  const profiles: PlayerProfile[] = args.players
+    ? Array.from({ length: args.players }, (_, i) => ({
+        userId: `u-${i + 1}`,
+        playerId: `p-${i + 1}`,
+        displayName: `Spieler ${i + 1}`,
+        checks: { influence: 5, money: 5, materials: 5 },
+        systemPreamble: undefined,
+        lastPublicLogIndex: 0,
+      }))
+    : scenario!.players.map((p) => ({
+        userId: p.userId,
+        playerId: p.playerId,
+        displayName: p.displayName,
+        checks: p.checks,
+        systemPreamble: p.llmPreamble,
+        lastPublicLogIndex: 0,
+      }));
+
   const publicLog: string[] = [];
   const steps: StepLog[] = [];
 
-  progress(
-    `LLM-Run start: scenario=${args.scenario}, rounds=${args.rounds}, players=${players.length}, seed=${args.seed}, model=${args.model ?? llmEnv.MYRANOR_ANTHROPIC_MODEL}`
-  );
+  let state: CampaignState | null = null;
+  ({ state } = execute(
+    state,
+    { type: 'CreateCampaign', campaignId, name: args.scenario },
+    gm,
+    rng
+  ));
+  if (!state) throw new Error('Campaign create failed');
 
-  // Create campaign
-  {
-    const res = execute(
-      state,
-      { type: 'CreateCampaign', campaignId, name: args.scenario },
-      gm,
-      rng
-    );
-    state = res.state;
-    capturePublicLog(res.events, publicLog);
-    if (!state) throw new Error('Campaign create failed');
-  }
-
-  // Join players
-  for (const profile of players) {
+  for (const p of profiles) {
     const res = execute(
       state,
       {
         type: 'JoinCampaign',
         campaignId,
-        playerId: profile.playerId,
-        displayName: profile.displayName,
-        checks: profile.checks,
+        playerId: p.playerId,
+        displayName: p.displayName,
+        checks: p.checks,
       },
-      { role: 'player', userId: profile.userId },
+      { role: 'player', userId: p.userId },
       rng
     );
     state = res.state;
-    capturePublicLog(res.events, publicLog);
     if (!state) throw new Error('Join failed');
+    for (const e of res.events) {
+      if (e.type === 'PublicLogEntryAdded') publicLog.push(e.message);
+    }
   }
-
-  progress(
-    `Campaign ready: id=${campaignId}, players=${players.map((p) => p.displayName).join(', ')}`
-  );
-
-  let llmCallCount = 0;
-  const totalLlmCalls = args.rounds * players.length;
 
   for (let round = 1; round <= args.rounds; round += 1) {
     if (!state) break;
-    if (state.phase !== 'maintenance') {
+    if (state.phase !== 'maintenance')
       throw new Error(
         `Expected maintenance at round ${round}, got ${state.phase}`
       );
-    }
-
-    progress(`\n[R${state.round}] maintenance → actions`);
 
     // maintenance -> actions
     {
       const res = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng);
       state = res.state;
-      capturePublicLog(res.events, publicLog);
+      for (const e of res.events) {
+        if (e.type === 'PublicLogEntryAdded') publicLog.push(e.message);
+      }
     }
     if (!state) break;
 
-    // players act (actions phase)
-    for (const profile of players) {
+    for (const profile of profiles) {
       if (!state) break;
-
       const actor: ActorContext = { role: 'player', userId: profile.userId };
+
       const me = getPlayerByUserId(state, profile.userId);
       const newPublicLog = publicLog.slice(profile.lastPublicLogIndex);
       profile.lastPublicLogIndex = publicLog.length;
-
-      if (state.phase !== 'actions') {
-        throw new Error(
-          `Expected actions phase while players act, got ${state.phase}`
-        );
-      }
-
-      llmCallCount += 1;
-      const llmStartedAt = Date.now();
-      progress(
-        `[R${state.round}] ${profile.displayName}: LLM decision (${llmCallCount}/${totalLlmCalls})…`
-      );
 
       const plan = await planTurnWithLlm({
         model,
@@ -388,32 +451,20 @@ async function main() {
         round: state.round,
         publicLog: newPublicLog,
         systemPreamble: profile.systemPreamble,
+        market: state.market,
       });
-
-      progress(
-        `[R${state.round}] ${profile.displayName}: plan ready in ${Date.now() - llmStartedAt}ms${plan.note ? ` (${plan.note})` : ''}`
-      );
 
       if (plan.facility) {
         const cmd = toGameCommand(plan.facility, campaignId);
-        const res = execute(state, cmd as any, actor, rng);
+        const res = execute(state, cmd, actor, rng);
         state = res.state;
-        capturePublicLog(res.events, publicLog);
-
-        const facilityLabel =
-          plan.facility.type === 'BuildFacility'
-            ? plan.facility.facility
-            : plan.facility.type;
-        progress(
-          `[R${state?.round ?? round}] ${profile.displayName}: facility ${facilityLabel} ${res.error ? `ERROR: ${res.error.message}` : 'OK'}`
-        );
-
+        const outcome = extractOutcome(res.events);
         steps.push({
-          round: state?.round ?? round,
+          round,
           playerId: profile.playerId,
           playerName: profile.displayName,
           kind: 'facility',
-          command: plan.facility,
+          command: cmd,
           ok: !res.error,
           error: res.error
             ? {
@@ -424,52 +475,66 @@ async function main() {
                     : undefined,
               }
             : undefined,
+          outcome: outcome ?? undefined,
         });
       }
 
-      for (let actionSlot = 0; actionSlot < 2; actionSlot += 1) {
+      const actionsPerRound = state.rules.actionsPerRound;
+      const maxSlotsThisRound =
+        actionsPerRound +
+        bonusInfluenceSlots(me) +
+        bonusMoneySlots(me) +
+        bonusMaterialsSlots(me);
+      for (let slot = 0; slot < maxSlotsThisRound; slot += 1) {
         if (!state) break;
         const meNow = getPlayerByUserId(state, profile.userId);
-        if (meNow.turn.actionsUsed >= 2) break;
+        if (!hasAnyActionCapacity(meNow, actionsPerRound)) break;
 
         let executed = false;
-        for (const planned of plan.actionPriority) {
-          if (!state) break;
+        for (const candidate of plan.actionPriority) {
+          const key = actionKeyOf(candidate);
+          if (key) {
+            const used = hasUsedCanonicalAction(meNow, key);
+            if (used) {
+              const canRepeatInfluence =
+                key === 'influence' && hasRemainingInfluenceBonus(meNow);
+              if (!canRepeatInfluence) continue;
+            }
+          }
 
-          const actionKey = actionKeyOf(planned);
-          if (actionKey && meNow.turn.actionKeysUsed.includes(actionKey))
-            continue;
-
-          const cmd = toGameCommand(planned, campaignId);
-          const res = execute(state, cmd as any, actor, rng);
+          const cmd = toGameCommand(candidate, campaignId);
+          const res = execute(state, cmd, actor, rng);
           state = res.state;
-          capturePublicLog(res.events, publicLog);
 
-          const outcome = res.error ? null : extractOutcome(res.events);
-          progress(
-            `[R${state?.round ?? round}] ${profile.displayName}: action ${planned.type}${actionKey ? ` (${actionKey})` : ''} ${res.error ? `ERROR: ${res.error.message}` : outcome ? `OK: ${outcome.tier}` : 'OK'}`
-          );
+          if (res.error) {
+            steps.push({
+              round,
+              playerId: profile.playerId,
+              playerName: profile.displayName,
+              kind: 'action',
+              command: cmd,
+              ok: false,
+              error: {
+                message: res.error.message,
+                code:
+                  res.error instanceof GameRuleError
+                    ? res.error.code
+                    : undefined,
+              },
+            });
+            continue;
+          }
 
+          const outcome = extractOutcome(res.events);
           steps.push({
-            round: state?.round ?? round,
+            round,
             playerId: profile.playerId,
             playerName: profile.displayName,
             kind: 'action',
-            command: planned,
-            ok: !res.error,
-            error: res.error
-              ? {
-                  message: res.error.message,
-                  code:
-                    res.error instanceof GameRuleError
-                      ? res.error.code
-                      : undefined,
-                }
-              : undefined,
-            outcome: res.error ? undefined : (outcome ?? undefined),
+            command: cmd,
+            ok: true,
+            outcome: outcome ?? undefined,
           });
-
-          if (res.error) continue;
           executed = true;
           break;
         }
@@ -478,47 +543,19 @@ async function main() {
       }
     }
 
-    progress(`[R${state.round}] actions → conversion`);
     // actions -> conversion
-    {
-      const res = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng);
-      state = res.state;
-      capturePublicLog(res.events, publicLog);
-    }
+    ({ state } = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng));
     if (!state) break;
 
-    progress(`[R${state.round}] conversion → reset`);
     // conversion -> reset
-    {
-      const res = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng);
-      state = res.state;
-      capturePublicLog(res.events, publicLog);
-    }
+    ({ state } = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng));
     if (!state) break;
 
-    progress(`[R${state.round}] reset → maintenance`);
-    // reset -> maintenance (round increments)
-    {
-      const res = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng);
-      state = res.state;
-      capturePublicLog(res.events, publicLog);
-    }
+    // reset -> maintenance
+    ({ state } = execute(state, { type: 'AdvancePhase', campaignId }, gm, rng));
   }
 
-  if (!state) throw new Error('Game ended unexpectedly (no state).');
-
-  const byPlayer = players.map((p) => {
-    const me = getPlayerByUserId(state, p.userId);
-    return {
-      playerId: p.playerId,
-      displayName: p.displayName,
-      gold: me.economy.gold,
-      rawMaterials: me.economy.rawMaterials,
-      specialMaterials: me.economy.specialMaterials,
-      officesGold: me.holdings.officesGold,
-      infrastructure: me.infrastructure,
-    };
-  });
+  if (!state) throw new Error('Simulation ended without state');
 
   const report: LlmPlayReport = {
     generatedAt: new Date().toISOString(),
@@ -528,10 +565,8 @@ async function main() {
       scenario: args.scenario,
       players: args.players,
       model: args.model,
-      temperature: llmEnv.MYRANOR_LLM_TEMPERATURE,
-      maxOutputTokens: llmEnv.MYRANOR_LLM_MAX_OUTPUT_TOKENS,
     },
-    players: players.map((p) => ({
+    players: profiles.map((p) => ({
       userId: p.userId,
       playerId: p.playerId,
       displayName: p.displayName,
@@ -540,7 +575,50 @@ async function main() {
     final: {
       round: state.round,
       phase: state.phase,
-      byPlayer: byPlayer.sort((a, b) => b.gold - a.gold),
+      byPlayer: profiles.map((p) => {
+        const me = getPlayerByUserId(state!, p.userId);
+        return {
+          playerId: p.playerId,
+          displayName: p.displayName,
+          gold: me.economy.gold,
+          rawTotal: sumStock(me.economy.inventory.raw),
+          specialTotal: sumStock(me.economy.inventory.special),
+          holdings: {
+            domains: me.holdings.domains.map((d) => ({
+              id: d.id,
+              tier: d.tier,
+            })),
+            cityProperties: me.holdings.cityProperties.map((c) => ({
+              id: c.id,
+              tier: c.tier,
+              mode: c.mode,
+            })),
+            offices: me.holdings.offices.map((o) => ({
+              id: o.id,
+              tier: o.tier,
+              yieldMode: o.yieldMode,
+            })),
+            organizations: me.holdings.organizations.map((o) => ({
+              id: o.id,
+              kind: o.kind,
+              tier: o.tier,
+            })),
+            tradeEnterprises: me.holdings.tradeEnterprises.map((t) => ({
+              id: t.id,
+              tier: t.tier,
+              mode: t.mode,
+            })),
+            workshops: me.holdings.workshops.map((w) => ({
+              id: w.id,
+              tier: w.tier,
+            })),
+            storages: me.holdings.storages.map((s) => ({
+              id: s.id,
+              tier: s.tier,
+            })),
+          },
+        };
+      }),
     },
   };
 
@@ -549,21 +627,16 @@ async function main() {
     await Bun.write(args.out, json);
   }
 
+  if (args.mdOut) {
+    await Bun.write(args.mdOut, formatMarkdown(report));
+  }
+
   if (args.json) {
     console.log(JSON.stringify(report, null, args.pretty ? 2 : 0));
     return;
   }
 
-  console.log(
-    `LLM-Run "${args.scenario}" — ${args.rounds} Runden, Seed ${args.seed}`
-  );
-  for (const p of report.final.byPlayer) {
-    console.log(
-      `- ${p.displayName}: gold=${p.gold}, offices=${p.officesGold}, rm=${p.rawMaterials}, sm=${p.specialMaterials}, domain=${p.infrastructure.domainTier}, storage=${p.infrastructure.storageTier}`
-    );
-  }
-
-  progress(`\nDone in ${Date.now() - startedAt}ms`);
+  console.log(formatMarkdown(report));
 }
 
 main().catch((error) => {

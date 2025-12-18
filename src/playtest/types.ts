@@ -7,7 +7,22 @@ import type {
   SuccessTier,
 } from '../core';
 
-export type AgentId = 'builder' | 'merchant' | 'courtier' | 'random' | 'speculator';
+export type AgentId =
+  | 'builder'
+  | 'merchant'
+  | 'courtier'
+  | 'random'
+  | 'speculator'
+  | 'officeFocus'
+  | 'tradeFocus'
+  | 'cityUnderworld'
+  | 'workshopFocus'
+  | 'domainFocus'
+  | 'plannerOffice'
+  | 'plannerTrade'
+  | 'plannerCity'
+  | 'plannerWorkshop'
+  | 'plannerDomain';
 
 export type Agent = {
   id: AgentId;
@@ -22,6 +37,7 @@ export type PlayerProfile = {
   displayName: string;
   checks: PlayerChecks;
   agent: Agent;
+  llmPreamble?: string;
 };
 
 export type RoundContext = {

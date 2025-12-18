@@ -31,27 +31,40 @@ describe('engine smoke', () => {
 
     const aliceAfterIncome = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterIncome.economy.gold).toBe(6);
-    expect(aliceAfterIncome.economy.rawMaterials).toBe(4);
+    expect(aliceAfterIncome.economy.inventory.raw['raw.wood']).toBe(2);
+    expect(aliceAfterIncome.economy.inventory.raw['raw.grainVeg']).toBe(2);
 
     // Player performs one action
     state = reduceEvents(
       state,
-      decide(state, { type: 'GatherMaterials', campaignId: 'c-1', mode: 'domain', investments: 2 }, p1),
+      decide(
+        state,
+        {
+          type: 'GainMaterials',
+          campaignId: 'c-1',
+          mode: 'domainAdministration',
+          investments: 2,
+        },
+        p1,
+      ),
     );
     expect(state?.phase).toBe('actions');
 
     const aliceAfterAction = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterAction.turn.actionsUsed).toBe(1);
     expect(aliceAfterAction.turn.laborAvailable).toBe(3);
-    expect(aliceAfterAction.economy.rawMaterials).toBeGreaterThan(4);
+    const rawAfterAction = Object.values(aliceAfterAction.economy.inventory.raw).reduce((sum, v) => sum + v, 0);
+    expect(rawAfterAction).toBeGreaterThan(4);
 
-    // Conversion
+    // Conversion (auto conversion runs when entering "conversion")
     state = reduceEvents(state, decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm));
     expect(state?.phase).toBe('conversion');
 
     const aliceAfterConversion = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
-    expect(aliceAfterConversion.economy.rawMaterials).toBe(0);
-    expect(aliceAfterConversion.economy.specialMaterials).toBe(0);
+    const rawAfterConversion = Object.values(aliceAfterConversion.economy.inventory.raw).reduce((sum, v) => sum + v, 0);
+    const specialAfterConversion = Object.values(aliceAfterConversion.economy.inventory.special).reduce((sum, v) => sum + v, 0);
+    expect(rawAfterConversion).toBe(0);
+    expect(specialAfterConversion).toBe(0);
     expect(aliceAfterConversion.economy.gold).toBeGreaterThanOrEqual(6);
 
     // Reset
@@ -81,7 +94,16 @@ describe('engine smoke', () => {
     );
 
     expect(() =>
-      decide(state, { type: 'GatherMaterials', campaignId: 'c-1', mode: 'domain', investments: 1 }, p1),
+      decide(
+        state,
+        {
+          type: 'GainMaterials',
+          campaignId: 'c-1',
+          mode: 'domainAdministration',
+          investments: 1,
+        },
+        p1,
+      ),
     ).toThrow(GameRuleError);
   });
 });

@@ -1,5 +1,6 @@
 import { runPlaytest } from './runner';
 import { getScenario, listScenarioNames } from './scenarios';
+import { formatPlaytestMarkdown } from './format';
 
 type CliArgs = {
   runs: number;
@@ -7,6 +8,7 @@ type CliArgs = {
   seed: number;
   scenario: string;
   out: string | null;
+  mdOut: string | null;
   json: boolean;
   pretty: boolean;
   listScenarios: boolean;
@@ -24,15 +26,16 @@ function usage(): string {
     '  --runs <n>         Anzahl Simulationen (default: 200)',
     '  --rounds <n>       Runden pro Simulation (default: 20)',
     '  --seed <n>         Start-Seed (default: 1)',
-    '  --scenario <name>  Szenario-Name (default: core-v0-all5)',
+    '  --scenario <name>  Szenario-Name (default: core-v1-all5)',
     '  --out <file>       Report als JSON schreiben',
+    '  --md-out <file>    Report als Markdown schreiben',
     '  --json             Report als JSON nach stdout',
     '  --pretty           JSON pretty-print (Indent=2)',
     '  --list-scenarios   Szenarien auflisten',
     '  --help             Hilfe anzeigen',
     '',
     'Examples:',
-    '  bun src/playtest/index.ts --runs 500 --rounds 30 --seed 42 --scenario core-v0-specialists --out playtest.json',
+    '  bun src/playtest/index.ts --runs 500 --rounds 30 --seed 42 --scenario core-v1-specialists --out playtest.json',
     '  bun src/playtest/index.ts --json --pretty',
   ].join('\n');
 }
@@ -49,8 +52,9 @@ function parseArgs(argv: string[]): CliArgs {
     runs: 200,
     rounds: 20,
     seed: 1,
-    scenario: 'core-v0-all5',
+    scenario: 'core-v1-all5',
     out: null,
+    mdOut: null,
     json: false,
     pretty: false,
     listScenarios: false,
@@ -80,6 +84,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--out':
         args.out = inline ?? argv[++i] ?? null;
+        break;
+      case '--md-out':
+        args.mdOut = inline ?? argv[++i] ?? null;
         break;
       case '--json':
         args.json = true;
@@ -120,7 +127,7 @@ function printSummary(report: ReturnType<typeof runPlaytest>): void {
   const agents = Object.entries(report.outcomes.byAgent);
   for (const [agentId, a] of agents) {
     console.log(
-      `- ${agentId}: gold mean=${fmt(a.finalGold.mean)} p10=${fmt(a.finalGold.p10)} p50=${fmt(a.finalGold.p50)} p90=${fmt(a.finalGold.p90)} | winRate=${fmt(a.winRate, 3)} | idle=${fmt(a.idleActionRate, 3)} | offices mean=${fmt(a.finalOfficesGold.mean)} p50=${fmt(a.finalOfficesGold.p50)}`,
+      `- ${agentId}: gold mean=${fmt(a.finalGold.mean)} p10=${fmt(a.finalGold.p10)} p50=${fmt(a.finalGold.p50)} p90=${fmt(a.finalGold.p90)} | winRate=${fmt(a.winRate, 3)} | idle=${fmt(a.idleActionRate, 3)} | officesGold/round mean=${fmt(a.finalOfficesGoldPerRound.mean)} p50=${fmt(a.finalOfficesGoldPerRound.p50)}`,
     );
     console.log(
       `  firstOffice: mean=${fmt(a.milestones.firstOfficeRound.mean)} p50=${fmt(a.milestones.firstOfficeRound.p50)} never=${fmt(a.milestones.firstOfficeRound.neverRate, 3)} | domainUpg: mean=${fmt(a.milestones.firstDomainUpgradeRound.mean)} p50=${fmt(a.milestones.firstDomainUpgradeRound.p50)} never=${fmt(a.milestones.firstDomainUpgradeRound.neverRate, 3)}`,
@@ -160,6 +167,11 @@ async function main() {
     await Bun.write(args.out, json);
   }
 
+  if (args.mdOut) {
+    const md = formatPlaytestMarkdown(report);
+    await Bun.write(args.mdOut, md);
+  }
+
   if (args.json) {
     console.log(JSON.stringify(report, null, args.pretty ? 2 : 0));
     return;
@@ -174,4 +186,3 @@ main().catch((error) => {
   console.log(usage());
   process.exitCode = 1;
 });
-

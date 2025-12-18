@@ -1,13 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 
-import { llmEnv } from './env';
+const models = {
+  anthropic: anthropic('claude-opus-4-5'),
+  google: google('gemini-3-flash-preview'),
+};
 
-export function createLLM(modelId?: string): LanguageModel {
-  if (!llmEnv.ANTHROPIC_API_KEY) {
-    throw new Error(
-      'ANTHROPIC_API_KEY fehlt. Setze ihn als Env-Var (z.B. in .env) um den LLM-Runner zu nutzen.',
-    );
-  }
-  return anthropic(modelId ?? llmEnv.MYRANOR_ANTHROPIC_MODEL);
+export function createLLM(): LanguageModel {
+  return models.google;
 }

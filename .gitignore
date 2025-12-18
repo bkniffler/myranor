@@ -4,6 +4,9 @@
 # dependencies
 node_modules/
 
+# playtest outputs
+reports/
+
 # Expo
 .expo/
 dist/

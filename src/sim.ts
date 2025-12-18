@@ -2,6 +2,10 @@ import { asUserId, createSeededRng, decide, reduceEvents } from './core';
 
 type Actor = { role: 'gm' | 'player'; userId: string };
 
+function sumStock(stock: Record<string, number>): number {
+  return Object.values(stock).reduce((sum, v) => sum + v, 0);
+}
+
 function run(
   state: ReturnType<typeof reduceEvents>,
   command: Parameters<typeof decide>[1],
@@ -25,11 +29,15 @@ function printRoundSummary(
   bob: ReturnType<typeof getPlayer>,
 ) {
   console.log(`\n=== Runde ${round} (${phase}) ===`);
+  const aliceRaw = sumStock(alice.economy.inventory.raw);
+  const aliceSpecial = sumStock(alice.economy.inventory.special);
+  const bobRaw = sumStock(bob.economy.inventory.raw);
+  const bobSpecial = sumStock(bob.economy.inventory.special);
   console.log(
-    `Alice: gold=${alice.economy.gold}, rm=${alice.economy.rawMaterials}, sm=${alice.economy.specialMaterials}, ak=${alice.turn.laborAvailable}, inf=${alice.turn.influenceAvailable}, actionsUsed=${alice.turn.actionsUsed}`,
+    `Alice: gold=${alice.economy.gold}, rm=${aliceRaw}, sm=${aliceSpecial}, ak=${alice.turn.laborAvailable}, inf=${alice.turn.influenceAvailable}, actionsUsed=${alice.turn.actionsUsed}`,
   );
   console.log(
-    `Bob:   gold=${bob.economy.gold}, rm=${bob.economy.rawMaterials}, sm=${bob.economy.specialMaterials}, ak=${bob.turn.laborAvailable}, inf=${bob.turn.influenceAvailable}, actionsUsed=${bob.turn.actionsUsed}`,
+    `Bob:   gold=${bob.economy.gold}, rm=${bobRaw}, sm=${bobSpecial}, ak=${bob.turn.laborAvailable}, inf=${bob.turn.influenceAvailable}, actionsUsed=${bob.turn.actionsUsed}`,
   );
 }
 
@@ -114,7 +122,7 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GatherMaterials', campaignId: 'campaign-1', mode: 'domain', investments: 3 },
+        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'domainAdministration', investments: 3 },
         aliceUser,
         rng,
       );
@@ -124,7 +132,7 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GatherMaterials', campaignId: 'campaign-1', mode: 'workshop', investments: 2 },
+        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'workshopOversight', investments: 2 },
         aliceUser,
         rng,
       );
@@ -134,7 +142,7 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GatherMaterials', campaignId: 'campaign-1', mode: 'domain', investments: 3 },
+        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'domainAdministration', investments: 3 },
         bobUser,
         rng,
       );
@@ -144,7 +152,7 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GatherMaterials', campaignId: 'campaign-1', mode: 'workshop', investments: 2 },
+        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'workshopOversight', investments: 2 },
         bobUser,
         rng,
       );
@@ -185,4 +193,3 @@ function main() {
 }
 
 main();
-

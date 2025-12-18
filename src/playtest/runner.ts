@@ -1,27 +1,30 @@
 import {
+  asUserId,
+  createSeededRng,
   decide,
   reduceEvents,
+  GameRuleError,
   type ActorContext,
   type CampaignState,
   type GameCommand,
   type GameEvent,
-  GameRuleError,
-  asUserId,
-  createSeededRng,
+  type GlobalEventState,
   type MaterialTier,
   type SuccessTier,
 } from '../core';
 
+import { moneyActionMods, officeIncomeMods, rawAutoConvertDivisor, taxGoldPerRound, workshopUpkeepMods } from '../core/rules/eventModifiers_v1';
+import { officesIncomePerRound } from '../core/rules/v1';
+
 import type { AgentId, PlaytestConfig, PlayerProfile } from './types';
-import { gini, mean, median, percentile } from './stats';
 import { tierProbabilities } from './probabilities';
-import { computeCampaignEventModifiers } from '../core/rules/events_v0';
+import { gini, mean, median, percentile } from './stats';
 
 type AgentAggregate = {
   samples: number;
   wins: number;
   finalGold: number[];
-  finalOfficesGold: number[];
+  finalOfficesGoldPerRound: number[];
   firstOfficeRound: number[];
   firstDomainUpgradeRound: number[];
   firstStorageBuiltRound: number[];
@@ -63,7 +66,7 @@ export type PlaytestReport = {
         wins: number;
         winRate: number;
         finalGold: { mean: number; p50: number; p10: number; p90: number };
-        finalOfficesGold: { mean: number; p50: number };
+        finalOfficesGoldPerRound: { mean: number; p50: number };
         milestones: {
           firstOfficeRound: { mean: number; p50: number; neverRate: number };
           firstDomainUpgradeRound: { mean: number; p50: number; neverRate: number };
@@ -128,17 +131,15 @@ export type PlaytestReport = {
       byName: Record<string, number>;
       modifiers: {
         taxGoldPerRound: { mean: number; p90: number; nonZeroRate: number };
-        oneTimeGoldTaxPerOffice: { mean: number; p90: number; nonZeroRate: number };
         officeGoldIncomeMultiplier: { mean: number; p10: number; p50: number };
-        officeGoldIncomeBonusPerOffice: { mean: number; p90: number; nonZeroRate: number };
+        officeGoldIncomeBonusPerTier: { mean: number; p90: number; nonZeroRate: number };
         lendMoneyDcBonus: { mean: number; p90: number; nonZeroRate: number };
         sellMaterialsDcBonus: { mean: number; p90: number; nonZeroRate: number };
         influenceActionDcBonus: { mean: number; p10: number; p50: number };
         workshopUpkeepLaborBonusFlat: { mean: number; p90: number; nonZeroRate: number };
         workshopUpkeepGoldBonusFlat: { mean: number; p90: number; nonZeroRate: number };
         workshopUpkeepGoldBonusPerTier: { mean: number; p90: number; nonZeroRate: number };
-        rawAutoConvertDivisor: { mean: number; p10: number; p50: number };
-        lendMoneyPayoutMultiplier: { mean: number; p10: number; p50: number };
+        rawAutoConvertDivisorFood: { mean: number; p10: number; p50: number };
         moneyBonusGoldPerTwoInvestments: { mean: number; p90: number; nonZeroRate: number };
       };
     };
@@ -163,14 +164,18 @@ function nonZeroRate(values: number[]): number {
   return values.filter((v) => v !== 0).length / values.length;
 }
 
-function ensureAgg(aggs: Record<string, AgentAggregate>, id: AgentId, rounds: number): AgentAggregate {
+function ensureAgg(
+  aggs: Record<string, AgentAggregate>,
+  id: AgentId,
+  rounds: number,
+): AgentAggregate {
   const existing = aggs[id];
   if (existing) return existing;
   const agg: AgentAggregate = {
     samples: 0,
     wins: 0,
     finalGold: [],
-    finalOfficesGold: [],
+    finalOfficesGoldPerRound: [],
     firstOfficeRound: [],
     firstDomainUpgradeRound: [],
     firstStorageBuiltRound: [],
@@ -215,9 +220,73 @@ function recordAction(
   actionKey: string,
   tier: SuccessTier,
 ): void {
-  bump(agg.actionCount, actionKey, 1);
-  agg.actionTierCount[actionKey] ??= emptyTierCounts();
-  agg.actionTierCount[actionKey][tier] += 1;
+  const canonical = canonicalActionKey(actionKey);
+  const normalized = canonical.startsWith('influence.bonus.') ? 'influence' : canonical;
+  bump(agg.actionCount, normalized, 1);
+  agg.actionTierCount[normalized] ??= emptyTierCounts();
+  agg.actionTierCount[normalized][tier] += 1;
+}
+
+function canonicalActionKey(actionKey: string): string {
+  const idx = actionKey.indexOf('@');
+  return idx === -1 ? actionKey : actionKey.slice(0, idx);
+}
+
+function hasUsedCanonicalAction(
+  me: { turn: { actionKeysUsed: string[] } },
+  canonical: string,
+): boolean {
+  return me.turn.actionKeysUsed.some((k) => canonicalActionKey(k) === canonical);
+}
+
+function hasUsedMarker(
+  me: { turn: { actionKeysUsed: string[] } },
+  marker: string,
+): boolean {
+  const needle = `@${marker}`;
+  return me.turn.actionKeysUsed.some((k) => k.includes(needle));
+}
+
+function bonusInfluenceSlots(me: { holdings: any }): number {
+  const largeOffices = (me.holdings.offices ?? []).filter((o: any) => o.tier === 'large').length;
+  const hasLargeCult = (me.holdings.organizations ?? []).some(
+    (o: any) => o.kind === 'cult' && o.tier === 'large' && !o.followers?.inUnrest,
+  );
+  return largeOffices + (hasLargeCult ? 1 : 0);
+}
+
+function bonusMoneySlots(me: { holdings: any }): number {
+  const hasLargeTradeCollegium = (me.holdings.organizations ?? []).some(
+    (o: any) => o.kind === 'collegiumTrade' && o.tier === 'large' && !o.followers?.inUnrest,
+  );
+  return hasLargeTradeCollegium ? 1 : 0;
+}
+
+function bonusMaterialsSlots(me: { holdings: any }): number {
+  const hasLargeCraftCollegium = (me.holdings.organizations ?? []).some(
+    (o: any) => o.kind === 'collegiumCraft' && o.tier === 'large' && !o.followers?.inUnrest,
+  );
+  return hasLargeCraftCollegium ? 1 : 0;
+}
+
+function hasRemainingInfluenceBonus(me: { turn: { actionKeysUsed: string[] }; holdings: any }): boolean {
+  const slots = bonusInfluenceSlots(me);
+  for (let i = 1; i <= slots; i += 1) {
+    const canonical = `influence.bonus.${i}`;
+    if (!hasUsedCanonicalAction(me, canonical)) return true;
+  }
+  return false;
+}
+
+function hasAnyActionCapacity(
+  me: { turn: { actionsUsed: number; actionKeysUsed: string[] }; holdings: any },
+  actionsPerRound: number,
+): boolean {
+  if (me.turn.actionsUsed < actionsPerRound) return true;
+  if (bonusMoneySlots(me) > 0 && !hasUsedMarker(me, 'bonus.money.1')) return true;
+  if (bonusMaterialsSlots(me) > 0 && !hasUsedMarker(me, 'bonus.materials.1')) return true;
+  if (hasRemainingInfluenceBonus(me)) return true;
+  return false;
 }
 
 function patchCampaignId(command: GameCommand, campaignId: string): GameCommand {
@@ -231,7 +300,7 @@ function execute(
   rng: ReturnType<typeof createSeededRng>,
 ): { state: CampaignState | null; events: GameEvent[]; error: Error | null } {
   try {
-    const events = decide(state, command, { actor, rng });
+    const events = decide(state, command, { actor, rng, emitPublicLogs: false });
     const next = reduceEvents(state, events);
     return { state: next, events, error: null };
   } catch (error) {
@@ -242,6 +311,12 @@ function execute(
 function getPlayerByUserId(state: CampaignState, userId: string) {
   const playerId = state.playerIdByUserId[asUserId(userId)];
   return state.players[playerId];
+}
+
+function sumStock(stock: Record<string, number>): number {
+  let sum = 0;
+  for (const v of Object.values(stock)) sum += v;
+  return sum;
 }
 
 type MarketAgg = {
@@ -262,21 +337,32 @@ function emptyMarketAgg(): MarketAgg {
   };
 }
 
+function meanOrZero(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
 function recordMarketSide(
   agg: MarketAgg,
   side: {
     tableRollTotal: number;
     categoryLabel: string;
     demandLabel: string;
-    modifiers: Record<MaterialTier, number>;
+    modifiersByGroup: Record<string, number>;
   },
+  groupPrefixByTier: Record<MaterialTier, string>,
 ): void {
   agg.samples += 1;
   bump(agg.byRoll, String(side.tableRollTotal), 1);
   bump(agg.byCategory, side.categoryLabel, 1);
   bump(agg.byDemand, side.demandLabel, 1);
+
   for (const tier of ['cheap', 'basic', 'expensive'] as const) {
-    agg.modsByTier[tier].push(side.modifiers[tier]);
+    const prefix = groupPrefixByTier[tier];
+    const values = Object.entries(side.modifiersByGroup)
+      .filter(([k]) => k.startsWith(prefix))
+      .map(([, v]) => Math.trunc(v));
+    agg.modsByTier[tier].push(meanOrZero(values));
   }
 }
 
@@ -285,7 +371,19 @@ type EventAgg = {
   events: number;
   byRoll: Record<string, number>;
   byName: Record<string, number>;
-  mods: Record<keyof ReturnType<typeof computeCampaignEventModifiers>, number[]>;
+  mods: {
+    taxGoldPerRound: number[];
+    officeGoldIncomeMultiplier: number[];
+    officeGoldIncomeBonusPerTier: number[];
+    lendMoneyDcBonus: number[];
+    sellMaterialsDcBonus: number[];
+    influenceActionDcBonus: number[];
+    workshopUpkeepLaborBonusFlat: number[];
+    workshopUpkeepGoldBonusFlat: number[];
+    workshopUpkeepGoldBonusPerTier: number[];
+    rawAutoConvertDivisorFood: number[];
+    moneyBonusGoldPerTwoInvestments: number[];
+  };
 };
 
 function emptyEventAgg(): EventAgg {
@@ -296,19 +394,49 @@ function emptyEventAgg(): EventAgg {
     byName: {},
     mods: {
       taxGoldPerRound: [],
-      oneTimeGoldTaxPerOffice: [],
       officeGoldIncomeMultiplier: [],
-      officeGoldIncomeBonusPerOffice: [],
+      officeGoldIncomeBonusPerTier: [],
       lendMoneyDcBonus: [],
       sellMaterialsDcBonus: [],
       influenceActionDcBonus: [],
       workshopUpkeepLaborBonusFlat: [],
       workshopUpkeepGoldBonusFlat: [],
       workshopUpkeepGoldBonusPerTier: [],
-      rawAutoConvertDivisor: [],
-      lendMoneyPayoutMultiplier: [],
+      rawAutoConvertDivisorFood: [],
       moneyBonusGoldPerTwoInvestments: [],
     },
+  };
+}
+
+function computeCampaignEventModifiersV1(events: GlobalEventState[]): {
+  taxGoldPerRound: number;
+  officeGoldIncomeMultiplier: number;
+  officeGoldIncomeBonusPerTier: number;
+  lendMoneyDcBonus: number;
+  sellMaterialsDcBonus: number;
+  influenceActionDcBonus: number;
+  workshopUpkeepLaborBonusFlat: number;
+  workshopUpkeepGoldBonusFlat: number;
+  workshopUpkeepGoldBonusPerTier: number;
+  rawAutoConvertDivisorFood: number;
+  moneyBonusGoldPerTwoInvestments: number;
+} {
+  const round = events[0]?.startsAtRound ?? 1;
+  const officeMods = officeIncomeMods(events, round);
+  const moneyMods = moneyActionMods(events, round);
+  const workMods = workshopUpkeepMods(events, round);
+  return {
+    taxGoldPerRound: taxGoldPerRound(events, round),
+    officeGoldIncomeMultiplier: officeMods.goldMultiplier,
+    officeGoldIncomeBonusPerTier: officeMods.goldBonusPerTier,
+    lendMoneyDcBonus: moneyMods.lendDc,
+    sellMaterialsDcBonus: moneyMods.sellDc,
+    influenceActionDcBonus: moneyMods.influenceDc,
+    workshopUpkeepLaborBonusFlat: workMods.laborFlat,
+    workshopUpkeepGoldBonusFlat: workMods.goldFlat,
+    workshopUpkeepGoldBonusPerTier: workMods.goldPerTier,
+    rawAutoConvertDivisorFood: rawAutoConvertDivisor('raw.grainVeg', events, round),
+    moneyBonusGoldPerTwoInvestments: moneyMods.bonusGoldPerTwoInvestments,
   };
 }
 
@@ -323,19 +451,26 @@ function recordSectionEvents(
     bump(agg.byName, row.name, 1);
   }
 
-  const globalEvents = e.events.map((row) => ({
+  const globalEvents: GlobalEventState[] = e.events.map((row) => ({
     startsAtRound: e.startsAtRound,
     endsAtRound: e.endsAtRound,
     tableRollTotal: row.tableRoll.total,
     name: row.name,
     effectsText: row.effectsText,
+    meta: row.meta as any,
   }));
-  const mods = computeCampaignEventModifiers(globalEvents);
-  for (const [key, value] of Object.entries(mods) as Array<
-    [keyof typeof mods, number]
-  >) {
-    agg.mods[key].push(value);
-  }
+  const mods = computeCampaignEventModifiersV1(globalEvents);
+  agg.mods.taxGoldPerRound.push(mods.taxGoldPerRound);
+  agg.mods.officeGoldIncomeMultiplier.push(mods.officeGoldIncomeMultiplier);
+  agg.mods.officeGoldIncomeBonusPerTier.push(mods.officeGoldIncomeBonusPerTier);
+  agg.mods.lendMoneyDcBonus.push(mods.lendMoneyDcBonus);
+  agg.mods.sellMaterialsDcBonus.push(mods.sellMaterialsDcBonus);
+  agg.mods.influenceActionDcBonus.push(mods.influenceActionDcBonus);
+  agg.mods.workshopUpkeepLaborBonusFlat.push(mods.workshopUpkeepLaborBonusFlat);
+  agg.mods.workshopUpkeepGoldBonusFlat.push(mods.workshopUpkeepGoldBonusFlat);
+  agg.mods.workshopUpkeepGoldBonusPerTier.push(mods.workshopUpkeepGoldBonusPerTier);
+  agg.mods.rawAutoConvertDivisorFood.push(mods.rawAutoConvertDivisorFood);
+  agg.mods.moneyBonusGoldPerTwoInvestments.push(mods.moneyBonusGoldPerTwoInvestments);
 }
 
 function recordMarketAndEvents(
@@ -345,18 +480,28 @@ function recordMarketAndEvents(
 ): void {
   for (const event of events) {
     if (event.type === 'MarketRolled') {
-      recordMarketSide(marketAgg.raw, {
-        tableRollTotal: event.raw.tableRoll.total,
-        categoryLabel: event.raw.categoryLabel,
-        demandLabel: event.raw.demandLabel,
-        modifiers: event.raw.modifiers,
-      });
-      recordMarketSide(marketAgg.special, {
-        tableRollTotal: event.special.tableRoll.total,
-        categoryLabel: event.special.categoryLabel,
-        demandLabel: event.special.demandLabel,
-        modifiers: event.special.modifiers,
-      });
+      const inst = event.instances.find((i) => i.id === 'local') ?? event.instances[0];
+      if (!inst) continue;
+      recordMarketSide(
+        marketAgg.raw,
+        {
+          tableRollTotal: inst.raw.tableRoll.total,
+          categoryLabel: inst.raw.categoryLabel,
+          demandLabel: inst.raw.demandLabel,
+          modifiersByGroup: inst.raw.modifiersByGroup,
+        },
+        { cheap: 'rawCheap', basic: 'rawBasic', expensive: 'rawExpensive' },
+      );
+      recordMarketSide(
+        marketAgg.special,
+        {
+          tableRollTotal: inst.special.tableRoll.total,
+          categoryLabel: inst.special.categoryLabel,
+          demandLabel: inst.special.demandLabel,
+          modifiersByGroup: inst.special.modifiersByGroup,
+        },
+        { cheap: 'specialCheap', basic: 'specialBasic', expensive: 'specialExpensive' },
+      );
     }
     if (event.type === 'SectionEventsRolled') {
       recordSectionEvents(eventAgg, event);
@@ -371,14 +516,34 @@ function recordSellAndConversion(
   rounds: number,
 ): void {
   for (const event of events) {
-    if (event.type === 'PlayerSellMaterialsResolved') {
+    if (event.type === 'PlayerMoneySold') {
       const profile = profileByPlayerId[String(event.playerId)];
       if (!profile) continue;
       const agg = ensureAgg(aggs, profile.agent.id, rounds);
+
+      let investments = 0;
+      let rawInv = 0;
+      let specialInv = 0;
+      for (const item of event.sold) {
+        if (item.kind === 'raw') {
+          const inv = Math.floor(item.count / 6);
+          rawInv += inv;
+          investments += inv;
+        } else if (item.kind === 'special') {
+          const inv = item.count;
+          specialInv += inv;
+          investments += inv;
+        } else if (item.kind === 'labor') {
+          investments += item.count;
+        }
+      }
+      if (investments <= 0) continue;
+
       agg.sellSamples += 1;
-      agg.sellByResource[event.resource] += 1;
-      agg.sellGoldPerInvestment.push(event.goldGained / event.investments);
-      agg.sellMarketModifierPerInvestment.push(event.marketModifierPerInvestment);
+      if (rawInv > 0) agg.sellByResource.raw += 1;
+      if (specialInv > 0) agg.sellByResource.special += 1;
+      agg.sellGoldPerInvestment.push(event.goldGained / investments);
+      agg.sellMarketModifierPerInvestment.push(event.marketDeltaGold / investments);
       continue;
     }
 
@@ -387,10 +552,10 @@ function recordSellAndConversion(
       if (!profile) continue;
       const agg = ensureAgg(aggs, profile.agent.id, rounds);
       agg.conversionSamples += 1;
-      agg.conversionGoldSum += event.goldGained;
-      agg.conversionRawStoredSum += event.storage.rawStored;
-      agg.conversionSpecialStoredSum += event.storage.specialStored;
-      agg.conversionRawLostSum += event.rawLost;
+      agg.conversionGoldSum += event.convertedToGold.goldGained;
+      agg.conversionRawStoredSum += sumStock(event.stored.rawStored);
+      agg.conversionSpecialStoredSum += sumStock(event.stored.specialStored);
+      agg.conversionRawLostSum += sumStock(event.lost.rawLost) + sumStock(event.lost.specialLost);
     }
   }
 }
@@ -398,12 +563,30 @@ function recordSellAndConversion(
 function extractOutcome(events: GameEvent[]): { actionKey: string; tier: SuccessTier } | null {
   for (const event of events) {
     switch (event.type) {
-      case 'PlayerGatherMaterialsResolved':
-      case 'PlayerGainInfluenceResolved':
-      case 'PlayerLendMoneyResolved':
-      case 'PlayerSellMaterialsResolved':
-      case 'PlayerOfficeAcquired':
+      case 'PlayerMaterialsGained':
         return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerInfluenceGained':
+        return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerMoneyLent':
+        return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerMoneySold':
+        return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerMoneyBought':
+        return { actionKey: event.actionKey, tier: event.tier };
+      case 'PlayerDomainAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerCityPropertyAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerOfficeAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerOrganizationAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerTradeEnterpriseAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerTenantsAcquired':
+        return { actionKey: event.actionKey, tier: event.tierResult };
+      case 'PlayerTroopsRecruited':
+        return { actionKey: event.actionKey, tier: event.tierResult };
       default:
         break;
     }
@@ -413,30 +596,54 @@ function extractOutcome(events: GameEvent[]): { actionKey: string; tier: Success
 
 function extractFacility(events: GameEvent[]): string | null {
   for (const event of events) {
-    if (event.type === 'PlayerFacilityBuilt') return event.facility;
+    switch (event.type) {
+      case 'PlayerStarterDomainUpgraded':
+        return 'domain.upgradeStarter';
+      case 'PlayerDomainSpecializationSet':
+        return `domain.specialization.${event.kind}`;
+      case 'PlayerWorkshopBuilt':
+        return `workshop.build.${event.tier}`;
+      case 'PlayerWorkshopUpgraded':
+        return `workshop.upgrade.${event.fromTier}->${event.toTier}`;
+      case 'PlayerStorageBuilt':
+        return `storage.build.${event.tier}`;
+      case 'PlayerStorageUpgraded':
+        return `storage.upgrade.${event.fromTier}->${event.toTier}`;
+      case 'PlayerFacilityBuilt':
+        return `facility.${event.facilityKey}`;
+      default:
+        break;
+    }
   }
   return null;
 }
 
-function extractOfficesGained(events: GameEvent[]): number {
-  for (const event of events) {
-    if (event.type === 'PlayerOfficeAcquired') return event.officesGoldGained;
-  }
-  return 0;
-}
-
 function expectedActionKey(command: GameCommand): string | null {
   switch (command.type) {
-    case 'GatherMaterials':
-      return command.mode === 'domain' ? 'material.domain' : 'material.workshop';
+    case 'GainMaterials':
+      return command.mode === 'domainAdministration' ? 'materials.domain' : 'materials.workshop';
     case 'GainInfluence':
       return 'influence';
-    case 'LendMoney':
+    case 'MoneyLend':
       return 'money.lend';
-    case 'SellMaterials':
+    case 'MoneySell':
       return 'money.sell';
+    case 'MoneyBuy':
+      return 'money.buy';
+    case 'AcquireDomain':
+      return 'acquire.domain';
+    case 'AcquireCityProperty':
+      return 'acquire.cityProperty';
     case 'AcquireOffice':
       return 'acquire.office';
+    case 'AcquireOrganization':
+      return `acquire.org.${command.kind}`;
+    case 'AcquireTradeEnterprise':
+      return 'acquire.trade';
+    case 'AcquireTenants':
+      return 'acquire.tenants';
+    case 'RecruitTroops':
+      return `troops.${command.troopKind}`;
     default:
       return null;
   }
@@ -520,39 +727,47 @@ export function runPlaytest(
           if (built) {
             const agg = ensureAgg(aggs, profile.agent.id, config.rounds);
             bump(agg.facilities, built, 1);
-            if (
-              built === 'upgradeStarterDomainToSmall' &&
-              firstDomainUpgradeRoundByUserId[profile.userId] === 0
-            ) {
+            if (built === 'domain.upgradeStarter' && firstDomainUpgradeRoundByUserId[profile.userId] === 0) {
               firstDomainUpgradeRoundByUserId[profile.userId] = round;
             }
-            if (built === 'buildSmallStorage' && firstStorageBuiltRoundByUserId[profile.userId] === 0) {
+            if (built.startsWith('storage.build.') && firstStorageBuiltRoundByUserId[profile.userId] === 0) {
               firstStorageBuiltRoundByUserId[profile.userId] = round;
             }
           } else if (res.error) {
             const agg = ensureAgg(aggs, profile.agent.id, config.rounds);
-            const key = facility.type === 'BuildFacility' ? facility.facility : facility.type;
+            const key = facility.type;
             bump(agg.errors, `facility:${key}`, 1);
           }
         }
 
-        for (let actionSlot = 0; actionSlot < 2; actionSlot += 1) {
+        const actionsPerRound = state.rules.actionsPerRound;
+        const initialBonusSlots =
+          bonusInfluenceSlots(me) + bonusMoneySlots(me) + bonusMaterialsSlots(me);
+        const maxActionSlotsThisRound = actionsPerRound + initialBonusSlots;
+
+        for (let actionSlot = 0; actionSlot < maxActionSlotsThisRound; actionSlot += 1) {
           if (!state) break;
 
           const meNow = getPlayerByUserId(state, profile.userId);
           if (!meNow) break;
-          if (meNow.turn.actionsUsed >= 2) break;
+          if (!hasAnyActionCapacity(meNow, actionsPerRound)) break;
 
           const ctxNow = { state, round: state.round, me: meNow, profile };
           const candidates = profile.agent.decideActions(ctxNow);
           const agg = ensureAgg(aggs, profile.agent.id, config.rounds);
 
-          let executed = false;
+          let executedAny = false;
           for (const planned of candidates) {
             if (!state) break;
 
             const actionKey = expectedActionKey(planned);
-            if (actionKey && meNow.turn.actionKeysUsed.includes(actionKey)) continue;
+            if (actionKey) {
+              const used = hasUsedCanonicalAction(meNow, actionKey);
+              if (used) {
+                const canRepeatInfluence = actionKey === 'influence' && hasRemainingInfluenceBonus(meNow);
+                if (!canRepeatInfluence) continue;
+              }
+            }
 
             const res = execute(state, patchCampaignId(planned, campaignId), actor, rng);
             state = res.state;
@@ -564,21 +779,22 @@ export function runPlaytest(
               continue;
             }
 
-            executed = true;
+            executedAny = true;
 
             const outcome = extractOutcome(res.events);
             if (outcome) recordAction(agg, outcome.actionKey, outcome.tier);
             recordSellAndConversion(res.events, profileByPlayerId, aggs, config.rounds);
 
-            const officesGained = extractOfficesGained(res.events);
-            if (officesGained > 0 && firstOfficeRoundByUserId[profile.userId] === 0) {
-              firstOfficeRoundByUserId[profile.userId] = round;
+            for (const e of res.events) {
+              if (e.type === 'PlayerOfficeAcquired' && e.tierResult !== 'fail' && firstOfficeRoundByUserId[profile.userId] === 0) {
+                firstOfficeRoundByUserId[profile.userId] = round;
+              }
             }
 
             break;
           }
 
-          if (!executed) agg.idleActions += 1;
+          if (!executedAny) agg.idleActions += 1;
         }
       }
 
@@ -622,7 +838,11 @@ export function runPlaytest(
       const agg = ensureAgg(aggs, profile.agent.id, config.rounds);
       agg.samples += 1;
       agg.finalGold.push(me.economy.gold);
-      agg.finalOfficesGold.push(me.holdings.officesGold);
+      const officesGoldPerRound = me.holdings.offices.reduce(
+        (sum, o) => sum + officesIncomePerRound(o.tier, o.yieldMode, state.rules).gold,
+        0,
+      );
+      agg.finalOfficesGoldPerRound.push(officesGoldPerRound);
       agg.firstOfficeRound.push(firstOfficeRoundByUserId[profile.userId] ?? 0);
       agg.firstDomainUpgradeRound.push(firstDomainUpgradeRoundByUserId[profile.userId] ?? 0);
       agg.firstStorageBuiltRound.push(firstStorageBuiltRoundByUserId[profile.userId] ?? 0);
@@ -631,45 +851,23 @@ export function runPlaytest(
 
   const byAgent = Object.fromEntries(
     Object.entries(aggs).map(([agentId, agg]) => {
-      const meanGoldByRound = agg.roundGoldSum.map((sum, i) =>
-        agg.roundGoldCount[i] > 0 ? sum / agg.roundGoldCount[i] : 0,
-      );
-
-      const actions = Object.fromEntries(
-        Object.entries(agg.actionCount).map(([actionKey, count]) => [
-          actionKey,
-          {
-            count,
-            tiers: agg.actionTierCount[actionKey] ?? emptyTierCounts(),
-          },
-        ]),
-      );
-
-      const actionSlots = agg.samples * config.rounds * 2;
-
+      const totalActionSlots = agg.samples * config.rounds * 2;
+      const idleRate = totalActionSlots > 0 ? agg.idleActions / totalActionSlots : 0;
       return [
         agentId,
         {
           samples: agg.samples,
           wins: agg.wins,
           winRate: agg.samples > 0 ? agg.wins / agg.samples : 0,
-          finalGold: {
-            mean: mean(agg.finalGold),
-            p50: median(agg.finalGold),
-            p10: percentile(agg.finalGold, 0.1),
-            p90: percentile(agg.finalGold, 0.9),
-          },
-          finalOfficesGold: {
-            mean: mean(agg.finalOfficesGold),
-            p50: median(agg.finalOfficesGold),
-          },
+          finalGold: summary(agg.finalGold),
+          finalOfficesGoldPerRound: { mean: mean(agg.finalOfficesGoldPerRound), p50: median(agg.finalOfficesGoldPerRound) },
           milestones: {
             firstOfficeRound: neverAwareRoundSummary(agg.firstOfficeRound),
             firstDomainUpgradeRound: neverAwareRoundSummary(agg.firstDomainUpgradeRound),
             firstStorageBuiltRound: neverAwareRoundSummary(agg.firstStorageBuiltRound),
           },
-          idleActionRate: actionSlots > 0 ? agg.idleActions / actionSlots : 0,
-          meanGoldByRound,
+          idleActionRate: idleRate,
+          meanGoldByRound: agg.roundGoldSum.map((sum, i) => (agg.roundGoldCount[i] ? sum / agg.roundGoldCount[i] : 0)),
           sell: {
             samples: agg.sellSamples,
             byResource: agg.sellByResource,
@@ -678,24 +876,17 @@ export function runPlaytest(
           },
           conversion: {
             samples: agg.conversionSamples,
-            goldFromConversionMean:
-              agg.conversionSamples > 0
-                ? agg.conversionGoldSum / agg.conversionSamples
-                : 0,
-            rawStoredMean:
-              agg.conversionSamples > 0
-                ? agg.conversionRawStoredSum / agg.conversionSamples
-                : 0,
-            specialStoredMean:
-              agg.conversionSamples > 0
-                ? agg.conversionSpecialStoredSum / agg.conversionSamples
-                : 0,
-            rawLostMean:
-              agg.conversionSamples > 0
-                ? agg.conversionRawLostSum / agg.conversionSamples
-                : 0,
+            goldFromConversionMean: agg.conversionSamples ? agg.conversionGoldSum / agg.conversionSamples : 0,
+            rawStoredMean: agg.conversionSamples ? agg.conversionRawStoredSum / agg.conversionSamples : 0,
+            specialStoredMean: agg.conversionSamples ? agg.conversionSpecialStoredSum / agg.conversionSamples : 0,
+            rawLostMean: agg.conversionSamples ? agg.conversionRawLostSum / agg.conversionSamples : 0,
           },
-          actions,
+          actions: Object.fromEntries(
+            Object.entries(agg.actionCount).map(([key, count]) => [
+              key,
+              { count, tiers: agg.actionTierCount[key] ?? emptyTierCounts() },
+            ]),
+          ),
           facilities: agg.facilities,
           errors: agg.errors,
         },
@@ -703,12 +894,11 @@ export function runPlaytest(
     }),
   ) as PlaytestReport['outcomes']['byAgent'];
 
-  const checkExamples: PlaytestReport['checkMath']['examples'] = [
-    { name: 'Materialgewinn (Domäne) DC10 +5', dc: 10, modifier: 5, probs: tierProbabilities(10, 5) },
-    { name: 'Materialgewinn (Werkstatt) DC12 +5', dc: 12, modifier: 5, probs: tierProbabilities(12, 5) },
-    { name: 'Geldgewinn (Verkauf/Verleih) DC14 +5', dc: 14, modifier: 5, probs: tierProbabilities(14, 5) },
-    { name: 'Einflussgewinn DC12 +5', dc: 12, modifier: 5, probs: tierProbabilities(12, 5) },
-  ];
+  const checkExamples = [
+    { name: 'DC 10, mod +5', dc: 10, modifier: 5 },
+    { name: 'DC 14, mod +5', dc: 14, modifier: 5 },
+    { name: 'DC 18, mod +5', dc: 18, modifier: 5 },
+  ].map((ex) => ({ ...ex, probs: tierProbabilities(ex.dc, ex.modifier) }));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -768,20 +958,15 @@ export function runPlaytest(
             p90: percentile(eventAgg.mods.taxGoldPerRound, 0.9),
             nonZeroRate: nonZeroRate(eventAgg.mods.taxGoldPerRound),
           },
-          oneTimeGoldTaxPerOffice: {
-            mean: mean(eventAgg.mods.oneTimeGoldTaxPerOffice),
-            p90: percentile(eventAgg.mods.oneTimeGoldTaxPerOffice, 0.9),
-            nonZeroRate: nonZeroRate(eventAgg.mods.oneTimeGoldTaxPerOffice),
-          },
           officeGoldIncomeMultiplier: {
             mean: mean(eventAgg.mods.officeGoldIncomeMultiplier),
             p10: percentile(eventAgg.mods.officeGoldIncomeMultiplier, 0.1),
             p50: median(eventAgg.mods.officeGoldIncomeMultiplier),
           },
-          officeGoldIncomeBonusPerOffice: {
-            mean: mean(eventAgg.mods.officeGoldIncomeBonusPerOffice),
-            p90: percentile(eventAgg.mods.officeGoldIncomeBonusPerOffice, 0.9),
-            nonZeroRate: nonZeroRate(eventAgg.mods.officeGoldIncomeBonusPerOffice),
+          officeGoldIncomeBonusPerTier: {
+            mean: mean(eventAgg.mods.officeGoldIncomeBonusPerTier),
+            p90: percentile(eventAgg.mods.officeGoldIncomeBonusPerTier, 0.9),
+            nonZeroRate: nonZeroRate(eventAgg.mods.officeGoldIncomeBonusPerTier),
           },
           lendMoneyDcBonus: {
             mean: mean(eventAgg.mods.lendMoneyDcBonus),
@@ -813,15 +998,10 @@ export function runPlaytest(
             p90: percentile(eventAgg.mods.workshopUpkeepGoldBonusPerTier, 0.9),
             nonZeroRate: nonZeroRate(eventAgg.mods.workshopUpkeepGoldBonusPerTier),
           },
-          rawAutoConvertDivisor: {
-            mean: mean(eventAgg.mods.rawAutoConvertDivisor),
-            p10: percentile(eventAgg.mods.rawAutoConvertDivisor, 0.1),
-            p50: median(eventAgg.mods.rawAutoConvertDivisor),
-          },
-          lendMoneyPayoutMultiplier: {
-            mean: mean(eventAgg.mods.lendMoneyPayoutMultiplier),
-            p10: percentile(eventAgg.mods.lendMoneyPayoutMultiplier, 0.1),
-            p50: median(eventAgg.mods.lendMoneyPayoutMultiplier),
+          rawAutoConvertDivisorFood: {
+            mean: mean(eventAgg.mods.rawAutoConvertDivisorFood),
+            p10: percentile(eventAgg.mods.rawAutoConvertDivisorFood, 0.1),
+            p50: median(eventAgg.mods.rawAutoConvertDivisorFood),
           },
           moneyBonusGoldPerTwoInvestments: {
             mean: mean(eventAgg.mods.moneyBonusGoldPerTwoInvestments),

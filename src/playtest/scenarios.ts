@@ -1,6 +1,22 @@
 import type { PlayerChecks } from '../core';
 
-import { builderAgent, courtierAgent, merchantAgent, randomAgent, speculatorAgent } from './agents';
+import {
+  builderAgent,
+  cityUnderworldAgent,
+  courtierAgent,
+  domainFocusAgent,
+  merchantAgent,
+  officeFocusAgent,
+  plannerCityAgent,
+  plannerDomainAgent,
+  plannerOfficeAgent,
+  plannerTradeAgent,
+  plannerWorkshopAgent,
+  randomAgent,
+  speculatorAgent,
+  tradeFocusAgent,
+  workshopFocusAgent,
+} from './agents';
 import type { PlayerProfile } from './types';
 
 export type Scenario = {
@@ -18,7 +34,7 @@ function checks(values: Partial<PlayerChecks>): PlayerChecks {
 
 export const SCENARIOS: Scenario[] = [
   {
-    name: 'core-v0-all5',
+    name: 'core-v1-all5',
     players: [
       {
         userId: 'u-builder',
@@ -51,7 +67,97 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    name: 'core-v0-marketaware',
+    name: 'core-v1-strategies',
+    players: [
+      {
+        userId: 'u-office',
+        playerId: 'p-office',
+        displayName: 'Amtsfokus',
+        agent: officeFocusAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+        llmPreamble:
+          'Du spielst eine amtsfokussierte Strategie: Hauptziel Erwerb von Ämtern und Einflussgewinn; sekundär städtischer Besitz und Geldgewinnaktionen.',
+      },
+      {
+        userId: 'u-trade',
+        playerId: 'p-trade',
+        displayName: 'Handel & Geld',
+        agent: tradeFocusAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+        llmPreamble:
+          'Du spielst eine handels- und geldgewinnorientierte Strategie: Hauptziel Geldgewinn (Verkauf/Verleih); sekundär Handelsstrukturen, Werkstätten und städtischer Besitz.',
+      },
+      {
+        userId: 'u-city',
+        playerId: 'p-city',
+        displayName: 'Stadt & Unterwelt',
+        agent: cityUnderworldAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+        llmPreamble:
+          'Du spielst eine stadtorientierte/unterwelt-Strategie: Fokus städtischer Besitz, Unterwelt-Netzwerke und Anhänger; sekundär Ämter, Geldgewinn, Werkstätten.',
+      },
+      {
+        userId: 'u-workshop',
+        playerId: 'p-workshop',
+        displayName: 'Werkstattfokus',
+        agent: workshopFocusAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+        llmPreamble:
+          'Du spielst eine werkstattfokussierte Strategie: Fokus Werkstätten und städtischer Besitz; sekundär Handwerks-Strukturen, Materialgewinn (Werkstatt) und Handel.',
+      },
+      {
+        userId: 'u-domain',
+        playerId: 'p-domain',
+        displayName: 'Domänenfokus',
+        agent: domainFocusAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+        llmPreamble:
+          'Du spielst eine domänenfokussierte Strategie: Fokus Domänenentwicklung, Materialgewinn (Domäne) und Verkauf von Rohstoffen; sekundär Werkstätten/Lager, Fachleute und passende Ämter.',
+      },
+    ],
+  },
+  {
+    name: 'core-v1-planner-strategies',
+    players: [
+      {
+        userId: 'u-office',
+        playerId: 'p-office',
+        displayName: 'Amtsfokus (Planner)',
+        agent: plannerOfficeAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+      },
+      {
+        userId: 'u-trade',
+        playerId: 'p-trade',
+        displayName: 'Handel & Geld (Planner)',
+        agent: plannerTradeAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+      },
+      {
+        userId: 'u-city',
+        playerId: 'p-city',
+        displayName: 'Stadt & Unterwelt (Planner)',
+        agent: plannerCityAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+      },
+      {
+        userId: 'u-workshop',
+        playerId: 'p-workshop',
+        displayName: 'Werkstattfokus (Planner)',
+        agent: plannerWorkshopAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+      },
+      {
+        userId: 'u-domain',
+        playerId: 'p-domain',
+        displayName: 'Domänenfokus (Planner)',
+        agent: plannerDomainAgent,
+        checks: checks({ influence: 5, money: 5, materials: 5 }),
+      },
+    ],
+  },
+  {
+    name: 'core-v1-marketaware',
     players: [
       {
         userId: 'u-builder',
@@ -84,7 +190,7 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    name: 'core-v0-specialists',
+    name: 'core-v1-specialists',
     players: [
       {
         userId: 'u-builder',
