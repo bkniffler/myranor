@@ -68,6 +68,17 @@ type RoundSnapshot = {
   labor: number;
 };
 
+type HoldingsSnapshot = {
+  summary: string;
+  domainSlots: string;
+  citySlots: string;
+  domains: string;
+  workshops: string;
+  storages: string;
+  specs: string;
+  tenants: string;
+};
+
 type RoundSummary = {
   round: number;
   actions: string[];
@@ -75,6 +86,8 @@ type RoundSummary = {
   start: RoundSnapshot;
   end: RoundSnapshot;
   delta: RoundSnapshot;
+  holdingsStart: HoldingsSnapshot;
+  holdingsEnd: HoldingsSnapshot;
 };
 
 type StepLog = {
@@ -125,6 +138,7 @@ type LlmPlayReport = {
 
 type ActionStats = {
   moneySell: number;
+  moneyBuy: number;
   moneyLend: number;
   gainMaterialsDomain: number;
   gainMaterialsWorkshop: number;
@@ -184,6 +198,8 @@ type RoundReport = {
     displayName: string;
     start: RoundSnapshot;
     end: RoundSnapshot;
+    holdingsStart: HoldingsSnapshot;
+    holdingsEnd: HoldingsSnapshot;
     actions: string[];
     facility: string | null;
     ledger: PlayerLedger;
@@ -579,6 +595,7 @@ function applyEventsToLedger(
 function actionStatsForPlayer(steps: StepLog[], playerId: string): ActionStats {
   const stats: ActionStats = {
     moneySell: 0,
+    moneyBuy: 0,
     moneyLend: 0,
     gainMaterialsDomain: 0,
     gainMaterialsWorkshop: 0,
@@ -604,6 +621,13 @@ function actionStatsForPlayer(steps: StepLog[], playerId: string): ActionStats {
     switch (cmd.type) {
       case 'MoneySell':
         stats.moneySell += 1;
+        break;
+      case 'MoneySellBuy':
+        stats.moneySell += 1;
+        stats.moneyBuy += 1;
+        break;
+      case 'MoneyBuy':
+        stats.moneyBuy += 1;
         break;
       case 'MoneyLend':
         stats.moneyLend += 1;
@@ -902,6 +926,54 @@ function sumStock(stock: Record<string, number>): number {
   return sum;
 }
 
+function domainFacilitySlotsMax(tier: string): number {
+  if (tier === 'starter') return 0;
+  if (tier === 'small') return 2;
+  if (tier === 'medium') return 4;
+  return 6;
+}
+
+function cityFacilitySlotsMax(tier: string): number {
+  if (tier === 'small') return 2;
+  if (tier === 'medium') return 3;
+  return 4;
+}
+
+function countFacilitySlotsUsedAtDomain(
+  holdings: PlayerState['holdings'],
+  domainId: string
+): number {
+  const domain = holdings.domains.find((d) => d.id === domainId);
+  if (!domain) return 0;
+  const workshopSlots = holdings.workshops.filter(
+    (w) =>
+      w.location.kind === 'domain' &&
+      w.location.id === domainId &&
+      w.id !== 'workshop-starter'
+  ).length;
+  const storageSlots = holdings.storages.filter(
+    (s) => s.location.kind === 'domain' && s.location.id === domainId
+  ).length;
+  const specSlots = domain.specialization?.facilities?.length ?? 0;
+  return domain.facilities.length + specSlots + workshopSlots + storageSlots;
+}
+
+function countFacilitySlotsUsedAtCity(
+  holdings: PlayerState['holdings'],
+  cityId: string
+): number {
+  const city = holdings.cityProperties.find((c) => c.id === cityId);
+  if (!city) return 0;
+  const workshopSlots = holdings.workshops.filter(
+    (w) => w.location.kind === 'cityProperty' && w.location.id === cityId
+  ).length;
+  const storageSlots = holdings.storages.filter(
+    (s) => s.location.kind === 'cityProperty' && s.location.id === cityId
+  ).length;
+  const specSlots = city.specialization?.facilities?.length ?? 0;
+  return city.facilities.length + specSlots + workshopSlots + storageSlots;
+}
+
 function snapshotPlayer(me: PlayerState): RoundSnapshot {
   return {
     gold: me.economy.gold,
@@ -910,6 +982,66 @@ function snapshotPlayer(me: PlayerState): RoundSnapshot {
     specialTotal: sumStock(me.economy.inventory.special),
     influence: me.turn.influenceAvailable,
     labor: me.turn.laborAvailable,
+  };
+}
+
+function snapshotHoldings(me: PlayerState): HoldingsSnapshot {
+  const domainSlots =
+    me.holdings.domains
+      .map((d) => {
+        const used = countFacilitySlotsUsedAtDomain(me.holdings, d.id);
+        const max = domainFacilitySlotsMax(d.tier);
+        return `${d.id}:${used}/${max}`;
+      })
+      .join(', ') || '-';
+  const citySlots =
+    me.holdings.cityProperties
+      .map((c) => {
+        const used = countFacilitySlotsUsedAtCity(me.holdings, c.id);
+        const max = cityFacilitySlotsMax(c.tier);
+        return `${c.id}:${used}/${max}`;
+      })
+      .join(', ') || '-';
+
+  const domains =
+    me.holdings.domains.map((d) => `${d.id}:${d.tier}`).join(', ') || '-';
+  const workshops =
+    me.holdings.workshops
+      .map((w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`)
+      .join(', ') || '-';
+  const storages =
+    me.holdings.storages.map((s) => `${s.id}:${s.tier}`).join(', ') || '-';
+  const specs =
+    me.holdings.domains
+      .filter((d) => d.specialization)
+      .map((d) => `${d.id}:${d.specialization?.kind}`)
+      .join(', ') || '-';
+  const tenantDomains = me.holdings.domains.reduce(
+    (sum, d) => sum + d.tenants.levels,
+    0
+  );
+  const tenantCities = me.holdings.cityProperties.reduce(
+    (sum, c) => sum + c.tenants.levels,
+    0
+  );
+  const tenantOrgs = me.holdings.organizations.reduce(
+    (sum, o) => sum + o.followers.levels,
+    0
+  );
+  const summary =
+    `domains=${me.holdings.domains.length} (spec=${me.holdings.domains.filter((d) => d.specialization).length}), ` +
+    `cities=${me.holdings.cityProperties.length}, workshops=${me.holdings.workshops.length}, ` +
+    `storages=${me.holdings.storages.length}, tenants(d/c/o)=${tenantDomains}/${tenantCities}/${tenantOrgs}`;
+
+  return {
+    summary,
+    domainSlots,
+    citySlots,
+    domains,
+    workshops,
+    storages,
+    specs,
+    tenants: `domains=${tenantDomains}, cities=${tenantCities}, orgs=${tenantOrgs}`,
   };
 }
 
@@ -929,9 +1061,10 @@ function formatRoundSummary(summary: RoundSummary): string {
   const facility = summary.facility ? `facility=${summary.facility}` : 'facility=none';
   const s = summary.start;
   const e = summary.end;
+  const h = summary.holdingsEnd.summary;
   return [
     `R${summary.round}: ${facility}; actions=[${actions}]`,
-    `gold ${s.gold}->${e.gold}, inv ${s.rawTotal}/${s.specialTotal}->${e.rawTotal}/${e.specialTotal}, inf ${s.influence}->${e.influence}, ak ${s.labor}->${e.labor}`,
+    `gold ${s.gold}->${e.gold}, inv ${s.rawTotal}/${s.specialTotal}->${e.rawTotal}/${e.specialTotal}, inf ${s.influence}->${e.influence}, ak ${s.labor}->${e.labor}, ${h}`,
   ].join(' | ');
 }
 
@@ -1139,6 +1272,15 @@ function formatMarkdown(report: LlmPlayReport): string {
       lines.push(
         `- State: Gold ${r.start.gold}->${r.end.gold} (pending ${r.start.pendingGold}->${r.end.pendingGold}), RM ${r.start.rawTotal}->${r.end.rawTotal}, SM ${r.start.specialTotal}->${r.end.specialTotal}, Inf ${r.start.influence}->${r.end.influence}, AK ${r.start.labor}->${r.end.labor}`
       );
+      lines.push(`- Holdings: ${r.holdingsEnd.summary}`);
+      lines.push(
+        `- Slots: Domäne[${r.holdingsEnd.domainSlots}] | Stadt[${r.holdingsEnd.citySlots}]`
+      );
+      lines.push(`- Domänen: ${r.holdingsEnd.domains}`);
+      lines.push(`- Spezialisierungen: ${r.holdingsEnd.specs}`);
+      lines.push(`- Werkstätten: ${r.holdingsEnd.workshops}`);
+      lines.push(`- Lager: ${r.holdingsEnd.storages}`);
+      lines.push(`- Pächter/Anhänger: ${r.holdingsEnd.tenants}`);
       lines.push(
         `- Gold: +${fmtTotals(r.ledger.goldGained)} / -${fmtTotals(
           r.ledger.goldSpent
@@ -1283,6 +1425,7 @@ async function main() {
     if (!state) break;
 
     const roundStartSnapshots = new Map<string, RoundSnapshot>();
+    const roundStartHoldings = new Map<string, HoldingsSnapshot>();
     const roundActionLogs = new Map<
       string,
       { actions: string[]; facility: string | null }
@@ -1290,6 +1433,7 @@ async function main() {
     for (const profile of profiles) {
       const me = getPlayerByUserId(state, profile.userId);
       roundStartSnapshots.set(profile.userId, snapshotPlayer(me));
+      roundStartHoldings.set(profile.userId, snapshotHoldings(me));
       roundActionLogs.set(profile.userId, { actions: [], facility: null });
     }
 
@@ -1454,8 +1598,10 @@ async function main() {
     const roundReport: RoundReport = { round, byPlayer: [] };
     for (const profile of profiles) {
       const start = roundStartSnapshots.get(profile.userId);
+      const holdingsStart = roundStartHoldings.get(profile.userId);
       if (!start) continue;
       const end = snapshotPlayer(getPlayerByUserId(state, profile.userId));
+      const holdingsEnd = snapshotHoldings(getPlayerByUserId(state, profile.userId));
       const log = roundActionLogs.get(profile.userId);
       profile.roundSummaries.push({
         round,
@@ -1464,6 +1610,8 @@ async function main() {
         start,
         end,
         delta: diffSnapshot(start, end),
+        holdingsStart: holdingsStart ?? snapshotHoldings(getPlayerByUserId(state, profile.userId)),
+        holdingsEnd,
       });
       if (profile.roundSummaries.length > 3) {
         profile.roundSummaries.splice(0, profile.roundSummaries.length - 3);
@@ -1474,6 +1622,8 @@ async function main() {
         displayName: profile.displayName,
         start,
         end,
+        holdingsStart: holdingsStart ?? snapshotHoldings(getPlayerByUserId(state, profile.userId)),
+        holdingsEnd,
         actions: log?.actions ?? [],
         facility: log?.facility ?? null,
         ledger: roundLedgerByPlayerId.get(profile.playerId) ?? emptyLedger(),

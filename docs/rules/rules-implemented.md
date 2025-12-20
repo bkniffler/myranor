@@ -80,7 +80,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Domaenen: RM-Ertrag pro Tier (starter 8, small 12, medium 20, large 36).
 - Stadtbesitz (verpachtet): Gold + Einfluss + AK nach Tier.
 - Stadtbesitz (produktion): AK nach Tier, kein Gold/Einfluss.
-- Aemter: pro Runde entweder Einfluss **oder** Gold (kleines Amt: 2 Gold).
+- Aemter: pro Runde entweder Einfluss **oder** Gold (kleines Amt: 4 Gold; mittleres Amt: 10 Gold; großes Amt: 20 Gold).
 - Organisationen (Unterwelt/Kult/Spion/Collegium): Einfluss/AK je Stufe (v1-Interpretation).
 - Handelsunternehmungen: SM oder SM->Gold (Modus `produce`/`trade`).
 - Paechter/Anhaenger: +1 Gold/Stufe +1 AK/Stufe; Domaenen zusaetzlich +1 RM/Stufe (einfaches RM aus Picks).
@@ -106,6 +106,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Kauf:
   - 5 RM oder 1 SM oder 1 perm. AK pro Investment.
   - Preis = Basis + Marktmodifikator + Eventmodifikator.
+- Verkauf kann im selben Zug optional einen Kauf enthalten (belegt money.sell + money.buy).
 
 ### 3) Materialgewinn
 - Domaenenverwaltung: DC 10, Cap 4 * DomainTierRank.
@@ -123,6 +124,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Domaenen/Stadtbesitz/Aemter/Organisationen:
   - DC je Posten + Tiermod (small +0, medium +4, large +8).
   - Kosten werden bei Erfolg mit Roll-Multiplikator skaliert (veryGood/good/poor).
+  - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt.
 - Handelsunternehmungen:
   - DC 10, Kosten (v1-Interpretation) 20/40/80 Gold.
 - Paechter/Anhaenger:
@@ -142,7 +144,23 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Werkstatt large: 20 RM -> 5 SM, Upkeep 4 AK + 2 Gold.
 - Lager small/medium/large: 10/20/40 RM oder 5/10/20 SM (jeweils * storageMultiplier).
 
+## Einrichtungsplaetze & Produktions-Caps (Soll)
+- Domaenen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6), Starter=0.
+- Stadtbesitz: Einrichtungsplaetze small=2, medium=3, large=4.
+- Aemter: Einrichtungsplaetze wie Stadtbesitz (2/3/4 je Tier).
+- Organisationen & Handelsunternehmungen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6).
+- Werkstaetten/Lager belegen 1 Einrichtungsplatz (unabhaengig von ihrer Groesse).
+- Domänen-Produktionscap (Werkstatt/Lager):
+  - Kleine Domäne: max 1 kleine Produktion (Werkstatt/Lager).
+  - Mittlere Domäne: max 1 mittlere Produktion (Werkstatt/Lager).
+  - Große Domäne: max 1 kleine **und** 1 mittlere Produktion (insgesamt 2).
+  - Große Werkstaetten/Lager sind **nicht** auf Domänen erlaubt.
+- Stadtbesitz (Eigenproduktion) Produktionskapazitaet:
+  - Klein: 2 kleine **oder** 1 mittlere Produktion.
+  - Mittel: 2 mittlere **oder** 1 große Produktion.
+  - Groß: 2 große Produktionen.
+
 ## Ereignissystem (Abschnitt)
-- Alle 5 Runden werden 2 Events gerollt.
+- Alle 5 Runden werden 2 Events gerollt (ab Runde 1, wirken 5 Runden).
 - Eventeffekte wirken auf Markt, DC, Ertraege, Upkeep, Loyalitaet.
 - Details in: `src/core/rules/eventTable_v1.ts`, `src/core/rules/events_v1.ts`.

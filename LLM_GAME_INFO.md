@@ -28,7 +28,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - **Arbeitskraft (AK)** (pro Runde verfuegbar) + **Permanente Arbeitskraft**
 - **Rohmaterial (RM)** und **Sondermaterial (SM)**
 - **Zauberkraft**
-- **Truppen**, **Paecht er/Anhaenger**, **Fachkraefte**
+- **Truppen**, **Paecher/Anhaenger**, **Fachkraefte**
 
 ## Startzustand (Engine v1)
 - Checks: influence=3, money=3, materials=3 (Attributs-Basis; skaliert pro 10 Runden).
@@ -55,6 +55,9 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - AK/Runde: small=2, medium=3, large=6
   - Gold/Einfluss: 0
   - Gold-Unterhalt: small=2, medium=4, large=8
+- **Aemter**
+  - Ertrag (pro Runde, je Amt): small=4, medium=10, large=20 (Gold **oder** Einfluss je nach Yield-Mode)
+  - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt
 - **Werkstaetten**
   - Unterhalt: small=1 AK, medium=2 AK +1 Gold, large=4 AK +2 Gold
   - Kapazitaet (Umwandlung):
@@ -67,6 +70,22 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
     - small: 20 RM / 10 SM
     - medium: 40 RM / 20 SM
     - large: 80 RM / 40 SM
+
+## Einrichtungs- und Produktions-Caps (v1)
+- Domaenen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6), Starter=0.
+- Stadtbesitz: Einrichtungsplaetze small=2, medium=3, large=4.
+- Aemter: Einrichtungsplaetze wie Stadtbesitz (2/3/4).
+- Organisationen & Handelsunternehmungen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6).
+- Werkstaetten/Lager belegen 1 Einrichtungsplatz.
+- Domänen-Produktionscap (Werkstatt/Lager):
+  - Kleine Domäne: max 1 kleine Produktion.
+  - Mittlere Domäne: max 1 mittlere Produktion.
+  - Große Domäne: max 1 kleine + 1 mittlere Produktion.
+  - Große Werkstaetten/Lager sind auf Domänen nicht erlaubt.
+- Stadtbesitz (Eigenproduktion) Produktionskapazitaet:
+  - Klein: 2 kleine oder 1 mittlere Produktion.
+  - Mittel: 2 mittlere oder 1 große Produktion.
+  - Groß: 2 große Produktionen.
 
 ## Material-Conversion (Conversion-Phase)
 1. Werkstaetten wandeln **ihr inputMaterial** RM -> output SM um (Kapazitaeten oben).
@@ -94,7 +113,8 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - **Geld gewinnen**
   - **MoneyLend**: 2 Gold/Invest -> Gold naechste Runde (Ertrag nach Erfolgsgrad)
   - **MoneySell**: Verkauf RM/SM mit Marktfaktoren (6 RM oder 1 SM = 1 Invest)
-  - **MoneyBuy**: Einkauf von Waren (implementiert, aber nicht im LLM-Runner genutzt)
+  - **MoneySellBuy**: Verkauf + Einkauf in einer Aktion (belegt money.sell + money.buy)
+  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM pro Invest)
 - **Material gewinnen**
   - **Domaenenverwaltung** oder **Werkstattaufsicht** (AK-gebunden)
 - **Permanente Posten**
@@ -115,7 +135,8 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Events koennen DCs/Modifier beeinflussen.
 
 ## Events
-- Globale Events (Abschnitte) beeinflussen DCs, Ertraege, Kosten, Unterhalt, Konversion.
+- Globale Events (Abschnitte) werden ab Runde 1 gerollt und wirken 5 Runden.
+- Events beeinflussen DCs, Ertraege, Kosten, Unterhalt, Konversion.
 - Beispiele: +DC auf Geldverleih/Verkauf, halbe Amtsgold-Einkuenfte, etc.
 
 ## LLM-Runner: aktuell sichtbare Action-Candidates
@@ -134,6 +155,8 @@ Der LLM-Runner zeigt weiterhin **nicht alle Engine-Aktionen**, aber eine deutlic
   - Einflussgewinn (temporary/permanent) 1/mid/max
   - Geldverleih (1/mid/max, wenn bezahlbar)
   - Verkauf (bestes Paket, pro Marktinstanz + Budget)
+  - Verkauf+Kauf (kombiniert, bestes Paket + Kauf mit gleichem Markt)
+  - Kauf (bestes Paket, pro Marktinstanz + Budget)
   - Amt klein/mittel/gross (goldFirst / influenceFirst, bei Voraussetzungen)
   - Handelsunternehmung klein/mittel/gross
   - Stadtbesitz klein/mittel/gross

@@ -23,8 +23,8 @@ export const DEFAULT_CAMPAIGN_RULES: CampaignRules = {
   actionsPerRound: 2,
   freeFacilityBuildsPerRound: 1,
   storageCapacityMultiplier: 2,
-  // Hausregel (siehe Diskussion): kleines Amt gibt wahlweise 4 Einfluss ODER 2 Gold.
-  officeGoldPerRound: 2,
+  // Hausregel (siehe Diskussion): kleines Amt gibt wahlweise 4 Einfluss ODER 4 Gold.
+  officeGoldPerRound: 4,
 };
 
 export const DEFAULT_STARTER_DOMAIN_RAW_PICKS = [

@@ -628,6 +628,8 @@ function expectedActionKey(command: GameCommand): string | null {
       return 'money.lend';
     case 'MoneySell':
       return 'money.sell';
+    case 'MoneySellBuy':
+      return 'money.sell';
     case 'MoneyBuy':
       return 'money.buy';
     case 'AcquireDomain':

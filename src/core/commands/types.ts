@@ -66,6 +66,14 @@ export type MoneyBuyCommand = {
   items: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
 };
 
+export type MoneySellBuyCommand = {
+  type: 'MoneySellBuy';
+  campaignId: string;
+  marketInstanceId?: string;
+  sellItems: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
+  buyItems: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
+};
+
 export type GainMaterialsCommand = {
   type: 'GainMaterials';
   campaignId: string;
@@ -219,6 +227,7 @@ export type GameCommand =
   | MoneyLendCommand
   | MoneySellCommand
   | MoneyBuyCommand
+  | MoneySellBuyCommand
   | GainMaterialsCommand
   | AcquireDomainCommand
   | AcquireCityPropertyCommand

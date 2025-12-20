@@ -1816,6 +1816,41 @@ function productionCapacityUnitsMaxForCity(tier: CityPropertyTier): number {
   return 2 * tierUnits(tier);
 }
 
+function domainProductionCaps(tier: DomainTier): { small: number; medium: number; total: number } {
+  if (tier === 'starter') return { small: 0, medium: 0, total: 0 };
+  if (tier === 'small') return { small: 1, medium: 0, total: 1 };
+  if (tier === 'medium') return { small: 0, medium: 1, total: 1 };
+  return { small: 1, medium: 1, total: 2 };
+}
+
+function countDomainProductionByTier(
+  holdings: PlayerHoldings,
+  domainId: string,
+  options: { excludeWorkshopId?: string; excludeStorageId?: string } = {},
+): { small: number; medium: number; large: number; total: number } {
+  let small = 0;
+  let medium = 0;
+  let large = 0;
+  for (const w of holdings.workshops) {
+    if (w.location.kind !== 'domain') continue;
+    if (w.location.id !== domainId) continue;
+    if (w.id === 'workshop-starter') continue;
+    if (options.excludeWorkshopId && w.id === options.excludeWorkshopId) continue;
+    if (w.tier === 'small') small += 1;
+    else if (w.tier === 'medium') medium += 1;
+    else large += 1;
+  }
+  for (const s of holdings.storages) {
+    if (s.location.kind !== 'domain') continue;
+    if (s.location.id !== domainId) continue;
+    if (options.excludeStorageId && s.id === options.excludeStorageId) continue;
+    if (s.tier === 'small') small += 1;
+    else if (s.tier === 'medium') medium += 1;
+    else large += 1;
+  }
+  return { small, medium, large, total: small + medium + large };
+}
+
 function countFacilitySlotsUsedAtDomain(holdings: PlayerHoldings, domainId: string): number {
   const domain = holdings.domains.find((d) => d.id === domainId);
   if (!domain) return 0;
@@ -3670,6 +3705,289 @@ export function decide(
       ];
     }
 
+    case 'MoneySellBuy': {
+      if (!state) throw new GameRuleError('STATE', 'Kampagne existiert nicht.');
+      assertPhase(state, 'actions');
+      const playerId = getActingPlayerIdOrThrow(state, ctx.actor);
+      const player = state.players[playerId];
+      if (!player) throw new Error('Player missing');
+
+      const baseSellKey = 'money.sell';
+      let actionKeySell = baseSellKey;
+      let actionCostSell = 1;
+      const bonusSlots = bonusMoneySlots(player);
+
+      if (hasUsedCanonicalAction(player, baseSellKey)) {
+        ensureActionAvailable(player, state.rules, baseSellKey, 1);
+      }
+
+      const hasBaseActions = player.turn.actionsUsed + 1 <= state.rules.actionsPerRound;
+      if (!hasBaseActions && bonusSlots > 0) {
+        const marker = 'bonus.money.1';
+        if (!hasUsedBonusMarker(player, marker)) {
+          actionKeySell = `${baseSellKey}@${marker}`;
+          actionCostSell = 0;
+        } else {
+          ensureActionAvailable(player, state.rules, baseSellKey, 1);
+        }
+      }
+
+      ensureActionAvailable(player, state.rules, actionKeySell, actionCostSell);
+
+      const marketUsed = marketUsedForPlayerOrThrow(state, playerId, command.marketInstanceId);
+
+      const sold: Array<
+        | { kind: 'labor'; count: number }
+        | { kind: MaterialKind; materialId: string; count: number }
+      > = [];
+
+      let sellInvestments = 0;
+      let baseSaleGold = 0;
+      let conversionGold = 0;
+      let marketDeltaGold = 0;
+      const soldMaterialIds = new Set<string>();
+
+      for (const item of command.sellItems) {
+        const count = Math.trunc(item.count);
+        if (count <= 0) continue;
+
+        if (item.kind === 'labor') {
+          if (count > player.holdings.permanentLabor) {
+            throw new GameRuleError('RESOURCES', 'Nicht genug permanente Arbeitskraft.');
+          }
+          sold.push({ kind: 'labor', count });
+          sellInvestments += count;
+          baseSaleGold += count * 6;
+          conversionGold += count * 6;
+          continue;
+        }
+
+        const material = getMaterialOrThrow(item.materialId);
+        if (material.kind !== item.kind) {
+          throw new GameRuleError('INPUT', `Material ${item.materialId} ist nicht vom Typ ${item.kind}.`);
+        }
+
+        if (item.kind === 'raw') {
+          if (count % 6 !== 0) {
+            throw new GameRuleError('INPUT', 'Rohmaterial-Verkauf muss in 6er-Schritten erfolgen.');
+          }
+          const available = player.economy.inventory.raw[item.materialId] ?? 0;
+          if (available < count) throw new GameRuleError('RESOURCES', `Nicht genug RM: ${item.materialId}.`);
+          const inv = count / 6;
+          sold.push({ kind: 'raw', materialId: item.materialId, count });
+          soldMaterialIds.add(item.materialId);
+          sellInvestments += inv;
+          baseSaleGold += inv * 3;
+          conversionGold += inv * 1;
+          marketDeltaGold +=
+            inv *
+            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+              material.saleBonusGold +
+              marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
+          continue;
+        }
+
+        // special
+        {
+          const available = player.economy.inventory.special[item.materialId] ?? 0;
+          if (available < count) throw new GameRuleError('RESOURCES', `Nicht genug SM: ${item.materialId}.`);
+          const inv = count;
+          sold.push({ kind: 'special', materialId: item.materialId, count });
+          soldMaterialIds.add(item.materialId);
+          sellInvestments += inv;
+          baseSaleGold += inv * 3;
+          conversionGold += inv * 2;
+          marketDeltaGold +=
+            inv *
+            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+              material.saleBonusGold +
+              marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
+        }
+      }
+
+      if (sellInvestments <= 0) throw new GameRuleError('INPUT', 'Nichts zu verkaufen.');
+
+      // Event-Sale-Boni, die nicht pro Investment über die Markttabellen laufen.
+      marketDeltaGold += saleBonusGoldForAction([...soldMaterialIds], state.globalEvents, state.round);
+
+      const capFromTrade = player.holdings.tradeEnterprises.reduce(
+        (sum, te) => sum + 2 * postTierRank(te.tier),
+        0,
+      );
+      const capFromDomains = player.holdings.domains.reduce(
+        (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
+        0,
+      );
+      const sellCap = 3 + capFromTrade + capFromDomains;
+      if (sellInvestments > sellCap) {
+        throw new GameRuleError('INPUT', `Zu viele Investitionen (max. ${sellCap}).`);
+      }
+
+      const moneyMods = moneyActionMods(state.globalEvents, state.round);
+      const sellSize = sellInvestments >= 8 ? 'large' : sellInvestments >= 4 ? 'medium' : 'small';
+      let sellDc = 14 + investmentDcModifier(sellInvestments) + moneyMods.sellDc;
+      if (sellSize === 'small' && player.holdings.tradeEnterprises.some((t) => t.tier === 'small')) sellDc -= 1;
+      if (sellSize === 'medium' && player.holdings.tradeEnterprises.some((t) => t.tier === 'medium')) sellDc -= 1;
+      if (sellSize === 'large' && player.holdings.tradeEnterprises.some((t) => t.tier === 'large')) sellDc -= 1;
+      const collegiumTrade = player.holdings.organizations.find((o) => o.kind === 'collegiumTrade');
+      if (collegiumTrade) sellDc -= 2 * postTierRank(collegiumTrade.tier);
+      const sellRoll = rollD20(ctx.rng);
+      const sellMod = effectiveCheck(player.checks.money, state.round);
+      const sellTotal = sellRoll.total + sellMod;
+      const sellTier = resolveSuccessTier(sellDc, sellTotal);
+
+      const baseGold = (() => {
+        switch (sellTier) {
+          case 'veryGood':
+            return baseSaleGold + sellInvestments * 3;
+          case 'good':
+            return baseSaleGold + sellInvestments * 2;
+          case 'success':
+            return baseSaleGold;
+          case 'poor':
+            return conversionGold;
+          case 'fail':
+            return Math.max(0, conversionGold - sellInvestments);
+        }
+      })();
+      const bonusGold = sellTier === 'fail' ? 0 : Math.floor(sellInvestments / 2) * moneyMods.bonusGoldPerTwoInvestments;
+      const goldGained = Math.max(0, baseGold + bonusGold + marketDeltaGold);
+
+      const bought: Array<
+        | { kind: 'labor'; count: number }
+        | { kind: MaterialKind; materialId: string; count: number }
+      > = [];
+      let buyInvestments = 0;
+      let baseCostGold = 0;
+      let buyMarketDeltaGold = 0;
+
+      for (const item of command.buyItems) {
+        const count = Math.trunc(item.count);
+        if (count <= 0) continue;
+
+        if (item.kind === 'labor') {
+          bought.push({ kind: 'labor', count });
+          buyInvestments += count;
+          baseCostGold += count * 8;
+          continue;
+        }
+
+        const material = getMaterialOrThrow(item.materialId);
+        if (material.kind !== item.kind) {
+          throw new GameRuleError('INPUT', `Material ${item.materialId} ist nicht vom Typ ${item.kind}.`);
+        }
+
+        if (item.kind === 'raw') {
+          if (count % 5 !== 0) {
+            throw new GameRuleError('INPUT', 'Rohmaterial-Kauf muss in 5er-Schritten erfolgen.');
+          }
+          const inv = count / 5;
+          bought.push({ kind: 'raw', materialId: item.materialId, count });
+          buyInvestments += inv;
+          baseCostGold += inv * 3;
+          buyMarketDeltaGold +=
+            inv *
+            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+              marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
+          continue;
+        }
+
+        // special
+        {
+          const inv = count;
+          bought.push({ kind: 'special', materialId: item.materialId, count });
+          buyInvestments += inv;
+          baseCostGold += inv * 3;
+          buyMarketDeltaGold +=
+            inv *
+            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+              marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
+        }
+      }
+
+      let buyEvent:
+        | Extract<GameEvent, { type: 'PlayerMoneyBought' }>
+        | null = null;
+      if (buyInvestments > 0) {
+        const buyKey = 'money.buy@bundle';
+        ensureActionAvailable(player, state.rules, buyKey, 0);
+
+        const buyCap = 3 + capFromTrade + capFromDomains;
+        if (buyInvestments > buyCap) {
+          throw new GameRuleError('INPUT', `Zu viele Investitionen (max. ${buyCap}).`);
+        }
+
+        const buySize = buyInvestments >= 8 ? 'large' : buyInvestments >= 4 ? 'medium' : 'small';
+        let buyDc = 14 + investmentDcModifier(buyInvestments);
+        if (buySize === 'small' && player.holdings.tradeEnterprises.some((t) => t.tier === 'small')) buyDc -= 1;
+        if (buySize === 'medium' && player.holdings.tradeEnterprises.some((t) => t.tier === 'medium')) buyDc -= 1;
+        if (buySize === 'large' && player.holdings.tradeEnterprises.some((t) => t.tier === 'large')) buyDc -= 1;
+        if (collegiumTrade) buyDc -= 2 * postTierRank(collegiumTrade.tier);
+        const buyRoll = rollD20(ctx.rng);
+        const buyMod = effectiveCheck(player.checks.money, state.round);
+        const buyTotal = buyRoll.total + buyMod;
+        const buyTier = resolveSuccessTier(buyDc, buyTotal);
+
+        const multiplier =
+          buyTier === 'veryGood'
+            ? 0.75
+            : buyTier === 'good'
+              ? 0.9
+              : buyTier === 'success'
+                ? 1
+                : buyTier === 'poor'
+                  ? 1.1
+                  : 0;
+
+        const baseCostAdjusted =
+          buyTier === 'fail' ? 0 : Math.ceil(baseCostGold * multiplier);
+
+        const goldSpent =
+          buyTier === 'fail' ? 0 : Math.max(0, baseCostAdjusted + buyMarketDeltaGold);
+
+        const goldAfterSale = player.economy.gold + goldGained;
+        if (goldSpent > goldAfterSale) throw new GameRuleError('FUNDS', 'Nicht genug Gold.');
+
+        buyEvent = {
+          type: 'PlayerMoneyBought',
+          visibility: { scope: 'private', playerId },
+          playerId,
+          dc: buyDc,
+          roll: buyRoll,
+          rollModifier: buyMod,
+          rollTotal: buyTotal,
+          tier: buyTier,
+          bought: buyTier === 'fail' ? [] : (bought as any),
+          marketUsed,
+          marketDeltaGold: buyMarketDeltaGold,
+          goldSpent,
+          actionCost: 0,
+          actionKey: buyKey,
+        };
+      }
+
+      const events: GameEvent[] = [
+        {
+          type: 'PlayerMoneySold',
+          visibility: { scope: 'private', playerId },
+          playerId,
+          dc: sellDc,
+          roll: sellRoll,
+          rollModifier: sellMod,
+          rollTotal: sellTotal,
+          tier: sellTier,
+          sold: sold as any,
+          marketUsed,
+          marketDeltaGold,
+          goldGained,
+          actionCost: actionCostSell,
+          actionKey: actionKeySell,
+        },
+      ];
+      if (buyEvent) events.push(buyEvent);
+      return events;
+    }
+
     case 'MoneyBuy': {
       if (!state) throw new GameRuleError('STATE', 'Kampagne existiert nicht.');
       assertPhase(state, 'actions');
@@ -4077,12 +4395,17 @@ export function decide(
       ensureActionAvailable(player, state.rules, actionKey, 1);
 
       const tier: PostTier = command.tier;
+      const smallCount = player.holdings.offices.filter((o) => o.tier === 'small').length;
+      const mediumCount = player.holdings.offices.filter((o) => o.tier === 'medium').length;
+      const largeCount = player.holdings.offices.filter((o) => o.tier === 'large').length;
+      const smallCap = 8 + mediumCount * 2 + largeCount * 4;
+      if (tier === 'small' && smallCount >= smallCap) {
+        throw new GameRuleError('RULE', `Zu viele kleine Ämter (max. ${smallCap}).`);
+      }
       if (tier === 'medium') {
-        const smallCount = player.holdings.offices.filter((o) => o.tier === 'small').length;
         if (smallCount < 2) throw new GameRuleError('RULE', 'Für ein mittleres Amt werden 2 kleine Ämter benötigt.');
       }
       if (tier === 'large') {
-        const mediumCount = player.holdings.offices.filter((o) => o.tier === 'medium').length;
         if (mediumCount < 2) throw new GameRuleError('RULE', 'Für ein großes Amt werden 2 mittlere Ämter benötigt.');
       }
 
@@ -4504,6 +4827,18 @@ export function decide(
         const used = countFacilitySlotsUsedAtDomain(player.holdings, domain.id);
         const max = domainFacilitySlotsMax(domain.tier);
         if (used + 1 > max) throw new GameRuleError('RULE', 'Nicht genug Einrichtungsplätze auf dieser Domäne.');
+        const caps = domainProductionCaps(domain.tier);
+        const prod = countDomainProductionByTier(player.holdings, domain.id);
+        if (command.tier === 'large') throw new GameRuleError('RULE', 'Auf Domänen sind nur kleine oder mittlere Werkstätten erlaubt.');
+        if (prod.total >= caps.total) {
+          throw new GameRuleError('RULE', 'Nicht genug Domänen-Kapazität für Werkstatt/Lager.');
+        }
+        if (command.tier === 'small' && prod.small >= caps.small) {
+          throw new GameRuleError('RULE', 'Keine weitere kleine Werkstatt/Lager auf dieser Domäne erlaubt.');
+        }
+        if (command.tier === 'medium' && prod.medium >= caps.medium) {
+          throw new GameRuleError('RULE', 'Keine weitere mittlere Werkstatt/Lager auf dieser Domäne erlaubt.');
+        }
       } else {
         const city = player.holdings.cityProperties.find((c) => c.id === location.id);
         if (!city) throw new GameRuleError('INPUT', 'Unbekannter städtischer Besitz.');
@@ -4594,7 +4929,20 @@ export function decide(
       );
       if (!has) throw new GameRuleError('RULE', 'Für dieses Upgrade wird ein Handwerksmeister (Fachkraft) benötigt.');
 
-      if (workshop.location.kind === 'cityProperty') {
+      if (workshop.location.kind === 'domain') {
+        const domain = player.holdings.domains.find((d) => d.id === workshop.location.id);
+        if (!domain) throw new GameRuleError('STATE', 'Domäne der Werkstatt fehlt.');
+        if (command.toTier === 'large') {
+          throw new GameRuleError('RULE', 'Auf Domänen sind nur kleine oder mittlere Werkstätten erlaubt.');
+        }
+        const caps = domainProductionCaps(domain.tier);
+        const prod = countDomainProductionByTier(player.holdings, domain.id, { excludeWorkshopId: workshop.id });
+        const nextSmall = prod.small;
+        const nextMedium = prod.medium + 1;
+        if (nextSmall > caps.small || nextMedium > caps.medium || nextSmall + nextMedium > caps.total) {
+          throw new GameRuleError('RULE', 'Nicht genug Domänen-Kapazität für Werkstatt/Lager.');
+        }
+      } else if (workshop.location.kind === 'cityProperty') {
         const city = player.holdings.cityProperties.find((c) => c.id === workshop.location.id);
         if (!city) throw new GameRuleError('STATE', 'Stadtbesitz der Werkstatt fehlt.');
         if (city.mode !== 'production') throw new GameRuleError('RULE', 'Werkstätten können nur bei Eigenproduktion im Stadtbesitz betrieben werden.');
@@ -4639,6 +4987,18 @@ export function decide(
         const used = countFacilitySlotsUsedAtDomain(player.holdings, domain.id);
         const max = domainFacilitySlotsMax(domain.tier);
         if (used + 1 > max) throw new GameRuleError('RULE', 'Nicht genug Einrichtungsplätze auf dieser Domäne.');
+        const caps = domainProductionCaps(domain.tier);
+        const prod = countDomainProductionByTier(player.holdings, domain.id);
+        if (command.tier === 'large') throw new GameRuleError('RULE', 'Auf Domänen sind nur kleine oder mittlere Lager erlaubt.');
+        if (prod.total >= caps.total) {
+          throw new GameRuleError('RULE', 'Nicht genug Domänen-Kapazität für Werkstatt/Lager.');
+        }
+        if (command.tier === 'small' && prod.small >= caps.small) {
+          throw new GameRuleError('RULE', 'Kein weiteres kleines Lager/Werkstatt auf dieser Domäne erlaubt.');
+        }
+        if (command.tier === 'medium' && prod.medium >= caps.medium) {
+          throw new GameRuleError('RULE', 'Kein weiteres mittleres Lager/Werkstatt auf dieser Domäne erlaubt.');
+        }
       } else {
         const city = player.holdings.cityProperties.find((c) => c.id === location.id);
         if (!city) throw new GameRuleError('INPUT', 'Unbekannter städtischer Besitz.');
@@ -4683,7 +5043,20 @@ export function decide(
       const expectedNext = storage.tier === 'small' ? 'medium' : 'large';
       if (command.toTier !== expectedNext) throw new GameRuleError('RULE', `Upgrade nur auf nächste Stufe möglich (${expectedNext}).`);
 
-      if (storage.location.kind === 'cityProperty') {
+      if (storage.location.kind === 'domain') {
+        const domain = player.holdings.domains.find((d) => d.id === storage.location.id);
+        if (!domain) throw new GameRuleError('STATE', 'Domäne des Lagers fehlt.');
+        if (command.toTier === 'large') {
+          throw new GameRuleError('RULE', 'Auf Domänen sind nur kleine oder mittlere Lager erlaubt.');
+        }
+        const caps = domainProductionCaps(domain.tier);
+        const prod = countDomainProductionByTier(player.holdings, domain.id, { excludeStorageId: storage.id });
+        const nextSmall = prod.small;
+        const nextMedium = prod.medium + 1;
+        if (nextSmall > caps.small || nextMedium > caps.medium || nextSmall + nextMedium > caps.total) {
+          throw new GameRuleError('RULE', 'Nicht genug Domänen-Kapazität für Werkstatt/Lager.');
+        }
+      } else if (storage.location.kind === 'cityProperty') {
         const city = player.holdings.cityProperties.find((c) => c.id === storage.location.id);
         if (!city) throw new GameRuleError('STATE', 'Stadtbesitz des Lagers fehlt.');
         if (city.mode !== 'production') throw new GameRuleError('RULE', 'Lager können nur bei Eigenproduktion im Stadtbesitz betrieben werden.');

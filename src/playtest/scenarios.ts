@@ -76,23 +76,26 @@ export const SCENARIOS: Scenario[] = [
         agent: officeFocusAgent,
         checks: checks({}),
         llmPreamble:
-          'Du spielst eine amtsfokussierte Strategie: Hauptziel Erwerb von Ämtern und Einflussgewinn; sekundär städtischer Besitz und Geldgewinnaktionen.',
+          'Du spielst eine amtsfokussierte Strategie: Hauptziel Erwerb von Ämtern und Einflussgewinn; sekundär städtischer Besitz, große Domäne und Geldgewinnaktionen.',
         strategyCard: {
           title: 'Amtsfokus',
           risk: 'aggressive',
           primary: [
-            'Aemter sammeln (klein), wenn bezahlbar',
-            'Einflussgewinn priorisieren, um Amtskosten zu decken',
+            'Aemter sammeln (klein -> mittel -> gross), wenn bezahlbar',
+            'Temporären Einfluss nutzen, um Aemter frueh zu sichern',
+            'Grosse Domaene anstreben (small -> medium -> large), sobald finanzierbar',
           ],
           secondary: [
             'Staedtischer Besitz fuer Einfluss/Gold',
             'Geldgewinnaktionen zur Finanzierung',
+            'Lager bauen, um RM/SM zu halten (bei schlechtem Markt)',
             'Organisationen (Kult/Collegium), wenn moeglich',
           ],
           guardrails: [
             'Goldreserve >= 6',
             'Wenn Einfluss < 4: Einfluss gewinnen',
-            'Nicht nur Einfluss waehlen, wenn Verkauf/Material moeglich',
+            'Aemter nicht erzwingen, wenn Cap erreicht oder Ressourcen fehlen',
+            'Nicht nur Einfluss waehlen, wenn Verkauf/Material sinnvoll ist',
           ],
         },
       },
@@ -103,22 +106,26 @@ export const SCENARIOS: Scenario[] = [
         agent: tradeFocusAgent,
         checks: checks({}),
         llmPreamble:
-          'Du spielst eine handels- und geldgewinnorientierte Strategie: Hauptziel Geldgewinn (Verkauf/Verleih); sekundär Handelsstrukturen, Werkstätten und städtischer Besitz.',
+          'Du spielst eine handels- und geldgewinnorientierte Strategie: Hauptziel Geldgewinn (Verkauf/Verleih); sekundär Handelsstrukturen, große Domäne, Werkstätten und städtischer Besitz.',
         strategyCard: {
           title: 'Handel & Geld',
           risk: 'aggressive',
           primary: [
             'Geldgewinn (MoneySell/MoneyLend) priorisieren',
             'Handelsunternehmungen erwerben',
-            'Verkaufen, sobald Inventar aufgebaut ist',
+            'RM kaufen, wenn Markt guenstig (MoneyBuy/MoneySellBuy)',
+            'Lager bauen, um RM/SM zu halten und spaeter teurer zu verkaufen',
+            'Grosse Domaene anstreben (Cap + Rohstoffzufuhr)',
           ],
           secondary: [
             'Staedtischer Besitz fuer Gold/Einfluss',
             'Werkstattaufsicht fuer SM',
+            'Werkstatt bauen, wenn genug RM fuer Umwandlung',
           ],
           guardrails: [
             'Goldreserve >= 4',
             'Wenn Inventar leer: Materialgewinn priorisieren',
+            'Wenn Markt schlecht und Lager vorhanden: nicht verkaufen',
           ],
         },
       },
@@ -129,7 +136,7 @@ export const SCENARIOS: Scenario[] = [
         agent: cityUnderworldAgent,
         checks: checks({}),
         llmPreamble:
-          'Du spielst eine stadtorientierte/unterwelt-Strategie: Fokus städtischer Besitz, Unterwelt-Netzwerke und Anhänger; sekundär Ämter, Geldgewinn, Werkstätten.',
+          'Du spielst eine stadtorientierte/unterwelt-Strategie: Fokus städtischer Besitz, Unterwelt-Netzwerke und Anhänger; sekundär Ämter, große Domäne, Geldgewinn, Werkstätten.',
         strategyCard: {
           title: 'Stadt & Unterwelt',
           risk: 'aggressive',
@@ -137,14 +144,17 @@ export const SCENARIOS: Scenario[] = [
             'Staedtischen Besitz aufbauen',
             'Unterwelt-Organisation priorisieren',
             'Geldgewinn fuer Stabilitaet',
+            'Grosse Domaene anstreben, wenn bezahlbar',
           ],
           secondary: [
             'Einflussgewinn fuer Orga-Kosten',
             'Werkstattaufsicht wenn AK uebrig',
+            'Lager bauen, wenn Markt schlecht und Vorrat sinnvoll',
           ],
           guardrails: [
             'Goldreserve >= 6',
             'HQ-Anforderung fuer Orga beachten',
+            'Nicht zu frueh in Domaenen investieren, wenn Stadt/Orga stockt',
           ],
         },
       },
@@ -155,20 +165,26 @@ export const SCENARIOS: Scenario[] = [
         agent: workshopFocusAgent,
         checks: checks({}),
         llmPreamble:
-          'Du spielst eine werkstattfokussierte Strategie: Fokus Werkstätten und städtischer Besitz; sekundär Handwerks-Strukturen, Materialgewinn (Werkstatt) und Handel.',
+          'Du spielst eine werkstattfokussierte Strategie: Fokus Werkstätten und städtischer Besitz; sekundär Handwerks-Strukturen, große Domäne, Materialgewinn (Werkstatt) und Handel.',
         strategyCard: {
           title: 'Werkstattfokus',
           risk: 'conservative',
           primary: [
-            'Materialgewinn ueber Werkstattaufsicht',
-            'Staedtischer Besitz fuer Kapazitaet',
-            'Lager bauen, wenn Material liegen bleibt',
+            'Werkstaetten aufbauen/ausbauen',
+            'RM kaufen, wenn Markt guenstig (MoneyBuy/MoneySellBuy)',
+            'Lager bauen, um RM/SM zu puffern',
+            'Staedtischer Besitz fuer Produktionskapazitaet',
+            'Grosse Domaene anstreben (Rohstoffbasis)',
           ],
           secondary: [
             'Geldgewinn bei Ueberschuss',
             'Handwerkscollegium, wenn moeglich',
           ],
-          guardrails: ['AK nicht unter 1 druecken', 'Goldreserve >= 6'],
+          guardrails: [
+            'AK nicht unter 1 druecken',
+            'Goldreserve >= 6',
+            'Nicht verkaufen, wenn Werkstaetten Input brauchen',
+          ],
         },
       },
       {
@@ -178,22 +194,24 @@ export const SCENARIOS: Scenario[] = [
         agent: domainFocusAgent,
         checks: checks({}),
         llmPreamble:
-          'Du spielst eine domänenfokussierte Strategie: Fokus Domänenentwicklung, Materialgewinn (Domäne) und Verkauf von Rohstoffen; sekundär Werkstätten/Lager, Fachleute und passende Ämter.',
+          'Du spielst eine domänenfokussierte Strategie: Fokus Domänenentwicklung (Ziel: grosse Domäne), Materialgewinn (Domäne) und Verkauf von Rohstoffen; sekundär Werkstätten/Lager, Fachleute und passende Ämter.',
         strategyCard: {
           title: 'Domaenenfokus',
           risk: 'conservative',
           primary: [
-            'Domaenen erwerben',
+            'Domaenen erwerben (small -> medium -> large)',
             'Materialgewinn Domaene',
-            'Verkauf von RM/SM',
+            'Lager bauen, um RM/SM zu halten',
+            'Verkauf von RM/SM, wenn Markt gut',
           ],
           secondary: [
-            'Lager bauen, wenn RM liegen bleibt',
             'Handelsunternehmung, wenn Gold uebrig',
+            'Werkstatt bauen, wenn RM-Ueberschuss',
           ],
           guardrails: [
             'Goldreserve >= 6',
             'Wenn Inventar voll: MoneySell priorisieren',
+            'Nicht in Stadt/Orga investieren, bevor grosse Domaene erreichbar ist',
           ],
         },
       },
