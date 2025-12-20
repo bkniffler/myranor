@@ -103,6 +103,8 @@ export type WorkshopState = {
   id: string;
   tier: WorkshopTier;
   location: { kind: 'domain' | 'cityProperty'; id: string };
+  inputMaterialId: string;
+  outputMaterialId: string;
   damage?: FacilityDamageState;
   facilities: FacilityInstance[];
 };
@@ -121,9 +123,14 @@ export type DomainSpecializationKind =
   | 'forestry'
   | 'mining';
 
+export type DomainSpecializationPicks = {
+  costRawId?: string;
+  rawPicks?: string[];
+};
+
 export type DomainSpecializationState = {
   kind: DomainSpecializationKind;
-  picks?: Record<string, string>;
+  picks?: DomainSpecializationPicks;
   facilities: FacilityInstance[];
 };
 
@@ -131,6 +138,7 @@ export type DomainState = {
   id: string;
   tier: DomainTier;
   facilities: FacilityInstance[];
+  rawPicks: string[];
   specialization?: DomainSpecializationState;
   tenants: FollowersState;
 };

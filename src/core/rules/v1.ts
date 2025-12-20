@@ -27,6 +27,13 @@ export const DEFAULT_CAMPAIGN_RULES: CampaignRules = {
   officeGoldPerRound: 2,
 };
 
+export const DEFAULT_STARTER_DOMAIN_RAW_PICKS = [
+  'raw.grainVeg',
+  'raw.fruit',
+  'raw.meat',
+  'raw.pigsSheep',
+] as const;
+
 export function startingMarketState(round = 1): MarketState {
   const neutral: Record<string, number> = {};
   const local: MarketInstanceState = {
@@ -86,6 +93,7 @@ export function startingPlayerHoldings(): PlayerHoldings {
         id: starterDomainId,
         tier: 'starter',
         facilities: [],
+        rawPicks: [...DEFAULT_STARTER_DOMAIN_RAW_PICKS],
         tenants: defaultFollowers(),
       },
     ],
@@ -103,6 +111,8 @@ export function startingPlayerHoldings(): PlayerHoldings {
         id: 'workshop-starter',
         tier: 'small',
         location: { kind: 'domain', id: starterDomainId },
+        inputMaterialId: 'raw.grainVeg',
+        outputMaterialId: 'special.pulpellen',
         facilities: [],
       },
     ],

@@ -550,6 +550,29 @@ function buildFacilityCandidates(
     });
   }
 
+  const domainForRefine = domainsByTier.find((d) => {
+    if (d.tier === 'starter') return false;
+    const used = countFacilitySlotsUsedAtDomain(me.holdings, d.id);
+    const max = domainFacilitySlotsMax(d.tier);
+    return used + 1 <= max;
+  });
+  if (domainForRefine) {
+    const possibleNow = me.economy.gold >= buffered(10, bufferFactor);
+    candidates.push({
+      id: `facility.domain.refine.small.${domainForRefine.id}`,
+      kind: 'facility',
+      command: {
+        type: 'BuildFacility',
+        campaignId: '',
+        location: { kind: 'domain', id: domainForRefine.id },
+        facilityKey: 'special.small.refine',
+      },
+      actionKey: null,
+      possibleNow,
+      summary: `Veredelung (klein) bauen auf Domäne ${domainForRefine.id} (10 Gold).`,
+    });
+  }
+
   const cityForWorkshop = citiesByTier.find((c) => {
     if (c.mode !== 'production') return false;
     const usedSlots = countFacilitySlotsUsedAtCity(me.holdings, c.id);
@@ -699,6 +722,10 @@ function formatPlayerState(state: { me: PlayerState; round: number }): string {
   const specialTotal = sumStock(me.economy.inventory.special);
 
   const domains = me.holdings.domains.map((d) => d.tier).join(', ') || '-';
+  const domainPicks =
+    me.holdings.domains
+      .map((d) => `${d.id}:${d.tier}[${(d.rawPicks ?? []).join(', ')}]`)
+      .join(' | ') || '-';
   const cities =
     me.holdings.cityProperties.map((c) => `${c.tier}/${c.mode}`).join(', ') ||
     '-';
@@ -711,6 +738,10 @@ function formatPlayerState(state: { me: PlayerState; round: number }): string {
   const trades =
     me.holdings.tradeEnterprises.map((t) => `${t.tier}/${t.mode}`).join(', ') ||
     '-';
+  const workshops =
+    me.holdings.workshops
+      .map((w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`)
+      .join(' | ') || '-';
   const checkBonus = roundCheckBonus(state.round);
   const infCheck = effectiveCheckValue(me.checks.influence, state.round);
   const moneyCheck = effectiveCheckValue(me.checks.money, state.round);
@@ -727,10 +758,12 @@ function formatPlayerState(state: { me: PlayerState; round: number }): string {
     `Perm: Einfluss=${me.holdings.permanentInfluence}, AK=${me.holdings.permanentLabor}`,
     `Aktionen: used=${me.turn.actionsUsed}, keys=[${me.turn.actionKeysUsed.join(', ')}]`,
     `Domänen: ${domains}`,
+    `Domänen-Picks: ${domainPicks}`,
     `Stadtbesitz: ${cities}`,
     `Ämter: ${offices}`,
     `Organisationen: ${orgs}`,
     `Handelsunternehmungen: ${trades}`,
+    `Werkstätten: ${workshops}`,
     `Truppen: bodyguard=${me.holdings.troops.bodyguardLevels}, militia=${me.holdings.troops.militiaLevels}, merc=${me.holdings.troops.mercenaryLevels}, thug=${me.holdings.troops.thugLevels}`,
   ].join('\n');
 }
@@ -1518,6 +1551,9 @@ function ruleCheatSheet(): string {
     '- Zielwertung: Gold + Inventarwert + Assets + Einfluss (grob).',
     '- Pro Runde: 2 Aktionen + 1 freie Einrichtungs-/Ausbauaktion (Sonderaktion).',
     '- Pro Runde je ActionKey nur 1x (Ausnahme: Einfluss-Bonusaktionen, falls verfügbar).',
+    '- Domänen haben 4 RM-Picks; Ertrag und Domänenverwaltung werden darauf verteilt.',
+    '- Werkstätten verarbeiten nur ihr inputMaterial und erzeugen ihr outputMaterial.',
+    '- Veredelungs-Einrichtungen werten Werkstatt-Output pro Stufe um 1 Kategorie auf.',
     '- Rohmaterial/Sondermaterial wird am Rundenende auto-konvertiert (RM 4:1, SM 1:2), außer gelagert.',
     '- Verkauf: je 6 RM oder 1 SM = 1 Investment; Marktsystem kann Wert pro Investment verändern.',
     '- Fehlschlag bei Erwerb-Posten (Domäne/Stadt/Ämter/Circel/Truppen/Pächter): Aktion verbraucht, Ressourcen bleiben erhalten.',
@@ -1658,9 +1694,13 @@ export async function planFacilityWithLlm(options: {
       raw = res.output as z.infer<typeof facilityDecisionSchema>;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      throw new Error(
-        `[LLM] ${options.agentName} R${options.round} facility: ${err.message}`
-      );
+      lastError = err;
+      if (attempt === maxPlanAttempts) {
+        throw new Error(
+          `[LLM] ${options.agentName} R${options.round} facility: ${err.message}`
+        );
+      }
+      continue;
     } finally {
       clearTimeout(timeout);
     }
@@ -1883,9 +1923,13 @@ export async function planActionWithLlm(options: {
       raw = res.output as z.infer<typeof actionDecisionSchema>;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      throw new Error(
-        `[LLM] ${options.agentName} R${options.round} A${options.actionSlot}: ${err.message}`
-      );
+      lastError = err;
+      if (attempt === maxPlanAttempts) {
+        throw new Error(
+          `[LLM] ${options.agentName} R${options.round} A${options.actionSlot}: ${err.message}`
+        );
+      }
+      continue;
     } finally {
       clearTimeout(timeout);
     }

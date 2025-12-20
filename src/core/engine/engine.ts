@@ -27,6 +27,7 @@ import type { GameEvent } from '../events/types';
 import {
   DEFAULT_CAMPAIGN_RULES,
   RULES_VERSION,
+  DEFAULT_STARTER_DOMAIN_RAW_PICKS,
   baseInfluencePerRound,
   baseLaborTotal,
   officesIncomePerRound,
@@ -41,7 +42,7 @@ import {
   workshopCapacity,
   workshopUpkeep,
 } from '../rules/v1';
-import { getMaterialOrThrow } from '../rules/materials_v1';
+import { getMaterialOrThrow, MATERIALS_V1 } from '../rules/materials_v1';
 import { rollSectionEvents, isSectionStartRound } from '../rules/events_v1';
 import { marketStateFromRoll, rollMarketInstances } from '../rules/market_v1';
 import {
@@ -180,6 +181,152 @@ function materialTierRank(tier: string): number {
     default:
       return 2;
   }
+}
+
+const DEFAULT_DOMAIN_RAW_PICKS = [...DEFAULT_STARTER_DOMAIN_RAW_PICKS];
+
+function normalizeRawPicks(
+  picks: string[] | undefined,
+  options: { requireCheapBasic?: boolean } = {},
+): string[] {
+  const list = (picks?.length ? picks : DEFAULT_DOMAIN_RAW_PICKS).map((id) => id.trim());
+  const unique = Array.from(new Set(list));
+  if (unique.length !== list.length) {
+    throw new GameRuleError('INPUT', 'Material-Picks enthalten Duplikate.');
+  }
+  if (unique.length !== 4) {
+    throw new GameRuleError('INPUT', 'Material-Picks muessen genau 4 Rohmaterialien enthalten.');
+  }
+  let cheap = 0;
+  let basic = 0;
+  for (const materialId of unique) {
+    const mat = getMaterialOrThrow(materialId);
+    if (mat.kind !== 'raw') {
+      throw new GameRuleError('INPUT', `Material-Pick ist kein Rohmaterial: ${materialId}.`);
+    }
+    if (mat.tier === 'cheap') cheap += 1;
+    if (mat.tier === 'basic') basic += 1;
+  }
+  if (options.requireCheapBasic && (cheap !== 2 || basic !== 2)) {
+    throw new GameRuleError('INPUT', 'Landwirtschaft erfordert genau 2 billige + 2 einfache Rohmaterialien.');
+  }
+  return unique;
+}
+
+function safeDomainRawPicks(domain: { rawPicks?: string[] }): string[] {
+  try {
+    return normalizeRawPicks(domain.rawPicks);
+  } catch {
+    return [...DEFAULT_DOMAIN_RAW_PICKS];
+  }
+}
+
+function distributeRawAcrossPicks(total: number, picks: string[]): MaterialStock {
+  const normalized = normalizeRawPicks(picks);
+  const per = Math.floor(total / normalized.length);
+  let remainder = total - per * normalized.length;
+  const stock: MaterialStock = {};
+  for (const materialId of normalized) {
+    let amount = per;
+    if (remainder > 0) {
+      amount += 1;
+      remainder -= 1;
+    }
+    if (amount > 0) stock[materialId] = (stock[materialId] ?? 0) + amount;
+  }
+  return stock;
+}
+
+function domainPrimaryRawPick(domain: { rawPicks?: string[] }): string | null {
+  const picks = safeDomainRawPicks(domain);
+  return picks.length ? picks[0] : null;
+}
+
+function domainBasicRawPick(domain: { rawPicks?: string[] }): string | null {
+  const picks = safeDomainRawPicks(domain);
+  for (const materialId of picks) {
+    const mat = getMaterialOrThrow(materialId);
+    if (mat.kind === 'raw' && mat.tier === 'basic') return materialId;
+  }
+  return picks.length ? picks[0] : null;
+}
+
+function pickBestSpecialMaterial(targetTier: 'cheap' | 'basic' | 'expensive', sourceTags: string[], opts?: { requireLuxury?: boolean }): string | null {
+  const candidates = Object.values(MATERIALS_V1).filter((m) => {
+    if (m.kind !== 'special') return false;
+    if (m.tier !== targetTier) return false;
+    if (opts?.requireLuxury && !m.tags.includes('luxury')) return false;
+    return true;
+  });
+  if (!candidates.length) return null;
+  const scored = candidates.map((m) => {
+    const shared = m.tags.filter((t) => sourceTags.includes(t)).length;
+    return { material: m, score: shared };
+  });
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const bonus = (b.material.saleBonusGold ?? 0) - (a.material.saleBonusGold ?? 0);
+    if (bonus !== 0) return bonus;
+    return a.material.id.localeCompare(b.material.id);
+  });
+  return scored[0].material.id;
+}
+
+function defaultWorkshopOutputForInput(inputMaterialId: string): string {
+  const input = getMaterialOrThrow(inputMaterialId);
+  if (input.kind !== 'raw') return 'special.tools';
+  const targetTier = input.tier === 'basic' ? 'basic' : 'cheap';
+  const picked = pickBestSpecialMaterial(targetTier, input.tags);
+  if (picked) return picked;
+  return targetTier === 'basic' ? 'special.specialTools' : 'special.tools';
+}
+
+function refinementStepsForLocation(
+  player: PlayerState,
+  location: { kind: 'domain' | 'cityProperty'; id: string },
+): number {
+  const isRefineKey = (key: string) =>
+    key.startsWith('special.small.refine') ||
+    key.startsWith('special.medium.refine') ||
+    key.startsWith('special.large.refine');
+
+  if (location.kind === 'domain') {
+    const domain = player.holdings.domains.find((d) => d.id === location.id);
+    if (!domain) return 0;
+    const base = domain.facilities.filter((f) => isRefineKey(f.key)).length;
+    const spec = domain.specialization?.facilities?.filter((f) => isRefineKey(f.key)).length ?? 0;
+    return base + spec;
+  }
+  const city = player.holdings.cityProperties.find((c) => c.id === location.id);
+  if (!city) return 0;
+  const base = city.facilities.filter((f) => isRefineKey(f.key)).length;
+  const spec = city.specialization?.facilities?.filter((f) => isRefineKey(f.key)).length ?? 0;
+  return base + spec;
+}
+
+function refineSpecialMaterialId(materialId: string, steps: number): string {
+  let current = materialId;
+  let remaining = Math.max(0, Math.trunc(steps));
+  while (remaining > 0) {
+    const mat = getMaterialOrThrow(current);
+    if (mat.kind !== 'special') break;
+    if (mat.tier === 'cheap') {
+      const next = pickBestSpecialMaterial('basic', mat.tags);
+      if (!next) break;
+      current = next;
+    } else if (mat.tier === 'basic') {
+      const next = pickBestSpecialMaterial('expensive', mat.tags);
+      if (!next) break;
+      current = next;
+    } else if (mat.tier === 'expensive') {
+      if (mat.tags.includes('luxury')) break;
+      const next = pickBestSpecialMaterial('expensive', mat.tags, { requireLuxury: true });
+      if (!next) break;
+      current = next;
+    }
+    remaining -= 1;
+  }
+  return current;
 }
 
 function takeFromStock(
@@ -598,6 +745,7 @@ export function applyEvent(
                   id: event.domainId,
                   tier: event.tier,
                   facilities: [],
+                  rawPicks: normalizeRawPicks(event.rawPicks),
                   tenants: { levels: 0, loyalty: 5, inUnrest: false },
                 },
               ],
@@ -1012,6 +1160,8 @@ export function applyEvent(
                   id: event.workshopId,
                   tier: event.tier,
                   location: { ...event.location },
+                  inputMaterialId: event.inputMaterialId,
+                  outputMaterialId: event.outputMaterialId,
                   facilities: [],
                 },
               ],
@@ -1441,6 +1591,7 @@ export function applyEvent(
                 d.id === event.domainId
                   ? {
                       ...d,
+                      rawPicks: event.picks?.rawPicks ?? d.rawPicks,
                       specialization: {
                         kind: event.kind,
                         picks: event.picks,
@@ -2486,29 +2637,27 @@ export function decide(
               }
             }
 
-            const wood = Math.ceil(count / 2);
-            const food = count - wood;
-            producedRaw['raw.wood'] = (producedRaw['raw.wood'] ?? 0) + wood;
-            producedRaw['raw.grainVeg'] = (producedRaw['raw.grainVeg'] ?? 0) + food;
+            if (count > 0) {
+              const picks = safeDomainRawPicks(domain);
+              const distributed = distributeRawAcrossPicks(count, picks);
+              for (const [materialId, amount] of Object.entries(distributed)) {
+                producedRaw[materialId] = (producedRaw[materialId] ?? 0) + amount;
+              }
+            }
 
             // Event 11/40: Zusätzliche Ernte für Landwirtschaft (vereinfachte Abbildung als Getreide/Gemüse)
             if (spec === 'agriculture' && goodHarvestActive) {
-              producedRaw['raw.grainVeg'] = (producedRaw['raw.grainVeg'] ?? 0) + 8;
+              const primary = domainPrimaryRawPick(domain);
+              if (primary) producedRaw[primary] = (producedRaw[primary] ?? 0) + 8;
             }
             // Event 40: "+8 RM pro Runde ... (4 Runden)" → nicht in der Burst-Runde.
             if (spec === 'agriculture' && veryGoodYearActive && !veryGoodYearBurst) {
-              producedRaw['raw.grainVeg'] = (producedRaw['raw.grainVeg'] ?? 0) + 8;
+              const primary = domainPrimaryRawPick(domain);
+              if (primary) producedRaw[primary] = (producedRaw[primary] ?? 0) + 8;
             }
 
             // Pächterstufen (Domäne): +1 einfaches RM pro Stufe (gemäß Spezialisierung; derzeit grob gemappt).
-            const tenantRawId =
-              domain.specialization?.kind === 'forestry'
-                ? 'raw.wood'
-                : domain.specialization?.kind === 'mining'
-                  ? 'raw.ironSteel'
-                  : domain.specialization?.kind === 'animalHusbandry'
-                    ? 'raw.meat'
-                    : 'raw.grainVeg';
+            const tenantRawId = domainBasicRawPick(domain) ?? 'raw.grainVeg';
             const tenantRaw = Math.max(0, Math.trunc(domain.tenants.levels));
             if (tenantRaw) producedRaw[tenantRawId] = (producedRaw[tenantRawId] ?? 0) + tenantRaw;
           }
@@ -2968,32 +3117,34 @@ export function decide(
           const specialTotalBefore = sumStock(specialBefore);
           if (rawTotalBefore === 0 && specialTotalBefore === 0) continue;
 
-          // Workshop conversion: consume up to capacity, produce Sondermaterial (default: Werkzeug).
-          let rawToConsume = 0;
-          let specialProduced = 0;
-          let remainingRawCount = rawTotalBefore;
-          for (const wId of player.turn.upkeep.maintainedWorkshopIds) {
-            const w = player.holdings.workshops.find((x) => x.id === wId);
-            if (!w) continue;
+          // Workshop conversion: consume up to capacity for each workshop's input, produce configured Sondermaterial.
+          const rawConsumedByType: MaterialStock = {};
+          let rawAfterWorkshop: MaterialStock = { ...rawBefore };
+          const specialProducedByType: MaterialStock = {};
+
+          const workshops = player.turn.upkeep.maintainedWorkshopIds
+            .map((id) => player.holdings.workshops.find((x) => x.id === id))
+            .filter((w): w is NonNullable<typeof w> => Boolean(w))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+          for (const w of workshops) {
+            const inputId = w.inputMaterialId ?? DEFAULT_DOMAIN_RAW_PICKS[0];
+            const outputBaseId = w.outputMaterialId ?? defaultWorkshopOutputForInput(inputId);
+            const available = rawAfterWorkshop[inputId] ?? 0;
+            if (available <= 0) continue;
             const cap = workshopCapacity(w.tier);
-            const rawForWorkshop = Math.min(remainingRawCount, cap.rawIn);
+            const rawForWorkshop = Math.min(available, cap.rawIn);
             const sm = Math.min(Math.floor(rawForWorkshop / 4), cap.specialOutMax);
             const consumed = sm * 4;
-            rawToConsume += consumed;
-            specialProduced += sm;
-            remainingRawCount -= consumed;
-          }
+            if (consumed <= 0) continue;
+            rawAfterWorkshop[inputId] = available - consumed;
+            if (rawAfterWorkshop[inputId] <= 0) delete rawAfterWorkshop[inputId];
+            rawConsumedByType[inputId] = (rawConsumedByType[inputId] ?? 0) + consumed;
 
-          const consumeOrder = (ids: string[]) =>
-            ids.sort((a, b) => {
-              const ma = getMaterialOrThrow(a);
-              const mb = getMaterialOrThrow(b);
-              const tier = materialTierRank(ma.tier) - materialTierRank(mb.tier);
-              if (tier) return tier;
-              const bonus = ma.saleBonusGold - mb.saleBonusGold;
-              if (bonus) return bonus;
-              return a.localeCompare(b);
-            });
+            const steps = refinementStepsForLocation(player, w.location);
+            const outputId = refineSpecialMaterialId(outputBaseId, steps);
+            specialProducedByType[outputId] = (specialProducedByType[outputId] ?? 0) + sm;
+          }
 
           const storeOrder = (ids: string[]) =>
             ids.sort((a, b) => {
@@ -3006,11 +3157,6 @@ export function decide(
               return a.localeCompare(b);
             });
 
-          const { taken: rawConsumedByType, remaining: rawAfterWorkshop } = takeFromStock(rawBefore, rawToConsume, consumeOrder);
-
-          const specialProducedByType: MaterialStock = specialProduced
-            ? { 'special.tools': specialProduced }
-            : {};
           const specialAfterWorkshop = addStock(specialBefore, specialProducedByType);
 
           // Storage: store up to capacity (typed).
@@ -3779,24 +3925,18 @@ export function decide(
       if (perInvRaw) {
         const totalRaw = investments * perInvRaw;
         const domain = pickDomainOrThrow();
-        const spec = domain.specialization?.kind;
-        if (spec === 'agriculture') {
-          rawGained['raw.grainVeg'] = (rawGained['raw.grainVeg'] ?? 0) + totalRaw;
-        } else if (spec === 'forestry') {
-          rawGained['raw.wood'] = (rawGained['raw.wood'] ?? 0) + totalRaw;
-        } else if (spec === 'mining') {
-          rawGained['raw.ironSteel'] = (rawGained['raw.ironSteel'] ?? 0) + totalRaw;
-        } else if (spec === 'animalHusbandry') {
-          rawGained['raw.meat'] = (rawGained['raw.meat'] ?? 0) + totalRaw;
-        } else {
-          const wood = Math.ceil(totalRaw / 2);
-          const food = totalRaw - wood;
-          rawGained['raw.wood'] = (rawGained['raw.wood'] ?? 0) + wood;
-          rawGained['raw.grainVeg'] = (rawGained['raw.grainVeg'] ?? 0) + food;
+        const picks = safeDomainRawPicks(domain);
+        const distributed = distributeRawAcrossPicks(totalRaw, picks);
+        for (const [materialId, amount] of Object.entries(distributed)) {
+          rawGained[materialId] = (rawGained[materialId] ?? 0) + amount;
         }
       }
       if (perInvSpecial) {
-        specialGained['special.tools'] = (specialGained['special.tools'] ?? 0) + Math.floor(investments * perInvSpecial);
+        const workshop = pickWorkshopOrThrow();
+        const steps = refinementStepsForLocation(player, workshop.location);
+        const outputId = refineSpecialMaterialId(workshop.outputMaterialId, steps);
+        specialGained[outputId] =
+          (specialGained[outputId] ?? 0) + Math.floor(investments * perInvSpecial);
       }
 
       return [
@@ -3841,6 +3981,7 @@ export function decide(
       const costMultiplier = tierResult === 'veryGood' ? 0.75 : tierResult === 'good' ? 0.9 : tierResult === 'poor' ? 1.1 : 1;
       const domainId = generateId('domain', player.holdings.domains);
       const goldSpent = tierResult === 'fail' ? 0 : Math.ceil(baseCost * costMultiplier);
+      const rawPicks = normalizeRawPicks(command.rawPicks);
       if (tierResult !== 'fail' && player.economy.gold < goldSpent) throw new GameRuleError('FUNDS', 'Nicht genug Gold.');
       return [
         {
@@ -3849,6 +3990,7 @@ export function decide(
           playerId,
           domainId,
           tier,
+          rawPicks,
           dc,
           roll,
           rollModifier: mod,
@@ -4392,6 +4534,27 @@ export function decide(
       if (player.economy.gold < goldSpent) throw new GameRuleError('FUNDS', 'Nicht genug Gold.');
       const workshopId = generateId('workshop', player.holdings.workshops);
 
+      const fallbackInput =
+        location.kind === 'domain'
+          ? domainPrimaryRawPick(player.holdings.domains.find((d) => d.id === location.id) ?? {})
+          : domainPrimaryRawPick(player.holdings.domains[0] ?? {});
+      const inputMaterialId = command.inputMaterialId ?? fallbackInput ?? DEFAULT_DOMAIN_RAW_PICKS[0];
+      const inputMat = getMaterialOrThrow(inputMaterialId);
+      if (inputMat.kind !== 'raw') throw new GameRuleError('INPUT', 'inputMaterialId muss ein Rohmaterial sein.');
+      if (inputMat.tier !== 'cheap' && inputMat.tier !== 'basic') {
+        throw new GameRuleError('INPUT', 'inputMaterialId muss billig oder einfach sein.');
+      }
+
+      const outputMaterialId = command.outputMaterialId ?? defaultWorkshopOutputForInput(inputMaterialId);
+      const outputMat = getMaterialOrThrow(outputMaterialId);
+      if (outputMat.kind !== 'special') throw new GameRuleError('INPUT', 'outputMaterialId muss ein Sondermaterial sein.');
+      if (outputMat.tier !== 'cheap' && outputMat.tier !== 'basic') {
+        throw new GameRuleError('INPUT', 'outputMaterialId muss billig oder einfach sein.');
+      }
+      if (materialTierRank(outputMat.tier) > materialTierRank(inputMat.tier)) {
+        throw new GameRuleError('INPUT', 'outputMaterialId darf nicht hoeher als inputMaterialId sein.');
+      }
+
       return [
         {
           type: 'PlayerWorkshopBuilt',
@@ -4400,6 +4563,8 @@ export function decide(
           workshopId,
           location,
           tier: command.tier,
+          inputMaterialId,
+          outputMaterialId,
           goldSpent,
           usedFreeFacilityBuild: usedFree,
         },
@@ -4703,6 +4868,7 @@ export function decide(
 
       let goldSpent = 0;
       let rawSpent: MaterialStock = {};
+      let nextRawPicks: string[] | undefined;
 
       if (command.kind === 'agriculture') {
         goldSpent = 10;
@@ -4710,6 +4876,7 @@ export function decide(
         const mat = getMaterialOrThrow(preferred);
         if (mat.kind !== 'raw') throw new GameRuleError('INPUT', 'costRawId muss ein Rohmaterial sein.');
         rawSpent = { [preferred]: 2 };
+        nextRawPicks = normalizeRawPicks(command.picks?.rawPicks, { requireCheapBasic: true });
       } else if (command.kind === 'animalHusbandry') {
         goldSpent = 15;
         const animalIds = Object.keys(player.economy.inventory.raw).filter((id) => {
@@ -4732,13 +4899,16 @@ export function decide(
         const { taken } = takeFromStock(animalStock, 4, order);
         if (sumStock(taken) < 4) throw new GameRuleError('RESOURCES', 'Nicht genug Tiere (RM mit Tag "animal").');
         rawSpent = taken;
+        if (command.picks?.rawPicks) nextRawPicks = normalizeRawPicks(command.picks.rawPicks);
       } else if (command.kind === 'forestry') {
         goldSpent = 6;
         rawSpent = {};
+        if (command.picks?.rawPicks) nextRawPicks = normalizeRawPicks(command.picks.rawPicks);
       } else if (command.kind === 'mining') {
         // Minimal-Interpretation (Steinbruch): 20 Gold, 4 RM Bauholz.
         goldSpent = 20;
         rawSpent = { 'raw.wood': 4 };
+        if (command.picks?.rawPicks) nextRawPicks = normalizeRawPicks(command.picks.rawPicks);
       }
 
       if (player.economy.gold < goldSpent) throw new GameRuleError('FUNDS', 'Nicht genug Gold.');
@@ -4754,7 +4924,7 @@ export function decide(
           playerId,
           domainId: command.domainId,
           kind: command.kind,
-          picks: command.picks,
+          picks: nextRawPicks ? { ...command.picks, rawPicks: nextRawPicks } : command.picks,
           goldSpent,
           rawSpent,
           usedFreeFacilityBuild: usedFree,

@@ -976,23 +976,16 @@ function formatMarkdown(report: LlmPlayReport): string {
     Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
   const fmtTotals = (
     totals: LedgerTotals,
-    limit = 6,
-    multiline = false
+    limit = 6
   ) => {
     const entries = Object.entries(totals.byType)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, limit)
       .map(([key, value]) => `${key}=${fmt(value)}`);
-    const detail =
-      entries.length > 0
-        ? ` [${entries.join(multiline ? '<br>' : ', ')}]`
-        : '';
+    const detail = entries.length > 0 ? ` [${entries.join(', ')}]` : '';
     return `${fmt(totals.total)}${detail}`;
   };
-  const fmtTotalsCell = (totals: LedgerTotals, limit = 4) =>
-    fmtTotals(totals, limit, true);
-  const joinLines = (items: string[]) =>
-    items.filter((item) => item.trim().length > 0).join('<br>');
+  const fmtTotalsValue = (totals: LedgerTotals) => `${fmt(totals.total)}`;
   const escapeCell = (value: string) => value.replace(/\|/g, '\\|');
   const pushTable = (headers: string[], rows: string[][]) => {
     lines.push(`| ${headers.map(escapeCell).join(' | ')} |`);
@@ -1045,62 +1038,58 @@ function formatMarkdown(report: LlmPlayReport): string {
   }
   lines.push('');
 
-  lines.push('## Gesamt-Oekonomie');
+  lines.push('## Gesamt-Oekonomie (Totals)');
   {
     const rows = report.final.byPlayer.map((p) => [
       p.displayName,
-      fmtTotalsCell(p.ledger.goldGained),
-      fmtTotalsCell(p.ledger.goldSpent),
-      fmtTotalsCell(p.ledger.influenceGained),
-      fmtTotalsCell(p.ledger.influenceSpent),
-      fmtTotalsCell(p.ledger.laborSpent),
+      fmtTotalsValue(p.ledger.goldGained),
+      fmtTotalsValue(p.ledger.goldSpent),
+      fmtTotalsValue(p.ledger.influenceGained),
+      fmtTotalsValue(p.ledger.influenceSpent),
+      fmtTotalsValue(p.ledger.laborSpent),
     ]);
     pushTable(
-      [
-        'Strategie',
-        'Gold +',
-        'Gold -',
-        'Einfluss +',
-        'Einfluss -',
-        'AK -',
-      ],
+      ['Strategie', 'Gold +', 'Gold -', 'Einfluss +', 'Einfluss -', 'AK -'],
       rows
     );
   }
   lines.push('');
 
-  lines.push('## Materialfluss (Gesamt)');
+  lines.push('## Rohmaterial (Totals)');
   {
     const rows = report.final.byPlayer.map((p) => {
       const m = p.ledger.materials;
       return [
         p.displayName,
-        fmtTotalsCell(m.rawGained),
-        fmtTotalsCell(m.rawSold),
-        fmtTotalsCell(m.rawConvertedToGold),
-        fmtTotalsCell(m.rawStored),
-        fmtTotalsCell(m.rawLost),
-        fmtTotalsCell(m.specialGained),
-        fmtTotalsCell(m.specialSold),
-        fmtTotalsCell(m.specialConvertedToGold),
-        fmtTotalsCell(m.specialStored),
-        fmtTotalsCell(m.specialLost),
+        fmtTotalsValue(m.rawGained),
+        fmtTotalsValue(m.rawSold),
+        fmtTotalsValue(m.rawConvertedToGold),
+        fmtTotalsValue(m.rawStored),
+        fmtTotalsValue(m.rawLost),
       ];
     });
     pushTable(
-      [
-        'Strategie',
-        'RM +',
-        'RM sold',
-        'RM auto',
-        'RM stored',
-        'RM lost',
-        'SM +',
-        'SM sold',
-        'SM auto',
-        'SM stored',
-        'SM lost',
-      ],
+      ['Strategie', 'RM +', 'RM sold', 'RM auto', 'RM stored', 'RM lost'],
+      rows
+    );
+  }
+  lines.push('');
+
+  lines.push('## Sondermaterial (Totals)');
+  {
+    const rows = report.final.byPlayer.map((p) => {
+      const m = p.ledger.materials;
+      return [
+        p.displayName,
+        fmtTotalsValue(m.specialGained),
+        fmtTotalsValue(m.specialSold),
+        fmtTotalsValue(m.specialConvertedToGold),
+        fmtTotalsValue(m.specialStored),
+        fmtTotalsValue(m.specialLost),
+      ];
+    });
+    pushTable(
+      ['Strategie', 'SM +', 'SM sold', 'SM auto', 'SM stored', 'SM lost'],
       rows
     );
   }
@@ -1140,65 +1129,49 @@ function formatMarkdown(report: LlmPlayReport): string {
     lines.push(`### ${p.displayName}`);
     if (strategyTitle) lines.push(`Strategie: ${strategyTitle}`);
     lines.push('');
-    pushTable(
-      [
-        'Runde',
-        'Facility',
-        'Aktionen',
-        'State',
-        'Gold +',
-        'Gold -',
-        'Einfluss +',
-        'Einfluss -',
-        'AK -',
-        'RM Fluss',
-        'SM Fluss',
-      ],
-      (roundsByPlayerId.get(p.playerId) ?? []).map((r) => {
-        const actions = r.actions.length > 0 ? joinLines(r.actions) : '-';
-        const facility = r.facility ?? '-';
-        const stateCell = joinLines([
-          `Gold ${r.start.gold}->${r.end.gold} (pending ${r.start.pendingGold}->${r.end.pendingGold})`,
-          `RM ${r.start.rawTotal}->${r.end.rawTotal}`,
-          `SM ${r.start.specialTotal}->${r.end.specialTotal}`,
-          `Inf ${r.start.influence}->${r.end.influence}`,
-          `AK ${r.start.labor}->${r.end.labor}`,
-        ]);
-        const m = r.ledger.materials;
-        const rmFlow = joinLines([
-          `+${fmtTotalsCell(m.rawGained)}`,
-          `spent=${fmtTotalsCell(m.rawSpent)}`,
-          `sold=${fmtTotalsCell(m.rawSold)}`,
-          `wk=${fmtTotalsCell(m.rawConsumedByWorkshop)}`,
-          `auto=${fmtTotalsCell(m.rawConvertedToGold)}`,
-          `stored=${fmtTotalsCell(m.rawStored)}`,
-          `lost=${fmtTotalsCell(m.rawLost)}`,
-        ]);
-        const smFlow = joinLines([
-          `+${fmtTotalsCell(m.specialGained)}`,
-          `spent=${fmtTotalsCell(m.specialSpent)}`,
-          `prod=${fmtTotalsCell(m.specialProducedByWorkshop)}`,
-          `sold=${fmtTotalsCell(m.specialSold)}`,
-          `auto=${fmtTotalsCell(m.specialConvertedToGold)}`,
-          `stored=${fmtTotalsCell(m.specialStored)}`,
-          `lost=${fmtTotalsCell(m.specialLost)}`,
-        ]);
-        return [
-          `${r.round}`,
-          facility,
-          actions,
-          stateCell,
-          fmtTotalsCell(r.ledger.goldGained),
-          fmtTotalsCell(r.ledger.goldSpent),
-          fmtTotalsCell(r.ledger.influenceGained),
-          fmtTotalsCell(r.ledger.influenceSpent),
-          fmtTotalsCell(r.ledger.laborSpent),
-          rmFlow,
-          smFlow,
-        ];
-      })
-    );
-    lines.push('');
+    for (const r of roundsByPlayerId.get(p.playerId) ?? []) {
+      const m = r.ledger.materials;
+      const actions = r.actions.length > 0 ? r.actions.join(', ') : 'keine';
+      const facility = r.facility ?? 'keine';
+      lines.push(`#### Runde ${r.round}`);
+      lines.push(`- Facility: ${facility}`);
+      lines.push(`- Aktionen: ${actions}`);
+      lines.push(
+        `- State: Gold ${r.start.gold}->${r.end.gold} (pending ${r.start.pendingGold}->${r.end.pendingGold}), RM ${r.start.rawTotal}->${r.end.rawTotal}, SM ${r.start.specialTotal}->${r.end.specialTotal}, Inf ${r.start.influence}->${r.end.influence}, AK ${r.start.labor}->${r.end.labor}`
+      );
+      lines.push(
+        `- Gold: +${fmtTotals(r.ledger.goldGained)} / -${fmtTotals(
+          r.ledger.goldSpent
+        )}`
+      );
+      lines.push(
+        `- Einfluss: +${fmtTotals(r.ledger.influenceGained)} / -${fmtTotals(
+          r.ledger.influenceSpent
+        )}`
+      );
+      lines.push(`- AK: -${fmtTotals(r.ledger.laborSpent)}`);
+      lines.push(
+        `- RM: +${fmtTotals(m.rawGained)} | spent=${fmtTotals(
+          m.rawSpent
+        )} | sold=${fmtTotals(m.rawSold)} | wk=${fmtTotals(
+          m.rawConsumedByWorkshop
+        )} | auto=${fmtTotals(m.rawConvertedToGold)} | stored=${fmtTotals(
+          m.rawStored
+        )} | lost=${fmtTotals(m.rawLost)}`
+      );
+      lines.push(
+        `- SM: +${fmtTotals(m.specialGained)} | spent=${fmtTotals(
+          m.specialSpent
+        )} | prod=${fmtTotals(
+          m.specialProducedByWorkshop
+        )} | sold=${fmtTotals(m.specialSold)} | auto=${fmtTotals(
+          m.specialConvertedToGold
+        )} | stored=${fmtTotals(m.specialStored)} | lost=${fmtTotals(
+          m.specialLost
+        )}`
+      );
+      lines.push('');
+    }
   }
   return lines.join('\n');
 }

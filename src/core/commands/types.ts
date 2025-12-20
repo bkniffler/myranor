@@ -2,6 +2,7 @@ import type {
   CityPropertyMode,
   CityPropertyTier,
   DomainSpecializationKind,
+  DomainSpecializationPicks,
   DomainTier,
   MaterialKind,
   OfficeYieldMode,
@@ -77,6 +78,7 @@ export type AcquireDomainCommand = {
   type: 'AcquireDomain';
   campaignId: string;
   tier: Exclude<DomainTier, 'starter'>;
+  rawPicks?: string[];
 };
 
 export type AcquireCityPropertyCommand = {
@@ -157,6 +159,8 @@ export type BuildWorkshopCommand = {
   campaignId: string;
   location: { kind: 'domain' | 'cityProperty'; id: string };
   tier: WorkshopTier;
+  inputMaterialId?: string;
+  outputMaterialId?: string;
 };
 
 export type UpgradeWorkshopCommand = {
@@ -185,7 +189,7 @@ export type SetDomainSpecializationCommand = {
   campaignId: string;
   domainId: string;
   kind: DomainSpecializationKind;
-  picks?: Record<string, string>;
+  picks?: DomainSpecializationPicks;
 };
 
 export type UpgradeStarterDomainCommand = {

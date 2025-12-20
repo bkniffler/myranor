@@ -35,8 +35,9 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Gold: 4
 - Holdings:
   - 1 Starter-Domaene (tier=starter)
+  - Starter-Domaene hat RM-Picks: raw.grainVeg, raw.fruit, raw.meat, raw.pigsSheep
   - 1 Stadtbesitz (tier=small, mode=leased)
-  - 1 Werkstatt (tier=small) auf Starter-Domaene
+  - 1 Werkstatt (tier=small) auf Starter-Domaene (input=raw.grainVeg, output=special.pulpellen)
   - Permanenter Einfluss: 0, Permanente Arbeitskraft: 2
   - Keine Lager, Orgs, Aemter, Handelsunternehmungen, Truppen, Fachkraefte
 - Inventar (RM/SM/Zauberkraft) leer
@@ -44,7 +45,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 ## Ertraege und Unterhalt (Kurzuebersicht)
 - **Domaenen**
   - AK/Runde: starter/small=2, medium=4, large=8
-  - RM/Runde: starter=8, small=12, medium=20, large=36
+  - RM/Runde: starter=8, small=12, medium=20, large=36 (auf 4 RM-Picks verteilt)
   - Gold-Unterhalt: starter=0, small=2, medium=4, large=8
 - **Stadtbesitz (leased)**
   - AK/Runde: small=1, medium=2, large=4
@@ -60,6 +61,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
     - small: 8 RM -> max 2 SM
     - medium: 12 RM -> max 3 SM
     - large: 20 RM -> max 5 SM
+  - Jede Werkstatt hat inputMaterialId/outputMaterialId (billig oder einfach)
 - **Lager**
   - Kapazitaet (mit storageCapacityMultiplier=2):
     - small: 20 RM / 10 SM
@@ -67,12 +69,13 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
     - large: 80 RM / 40 SM
 
 ## Material-Conversion (Conversion-Phase)
-1. Werkstaetten wandeln RM -> SM um (Kapazitaeten oben).
-2. Lager speichern RM/SM bis Kapazitaet.
-3. Rest wird **auto-konvertiert**:
-   - RM: Standard 4:1 zu Gold (Ereignisse koennen Divisor aendern)
-   - SM: 1:2 zu Gold
-4. Nicht konvertierte RM werden verworfen.
+1. Werkstaetten wandeln **ihr inputMaterial** RM -> output SM um (Kapazitaeten oben).
+2. Veredelungs-Einrichtungen am Standort werten output SM pro Stufe um 1 Kategorie auf.
+3. Lager speichern RM/SM bis Kapazitaet.
+4. Rest wird **auto-konvertiert**:
+  - RM: Standard 4:1 zu Gold (Ereignisse koennen Divisor aendern)
+  - SM: 1:2 zu Gold
+5. Nicht konvertierte RM werden verworfen.
 
 ## Erfolgswuerfe (allgemein)
 - W20 + Check (influence/money/materials)
@@ -102,6 +105,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - **Einrichtungen**
   - Werkstatt/Lager bauen oder upgraden
   - Allgemeine/Spezielle Einrichtungen an Posten
+  - Veredelung: `special.small.refine` (je Stufe +1 Kategorie fuer Werkstatt-Output am Standort)
   - Starter-Domaene ausbauen
   - Domaenen-Spezialisierung
 

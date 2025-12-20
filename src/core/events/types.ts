@@ -6,6 +6,7 @@ import type {
   CityPropertyMode,
   CityPropertyTier,
   DomainSpecializationKind,
+  DomainSpecializationPicks,
   DomainTier,
   GlobalEventState,
   MarketInstanceState,
@@ -283,6 +284,7 @@ export type PlayerDomainAcquiredEvent = {
   playerId: PlayerId;
   domainId: string;
   tier: Exclude<DomainTier, 'starter'>;
+  rawPicks?: string[];
   dc: number;
   roll: DiceRoll;
   rollModifier: number;
@@ -428,6 +430,8 @@ export type PlayerWorkshopBuiltEvent = {
   workshopId: string;
   location: { kind: 'domain' | 'cityProperty'; id: string };
   tier: WorkshopTier;
+  inputMaterialId: string;
+  outputMaterialId: string;
   goldSpent: number;
   usedFreeFacilityBuild: boolean;
 };
@@ -539,7 +543,7 @@ export type PlayerDomainSpecializationSetEvent = {
   playerId: PlayerId;
   domainId: string;
   kind: DomainSpecializationKind;
-  picks?: Record<string, string>;
+  picks?: DomainSpecializationPicks;
   goldSpent: number;
   rawSpent: MaterialStock;
   usedFreeFacilityBuild: boolean;

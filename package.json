@@ -2,6 +2,9 @@
   "name": "myranor-game",
   "version": "0.1.0",
   "description": "Myranor Aufbausystem Engine + API",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun run lint && bun run test",
