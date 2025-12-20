@@ -82,9 +82,14 @@ function domainTierRank(tier: 'starter' | 'small' | 'medium' | 'large'): number 
 }
 
 const COST_BUFFER = 1.1;
+const ROLL_COST_MULTIPLIER_WORST = 1.1;
 
 function buffered(cost: number, bufferFactor: number): number {
   return Math.ceil(cost * bufferFactor);
+}
+
+function worstCaseCost(cost: number, bufferFactor: number): number {
+  return Math.ceil(cost * Math.max(ROLL_COST_MULTIPLIER_WORST, bufferFactor));
 }
 
 function bufferFactorForStrategy(
@@ -193,21 +198,21 @@ function pickTempInfluenceForOffice(params: {
   const currentInfluence = me.turn.influenceAvailable;
 
   for (const req of requirements) {
-    const neededInfluence = buffered(req.influence, bufferFactor);
+    const neededInfluence = worstCaseCost(req.influence, bufferFactor);
     const shortfall = neededInfluence - currentInfluence;
     if (shortfall <= 0) continue;
 
     for (const temp of tempCandidates) {
       const minGain = Math.max(1, temp.investments * 2);
       const goldAfterTemp = me.economy.gold - temp.investments;
-      if (goldAfterTemp < buffered(req.gold, bufferFactor)) continue;
+      if (goldAfterTemp < worstCaseCost(req.gold, bufferFactor)) continue;
       if (minGain >= shortfall) return temp.candidate;
     }
 
     for (const temp of tempCandidates) {
       const expectedGain = temp.investments * 4;
       const goldAfterTemp = me.economy.gold - temp.investments;
-      if (goldAfterTemp < buffered(req.gold, bufferFactor)) continue;
+      if (goldAfterTemp < worstCaseCost(req.gold, bufferFactor)) continue;
       if (expectedGain >= shortfall) return temp.candidate;
     }
   }
@@ -1122,9 +1127,11 @@ function buildActionCandidates(options: {
   // Amt (klein)
   {
     const goldFirst = { gold: 8, influence: 2 };
+    const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
+    const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
     const goldFirstNow =
-      me.economy.gold >= buffered(goldFirst.gold, bufferFactor) &&
-      me.turn.influenceAvailable >= buffered(goldFirst.influence, bufferFactor);
+      me.economy.gold >= goldMax &&
+      me.turn.influenceAvailable >= influenceMax;
     candidates.push({
       id: 'action.office.small.payGoldFirst',
       kind: 'action',
@@ -1136,14 +1143,16 @@ function buildActionCandidates(options: {
       },
       actionKey: 'acquire.office',
       possibleNow: goldFirstNow,
-      summary: `Kleines Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+      summary: `Kleines Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
     });
   }
   {
     const infFirst = { gold: 4, influence: 8 };
+    const goldMax = worstCaseCost(infFirst.gold, bufferFactor);
+    const influenceMax = worstCaseCost(infFirst.influence, bufferFactor);
     const infFirstNow =
-      me.economy.gold >= buffered(infFirst.gold, bufferFactor) &&
-      me.turn.influenceAvailable >= buffered(infFirst.influence, bufferFactor);
+      me.economy.gold >= goldMax &&
+      me.turn.influenceAvailable >= influenceMax;
     candidates.push({
       id: 'action.office.small.payInfluenceFirst',
       kind: 'action',
@@ -1155,7 +1164,7 @@ function buildActionCandidates(options: {
       },
       actionKey: 'acquire.office',
       possibleNow: infFirstNow,
-      summary: `Kleines Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+      summary: `Kleines Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
     });
   }
 
@@ -1166,9 +1175,11 @@ function buildActionCandidates(options: {
     ).length;
     if (smallCount >= 2) {
       const goldFirst = { gold: 18, influence: 8 };
+      const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
+      const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
       const goldFirstNow =
-        me.economy.gold >= buffered(goldFirst.gold, bufferFactor) &&
-        me.turn.influenceAvailable >= buffered(goldFirst.influence, bufferFactor);
+        me.economy.gold >= goldMax &&
+        me.turn.influenceAvailable >= influenceMax;
       candidates.push({
         id: 'action.office.medium.payGoldFirst',
         kind: 'action',
@@ -1180,12 +1191,14 @@ function buildActionCandidates(options: {
         },
         actionKey: 'acquire.office',
         possibleNow: goldFirstNow,
-        summary: `Mittleres Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+        summary: `Mittleres Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
       });
       const infFirst = { gold: 10, influence: 18 };
+      const goldMaxB = worstCaseCost(infFirst.gold, bufferFactor);
+      const influenceMaxB = worstCaseCost(infFirst.influence, bufferFactor);
       const infFirstNow =
-        me.economy.gold >= buffered(infFirst.gold, bufferFactor) &&
-        me.turn.influenceAvailable >= buffered(infFirst.influence, bufferFactor);
+        me.economy.gold >= goldMaxB &&
+        me.turn.influenceAvailable >= influenceMaxB;
       candidates.push({
         id: 'action.office.medium.payInfluenceFirst',
         kind: 'action',
@@ -1197,7 +1210,7 @@ function buildActionCandidates(options: {
         },
         actionKey: 'acquire.office',
         possibleNow: infFirstNow,
-        summary: `Mittleres Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+        summary: `Mittleres Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; Max: ${goldMaxB} Gold, ${influenceMaxB} Einfluss).`,
       });
     }
   }
@@ -1209,9 +1222,11 @@ function buildActionCandidates(options: {
     ).length;
     if (mediumCount >= 2) {
       const goldFirst = { gold: 70, influence: 20 };
+      const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
+      const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
       const goldFirstNow =
-        me.economy.gold >= buffered(goldFirst.gold, bufferFactor) &&
-        me.turn.influenceAvailable >= buffered(goldFirst.influence, bufferFactor);
+        me.economy.gold >= goldMax &&
+        me.turn.influenceAvailable >= influenceMax;
       candidates.push({
         id: 'action.office.large.payGoldFirst',
         kind: 'action',
@@ -1223,12 +1238,14 @@ function buildActionCandidates(options: {
         },
         actionKey: 'acquire.office',
         possibleNow: goldFirstNow,
-        summary: `Grosses Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+        summary: `Grosses Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
       });
       const infFirst = { gold: 24, influence: 70 };
+      const goldMaxB = worstCaseCost(infFirst.gold, bufferFactor);
+      const influenceMaxB = worstCaseCost(infFirst.influence, bufferFactor);
       const infFirstNow =
-        me.economy.gold >= buffered(infFirst.gold, bufferFactor) &&
-        me.turn.influenceAvailable >= buffered(infFirst.influence, bufferFactor);
+        me.economy.gold >= goldMaxB &&
+        me.turn.influenceAvailable >= influenceMaxB;
       candidates.push({
         id: 'action.office.large.payInfluenceFirst',
         kind: 'action',
@@ -1240,21 +1257,23 @@ function buildActionCandidates(options: {
         },
         actionKey: 'acquire.office',
         possibleNow: infFirstNow,
-        summary: `Grosses Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; +10% Puffer empfohlen).`,
+        summary: `Grosses Amt erlangen (Basis: ${infFirst.gold} Gold, ${infFirst.influence} Einfluss; Max: ${goldMaxB} Gold, ${influenceMaxB} Einfluss).`,
       });
     }
   }
 
   // Handelsunternehmung (klein)
+  const tradeSmallMax = worstCaseCost(20, bufferFactor);
   candidates.push({
     id: 'action.tradeEnterprise.small',
     kind: 'action',
     command: { type: 'AcquireTradeEnterprise', campaignId: '', tier: 'small' },
     actionKey: 'acquire.trade',
-    possibleNow: me.economy.gold >= buffered(20, bufferFactor),
+    possibleNow: me.economy.gold >= tradeSmallMax,
     summary:
-      'Handelsunternehmung (klein) erwerben (Basis: 20 Gold; +10% Puffer empfohlen).',
+      `Handelsunternehmung (klein) erwerben (Basis: 20 Gold; Max: ${tradeSmallMax} Gold).`,
   });
+  const tradeMediumMax = worstCaseCost(40, bufferFactor);
   candidates.push({
     id: 'action.tradeEnterprise.medium',
     kind: 'action',
@@ -1264,74 +1283,81 @@ function buildActionCandidates(options: {
       tier: 'medium',
     },
     actionKey: 'acquire.trade',
-    possibleNow: me.economy.gold >= buffered(40, bufferFactor),
+    possibleNow: me.economy.gold >= tradeMediumMax,
     summary:
-      'Handelsunternehmung (mittel) erwerben (Basis: 40 Gold; +10% Puffer empfohlen).',
+      `Handelsunternehmung (mittel) erwerben (Basis: 40 Gold; Max: ${tradeMediumMax} Gold).`,
   });
+  const tradeLargeMax = worstCaseCost(80, bufferFactor);
   candidates.push({
     id: 'action.tradeEnterprise.large',
     kind: 'action',
     command: { type: 'AcquireTradeEnterprise', campaignId: '', tier: 'large' },
     actionKey: 'acquire.trade',
-    possibleNow: me.economy.gold >= buffered(80, bufferFactor),
+    possibleNow: me.economy.gold >= tradeLargeMax,
     summary:
-      'Handelsunternehmung (gross) erwerben (Basis: 80 Gold; +10% Puffer empfohlen).',
+      `Handelsunternehmung (gross) erwerben (Basis: 80 Gold; Max: ${tradeLargeMax} Gold).`,
   });
 
   // Stadtbesitz (alle Stufen)
+  const citySmallMax = worstCaseCost(15, bufferFactor);
   candidates.push({
     id: 'action.cityProperty.small',
     kind: 'action',
     command: { type: 'AcquireCityProperty', campaignId: '', tier: 'small' },
     actionKey: 'acquire.cityProperty',
-    possibleNow: me.economy.gold >= buffered(15, bufferFactor),
+    possibleNow: me.economy.gold >= citySmallMax,
     summary:
-      'Stadtbesitz (klein) erwerben (Basis: 15 Gold; +10% Puffer empfohlen).',
+      `Stadtbesitz (klein) erwerben (Basis: 15 Gold; Max: ${citySmallMax} Gold).`,
   });
+  const cityMediumMax = worstCaseCost(25, bufferFactor);
   candidates.push({
     id: 'action.cityProperty.medium',
     kind: 'action',
     command: { type: 'AcquireCityProperty', campaignId: '', tier: 'medium' },
     actionKey: 'acquire.cityProperty',
-    possibleNow: me.economy.gold >= buffered(25, bufferFactor),
-    summary: 'Stadtbesitz (mittel) erwerben (Basis: 25 Gold; +10% Puffer empfohlen).',
+    possibleNow: me.economy.gold >= cityMediumMax,
+    summary: `Stadtbesitz (mittel) erwerben (Basis: 25 Gold; Max: ${cityMediumMax} Gold).`,
   });
+  const cityLargeMax = worstCaseCost(50, bufferFactor);
   candidates.push({
     id: 'action.cityProperty.large',
     kind: 'action',
     command: { type: 'AcquireCityProperty', campaignId: '', tier: 'large' },
     actionKey: 'acquire.cityProperty',
-    possibleNow: me.economy.gold >= buffered(50, bufferFactor),
+    possibleNow: me.economy.gold >= cityLargeMax,
     summary:
-      'Stadtbesitz (gross) erwerben (Basis: 50 Gold; +10% Puffer empfohlen).',
+      `Stadtbesitz (gross) erwerben (Basis: 50 Gold; Max: ${cityLargeMax} Gold).`,
   });
 
   // Domäne (alle Stufen)
+  const domainSmallMax = worstCaseCost(35, bufferFactor);
   candidates.push({
     id: 'action.domain.small',
     kind: 'action',
     command: { type: 'AcquireDomain', campaignId: '', tier: 'small' },
     actionKey: 'acquire.domain',
-    possibleNow: me.economy.gold >= buffered(35, bufferFactor),
-    summary: 'Domäne (klein) erwerben (Basis: 35 Gold; +10% Puffer empfohlen).',
+    possibleNow: me.economy.gold >= domainSmallMax,
+    summary: `Domäne (klein) erwerben (Basis: 35 Gold; Max: ${domainSmallMax} Gold).`,
   });
+  const domainMediumMax = worstCaseCost(80, bufferFactor);
   candidates.push({
     id: 'action.domain.medium',
     kind: 'action',
     command: { type: 'AcquireDomain', campaignId: '', tier: 'medium' },
     actionKey: 'acquire.domain',
-    possibleNow: me.economy.gold >= buffered(80, bufferFactor),
+    possibleNow: me.economy.gold >= domainMediumMax,
     summary:
-      'Domäne (mittel) erwerben (Basis: 80 Gold; +10% Puffer empfohlen).',
+      `Domäne (mittel) erwerben (Basis: 80 Gold; Max: ${domainMediumMax} Gold).`,
   });
+  const domainLargeMax = worstCaseCost(120, bufferFactor);
   candidates.push({
     id: 'action.domain.large',
     kind: 'action',
     command: { type: 'AcquireDomain', campaignId: '', tier: 'large' },
     actionKey: 'acquire.domain',
-    possibleNow: me.economy.gold >= buffered(120, bufferFactor),
+    possibleNow: me.economy.gold >= domainLargeMax,
     summary:
-      'Domäne (gross) erwerben (Basis: 120 Gold; +10% Puffer empfohlen).',
+      `Domäne (gross) erwerben (Basis: 120 Gold; Max: ${domainLargeMax} Gold).`,
   });
 
   // Organisationen (Unterwelt / Collegien)
@@ -1359,8 +1385,10 @@ function buildActionCandidates(options: {
           : kind.startsWith('collegium')
             ? { gold: 20, influence: 2 }
             : { gold: 16, influence: 6 };
-      const goldNeeded = buffered(base.gold * rank, bufferFactor);
-      const influenceNeeded = buffered(base.influence * rank, bufferFactor);
+      const goldBase = base.gold * rank;
+      const influenceBase = base.influence * rank;
+      const goldNeeded = worstCaseCost(goldBase, bufferFactor);
+      const influenceNeeded = worstCaseCost(influenceBase, bufferFactor);
       const hqOk = maxCityTier >= rank;
       const possibleNow =
         me.economy.gold >= goldNeeded &&
@@ -1373,7 +1401,7 @@ function buildActionCandidates(options: {
         command: { type: 'AcquireOrganization', campaignId: '', kind },
         actionKey: `acquire.org.${kind}`,
         possibleNow,
-        summary: `${kind} ausbauen (Stufe ${nextTier}; Basis: ${base.gold * rank} Gold, ${base.influence * rank} Einfluss; HQ Stadtbesitz ≥ ${nextTier}).`,
+        summary: `${kind} ausbauen (Stufe ${nextTier}; Basis: ${goldBase} Gold, ${influenceBase} Einfluss; Max: ${goldNeeded} Gold, ${influenceNeeded} Einfluss; HQ Stadtbesitz ≥ ${nextTier}).`,
       });
     }
   }
@@ -1392,11 +1420,10 @@ function buildActionCandidates(options: {
       const remaining = options.max - options.current;
       if (remaining <= 0) return;
       for (const levels of pickBudgetOptions(remaining)) {
-        const goldNeeded = buffered(levels * options.goldPerLevel, bufferFactor);
-        const influenceNeeded = buffered(
-          levels * options.influencePerLevel,
-          bufferFactor
-        );
+        const goldBase = levels * options.goldPerLevel;
+        const influenceBase = levels * options.influencePerLevel;
+        const goldNeeded = worstCaseCost(goldBase, bufferFactor);
+        const influenceNeeded = worstCaseCost(influenceBase, bufferFactor);
         const possibleNow =
           me.economy.gold >= goldNeeded &&
           me.turn.influenceAvailable >= influenceNeeded;
@@ -1411,7 +1438,7 @@ function buildActionCandidates(options: {
           },
           actionKey: 'acquire.tenants',
           possibleNow,
-          summary: `${options.label} +${levels} (Basis: ${levels * options.goldPerLevel} Gold, ${levels * options.influencePerLevel} Einfluss; +10% Puffer empfohlen).`,
+          summary: `${options.label} +${levels} (Basis: ${goldBase} Gold, ${influenceBase} Einfluss; Max: ${goldNeeded} Gold, ${influenceNeeded} Einfluss).`,
         });
       }
     };

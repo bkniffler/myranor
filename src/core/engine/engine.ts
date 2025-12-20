@@ -1704,6 +1704,14 @@ function marketInstanceStateOrThrow(state: CampaignState, instanceId: string) {
   return inst;
 }
 
+function tradeMarketInstanceId(
+  playerId: PlayerId,
+  tradeEnterpriseId: string,
+  index: number
+): string {
+  return `trade-${playerId}-${tradeEnterpriseId}-${index}`;
+}
+
 function marketUsedForPlayerOrThrow(
   state: CampaignState,
   playerId: PlayerId,
@@ -1826,7 +1834,7 @@ export function decide(
             const markets = postTierRank(te.tier);
             for (let i = 1; i <= markets; i += 1) {
               marketInstances.push({
-                id: `trade-${te.id}-${i}`,
+                id: tradeMarketInstanceId(p.id, te.id, i),
                 label: `Handelsmarkt (${p.displayName}) ${te.tier} ${i}/${markets}`,
                 ownerPlayerId: p.id,
               });
@@ -2828,7 +2836,9 @@ export function decide(
             if (sumStock(taken) === tradeInput) {
               upkeepSpecial = addStock(upkeepSpecial, taken);
               // +/- Marktsystem: Wähle den besten verfügbaren Handelsmarkt der Unternehmung für diese Waren.
-              const marketCandidates = Array.from({ length: tierRank }, (_, i) => `trade-${te.id}-${i + 1}`);
+              const marketCandidates = Array.from({ length: tierRank }, (_, i) =>
+                tradeMarketInstanceId(player.id, te.id, i + 1)
+              );
               let bestMarketDelta = 0;
               for (const marketId of marketCandidates) {
                 let delta = 0;

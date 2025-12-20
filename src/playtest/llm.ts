@@ -974,13 +974,32 @@ function formatMarkdown(report: LlmPlayReport): string {
   const lines: string[] = [];
   const fmt = (value: number) =>
     Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
-  const fmtTotals = (totals: LedgerTotals, limit = 6) => {
+  const fmtTotals = (
+    totals: LedgerTotals,
+    limit = 6,
+    multiline = false
+  ) => {
     const entries = Object.entries(totals.byType)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, limit)
       .map(([key, value]) => `${key}=${fmt(value)}`);
-    const detail = entries.length > 0 ? ` [${entries.join(', ')}]` : '';
+    const detail =
+      entries.length > 0
+        ? ` [${entries.join(multiline ? '<br>' : ', ')}]`
+        : '';
     return `${fmt(totals.total)}${detail}`;
+  };
+  const fmtTotalsCell = (totals: LedgerTotals, limit = 4) =>
+    fmtTotals(totals, limit, true);
+  const joinLines = (items: string[]) =>
+    items.filter((item) => item.trim().length > 0).join('<br>');
+  const escapeCell = (value: string) => value.replace(/\|/g, '\\|');
+  const pushTable = (headers: string[], rows: string[][]) => {
+    lines.push(`| ${headers.map(escapeCell).join(' | ')} |`);
+    lines.push(`| ${headers.map(() => '---').join(' | ')} |`);
+    for (const row of rows) {
+      lines.push(`| ${row.map(escapeCell).join(' | ')} |`);
+    }
   };
   lines.push(`# LLM-Play Report — ${report.config.scenario}`);
   lines.push('');
@@ -990,82 +1009,100 @@ function formatMarkdown(report: LlmPlayReport): string {
   );
   lines.push('');
 
-  lines.push('## Final');
-  for (const p of report.final.byPlayer) {
-    const offices = p.holdings.offices.length;
-    const orgs = p.holdings.organizations.length;
-    const domains = p.holdings.domains.length;
-    const cities = p.holdings.cityProperties.length;
-    const trades = p.holdings.tradeEnterprises.length;
-    lines.push(
-      `- ${p.displayName}: score=${fmt(p.scoreTotal)} gold=${p.gold} inv≈${fmt(p.scoreBreakdown.inventoryGoldEq)} inf=${p.scoreBreakdown.influence} permInf=${p.scoreBreakdown.permanentInfluence} assets≈${fmt(p.scoreBreakdown.assetsGoldEq)} [dom=${domains} city=${cities} office=${offices} org=${orgs} trade=${trades}]`
+  lines.push('## Finale Uebersicht');
+  {
+    const rows = report.final.byPlayer.map((p) => {
+      const offices = p.holdings.offices.length;
+      const orgs = p.holdings.organizations.length;
+      const domains = p.holdings.domains.length;
+      const cities = p.holdings.cityProperties.length;
+      const trades = p.holdings.tradeEnterprises.length;
+      const workshops = p.holdings.workshops.length;
+      const storages = p.holdings.storages.length;
+      const holdings = `dom=${domains} city=${cities} office=${offices} org=${orgs} trade=${trades} ws=${workshops} store=${storages}`;
+      return [
+        p.displayName,
+        `${fmt(p.scoreTotal)}`,
+        `${p.gold}`,
+        `${fmt(p.scoreBreakdown.inventoryGoldEq)}`,
+        `${p.scoreBreakdown.influence} (perm ${p.scoreBreakdown.permanentInfluence})`,
+        `${fmt(p.scoreBreakdown.assetsGoldEq)}`,
+        holdings,
+      ];
+    });
+    pushTable(
+      [
+        'Strategie',
+        'Score',
+        'Gold',
+        'Inv≈',
+        'Einfluss (perm)',
+        'Assets≈',
+        'Holdings',
+      ],
+      rows
     );
   }
   lines.push('');
 
-  lines.push('## Economy Breakdown');
-  for (const p of report.final.byPlayer) {
-    lines.push(`### ${p.displayName}`);
-    lines.push(`- Gold gained: ${fmtTotals(p.ledger.goldGained)}`);
-    lines.push(`- Gold spent: ${fmtTotals(p.ledger.goldSpent)}`);
-    lines.push(`- Influence gained: ${fmtTotals(p.ledger.influenceGained)}`);
-    lines.push(`- Influence spent: ${fmtTotals(p.ledger.influenceSpent)}`);
-    lines.push(`- Labor spent: ${fmtTotals(p.ledger.laborSpent)}`);
-  }
-  lines.push('');
-
-  lines.push('## Materialfluss');
-  for (const p of report.final.byPlayer) {
-    const m = p.ledger.materials;
-    lines.push(`### ${p.displayName}`);
-    lines.push(`- RM gained: ${fmtTotals(m.rawGained)}`);
-    lines.push(`- RM spent: ${fmtTotals(m.rawSpent)}`);
-    lines.push(`- RM sold: ${fmtTotals(m.rawSold)}`);
-    lines.push(`- RM bought: ${fmtTotals(m.rawBought)}`);
-    lines.push(`- RM workshop-consumed: ${fmtTotals(m.rawConsumedByWorkshop)}`);
-    lines.push(`- RM -> Gold (auto): ${fmtTotals(m.rawConvertedToGold)}`);
-    lines.push(`- RM stored: ${fmtTotals(m.rawStored)}`);
-    lines.push(`- RM lost: ${fmtTotals(m.rawLost)}`);
-    lines.push(`- SM gained: ${fmtTotals(m.specialGained)}`);
-    lines.push(`- SM spent: ${fmtTotals(m.specialSpent)}`);
-    lines.push(
-      `- SM workshop-produced: ${fmtTotals(m.specialProducedByWorkshop)}`
+  lines.push('## Gesamt-Oekonomie');
+  {
+    const rows = report.final.byPlayer.map((p) => [
+      p.displayName,
+      fmtTotalsCell(p.ledger.goldGained),
+      fmtTotalsCell(p.ledger.goldSpent),
+      fmtTotalsCell(p.ledger.influenceGained),
+      fmtTotalsCell(p.ledger.influenceSpent),
+      fmtTotalsCell(p.ledger.laborSpent),
+    ]);
+    pushTable(
+      [
+        'Strategie',
+        'Gold +',
+        'Gold -',
+        'Einfluss +',
+        'Einfluss -',
+        'AK -',
+      ],
+      rows
     );
-    lines.push(`- SM sold: ${fmtTotals(m.specialSold)}`);
-    lines.push(`- SM bought: ${fmtTotals(m.specialBought)}`);
-    lines.push(`- SM -> Gold (auto): ${fmtTotals(m.specialConvertedToGold)}`);
-    lines.push(`- SM stored: ${fmtTotals(m.specialStored)}`);
-    lines.push(`- SM lost: ${fmtTotals(m.specialLost)}`);
   }
   lines.push('');
 
-  lines.push('## Rundenprotokoll');
-  for (const round of report.rounds) {
-    lines.push(`### Runde ${round.round}`);
-    for (const p of round.byPlayer) {
-      const actions =
-        p.actions.length > 0 ? p.actions.join(', ') : 'keine';
-      const facility = p.facility ?? 'none';
+  lines.push('## Materialfluss (Gesamt)');
+  {
+    const rows = report.final.byPlayer.map((p) => {
       const m = p.ledger.materials;
-      lines.push(`#### ${p.displayName}`);
-      lines.push(`- Aktionen: facility=${facility}; actions=[${actions}]`);
-      lines.push(
-        `- State: gold ${p.start.gold}->${p.end.gold}, RM ${p.start.rawTotal}->${p.end.rawTotal}, SM ${p.start.specialTotal}->${p.end.specialTotal}, inf ${p.start.influence}->${p.end.influence}, ak ${p.start.labor}->${p.end.labor}`
-      );
-      lines.push(
-        `- Gold: +${fmtTotals(p.ledger.goldGained)} / -${fmtTotals(p.ledger.goldSpent)}`
-      );
-      lines.push(
-        `- Einfluss: +${fmtTotals(p.ledger.influenceGained)} / -${fmtTotals(p.ledger.influenceSpent)}`
-      );
-      lines.push(`- AK: -${fmtTotals(p.ledger.laborSpent)}`);
-      lines.push(
-        `- RM: +${fmtTotals(m.rawGained)} | spent=${fmtTotals(m.rawSpent)} | sold=${fmtTotals(m.rawSold)} | wk=${fmtTotals(m.rawConsumedByWorkshop)} | auto=${fmtTotals(m.rawConvertedToGold)} | stored=${fmtTotals(m.rawStored)} | lost=${fmtTotals(m.rawLost)}`
-      );
-      lines.push(
-        `- SM: +${fmtTotals(m.specialGained)} | spent=${fmtTotals(m.specialSpent)} | prod=${fmtTotals(m.specialProducedByWorkshop)} | sold=${fmtTotals(m.specialSold)} | auto=${fmtTotals(m.specialConvertedToGold)} | stored=${fmtTotals(m.specialStored)} | lost=${fmtTotals(m.specialLost)}`
-      );
-    }
+      return [
+        p.displayName,
+        fmtTotalsCell(m.rawGained),
+        fmtTotalsCell(m.rawSold),
+        fmtTotalsCell(m.rawConvertedToGold),
+        fmtTotalsCell(m.rawStored),
+        fmtTotalsCell(m.rawLost),
+        fmtTotalsCell(m.specialGained),
+        fmtTotalsCell(m.specialSold),
+        fmtTotalsCell(m.specialConvertedToGold),
+        fmtTotalsCell(m.specialStored),
+        fmtTotalsCell(m.specialLost),
+      ];
+    });
+    pushTable(
+      [
+        'Strategie',
+        'RM +',
+        'RM sold',
+        'RM auto',
+        'RM stored',
+        'RM lost',
+        'SM +',
+        'SM sold',
+        'SM auto',
+        'SM stored',
+        'SM lost',
+      ],
+      rows
+    );
   }
   lines.push('');
 
@@ -1085,17 +1122,84 @@ function formatMarkdown(report: LlmPlayReport): string {
   }
   lines.push('');
 
-  lines.push('## Steps (gekürzt)');
-  for (const step of report.steps.slice(-60)) {
-    const outcome = step.outcome
-      ? ` → ${step.outcome.actionKey}/${step.outcome.tier}`
-      : '';
-    const ok = step.ok ? 'OK' : `ERR(${step.error?.code ?? ''})`;
-    lines.push(
-      `- R${step.round} ${step.playerName} ${step.kind}: ${step.command.type} ${ok}${outcome}`
-    );
+  lines.push('## Rundenprotokoll pro Strategie');
+  const roundsByPlayerId = new Map<
+    string,
+    Array<RoundReport['byPlayer'][number] & { round: number }>
+  >();
+  for (const round of report.rounds) {
+    for (const p of round.byPlayer) {
+      const list = roundsByPlayerId.get(p.playerId) ?? [];
+      list.push({ ...p, round: round.round });
+      roundsByPlayerId.set(p.playerId, list);
+    }
   }
-  lines.push('');
+
+  for (const p of report.final.byPlayer) {
+    const strategyTitle = strategyByPlayerId.get(p.playerId);
+    lines.push(`### ${p.displayName}`);
+    if (strategyTitle) lines.push(`Strategie: ${strategyTitle}`);
+    lines.push('');
+    pushTable(
+      [
+        'Runde',
+        'Facility',
+        'Aktionen',
+        'State',
+        'Gold +',
+        'Gold -',
+        'Einfluss +',
+        'Einfluss -',
+        'AK -',
+        'RM Fluss',
+        'SM Fluss',
+      ],
+      (roundsByPlayerId.get(p.playerId) ?? []).map((r) => {
+        const actions = r.actions.length > 0 ? joinLines(r.actions) : '-';
+        const facility = r.facility ?? '-';
+        const stateCell = joinLines([
+          `Gold ${r.start.gold}->${r.end.gold} (pending ${r.start.pendingGold}->${r.end.pendingGold})`,
+          `RM ${r.start.rawTotal}->${r.end.rawTotal}`,
+          `SM ${r.start.specialTotal}->${r.end.specialTotal}`,
+          `Inf ${r.start.influence}->${r.end.influence}`,
+          `AK ${r.start.labor}->${r.end.labor}`,
+        ]);
+        const m = r.ledger.materials;
+        const rmFlow = joinLines([
+          `+${fmtTotalsCell(m.rawGained)}`,
+          `spent=${fmtTotalsCell(m.rawSpent)}`,
+          `sold=${fmtTotalsCell(m.rawSold)}`,
+          `wk=${fmtTotalsCell(m.rawConsumedByWorkshop)}`,
+          `auto=${fmtTotalsCell(m.rawConvertedToGold)}`,
+          `stored=${fmtTotalsCell(m.rawStored)}`,
+          `lost=${fmtTotalsCell(m.rawLost)}`,
+        ]);
+        const smFlow = joinLines([
+          `+${fmtTotalsCell(m.specialGained)}`,
+          `spent=${fmtTotalsCell(m.specialSpent)}`,
+          `prod=${fmtTotalsCell(m.specialProducedByWorkshop)}`,
+          `sold=${fmtTotalsCell(m.specialSold)}`,
+          `auto=${fmtTotalsCell(m.specialConvertedToGold)}`,
+          `stored=${fmtTotalsCell(m.specialStored)}`,
+          `lost=${fmtTotalsCell(m.specialLost)}`,
+        ]);
+        return [
+          `${r.round}`,
+          facility,
+          actions,
+          stateCell,
+          fmtTotalsCell(r.ledger.goldGained),
+          fmtTotalsCell(r.ledger.goldSpent),
+          fmtTotalsCell(r.ledger.influenceGained),
+          fmtTotalsCell(r.ledger.influenceSpent),
+          fmtTotalsCell(r.ledger.laborSpent),
+          rmFlow,
+          smFlow,
+        ];
+      })
+    );
+    lines.push('');
+  }
   return lines.join('\n');
 }
 
