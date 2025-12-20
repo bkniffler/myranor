@@ -49,8 +49,8 @@ export function startingMarketState(round = 1): MarketState {
 }
 
 export function startingPlayerChecks(): PlayerChecks {
-  // D&D 5e Level 3 baseline: +3 ability (16) +2 proficiency = +5.
-  return { influence: 5, money: 5, materials: 5 };
+  // D&D 5e: Start-Attributswert (Modifikator) +3, skaliert pro 10 Runden.
+  return { influence: 3, money: 3, materials: 3 };
 }
 
 export function startingPlayerEconomy(): PlayerEconomy {
@@ -153,7 +153,7 @@ export function domainLaborPerRound(tier: DomainTier): number {
 export function domainRawPerRound(tier: DomainTier): number {
   switch (tier) {
     case 'starter':
-      return 4;
+      return 8;
     case 'small':
       return 12;
     case 'medium':

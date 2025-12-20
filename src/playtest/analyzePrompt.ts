@@ -137,6 +137,7 @@ function rulesSnapshot(): unknown {
       market: 'Pro Runde werden Märkte gerollt (lokal + je Handelsunternehmung eigene Märkte). Geldgewinn: Verkauf/Kauf nutzt Markt-Modifikatoren pro Materialgruppe.',
       events: 'Pro Abschnitt (5 Runden) werden 2 Ereignisse gerollt und im State gespeichert. Viele Effekte wirken als Modifikatoren auf Upkeep/Ertrag/DC oder als Nebeneffekte (LO, Schaden, etc.).',
       visibility: 'Engine-Events haben public/private visibility; Playtest nutzt volle private Events.',
+      dcScaling: 'Check-Skalierung: Effektiver Check = base + floor(Runde/10).',
     },
   };
 }
@@ -209,4 +210,3 @@ main().catch((error) => {
   console.log(usage());
   process.exitCode = 1;
 });
-

@@ -35,6 +35,7 @@ import {
   startingPlayerEconomy,
   startingPlayerHoldings,
   startingPlayerTurn,
+  domainRawPerRound,
   storageCapacity,
   storageUpkeep,
   workshopCapacity,
@@ -132,6 +133,14 @@ function investmentDcModifier(investments: number): number {
   if (investments >= 8) return 8;
   if (investments >= 4) return 4;
   return 0;
+}
+
+function roundCheckBonus(round: number): number {
+  return Math.floor(Math.max(1, round) / 10);
+}
+
+function effectiveCheck(base: number, round: number): number {
+  return base + roundCheckBonus(round);
 }
 
 function addStock(target: MaterialStock, add: MaterialStock): MaterialStock {
@@ -1997,7 +2006,7 @@ export function decide(
                 const trigger = rollD20(ctx.rng);
                 if (trigger.total > 5) continue;
                 const hide = rollD20(ctx.rng);
-                const total = hide.total + player.checks.influence;
+                const total = hide.total + effectiveCheck(player.checks.influence, state.round);
                 const passed = total >= 14;
                 if (passed) continue;
 
@@ -2438,7 +2447,7 @@ export function decide(
           const producedRaw: MaterialStock = {};
           for (const domain of player.holdings.domains) {
             if (domain.tenants.inUnrest) continue;
-            const baseCount = domain.tier === 'starter' ? 4 : domain.tier === 'small' ? 12 : domain.tier === 'medium' ? 20 : 36;
+            const baseCount = domainRawPerRound(domain.tier);
             const spec = domain.specialization?.kind;
             let count = baseCount;
 
@@ -3199,7 +3208,7 @@ export function decide(
       const cult = player.holdings.organizations.find((o) => o.kind === 'cult');
       if (cult) dc -= postTierRank(cult.tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tier = resolveSuccessTier(dc, total);
 
@@ -3294,7 +3303,7 @@ export function decide(
       if (collegiumTrade) dc -= 2 * postTierRank(collegiumTrade.tier);
 
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.money;
+      const mod = effectiveCheck(player.checks.money, state.round);
       const total = roll.total + mod;
       const tier = resolveSuccessTier(dc, total);
 
@@ -3464,7 +3473,7 @@ export function decide(
       const collegiumTrade = player.holdings.organizations.find((o) => o.kind === 'collegiumTrade');
       if (collegiumTrade) dc -= 2 * postTierRank(collegiumTrade.tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.money;
+      const mod = effectiveCheck(player.checks.money, state.round);
       const total = roll.total + mod;
       const tier = resolveSuccessTier(dc, total);
 
@@ -3611,7 +3620,7 @@ export function decide(
       const collegiumTrade = player.holdings.organizations.find((o) => o.kind === 'collegiumTrade');
       if (collegiumTrade) dc -= 2 * postTierRank(collegiumTrade.tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.money;
+      const mod = effectiveCheck(player.checks.money, state.round);
       const total = roll.total + mod;
       const tier = resolveSuccessTier(dc, total);
 
@@ -3735,7 +3744,7 @@ export function decide(
       }
 
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.materials;
+      const mod = effectiveCheck(player.checks.materials, state.round);
       const total = roll.total + mod;
       const tier = resolveSuccessTier(dc, total);
 
@@ -3812,11 +3821,11 @@ export function decide(
       ensureActionAvailable(player, state.rules, actionKey, 1);
 
       const tier: Exclude<DomainTier, 'starter'> = command.tier;
-      const baseCost = tier === 'small' ? 25 : tier === 'medium' ? 60 : 120;
+      const baseCost = tier === 'small' ? 35 : tier === 'medium' ? 80 : 120;
       const baseDc = 10;
       const dc = actionDcForAcquire(baseDc, tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
       const costMultiplier = tierResult === 'veryGood' ? 0.75 : tierResult === 'good' ? 0.9 : tierResult === 'poor' ? 1.1 : 1;
@@ -3865,7 +3874,7 @@ export function decide(
       const baseDc = 10;
       const dc = actionDcForAcquire(baseDc, tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
       const costMultiplier = tierResult === 'veryGood' ? 0.75 : tierResult === 'good' ? 0.9 : tierResult === 'poor' ? 1.1 : 1;
@@ -3928,7 +3937,7 @@ export function decide(
       const baseDc = 14;
       const dc = actionDcForAcquire(baseDc, tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
 
@@ -4000,7 +4009,7 @@ export function decide(
       const baseDc = command.kind.startsWith('collegium') ? 12 : 14;
       const dc = actionDcForAcquire(baseDc, toTier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
 
@@ -4051,7 +4060,7 @@ export function decide(
       const baseDc = 10;
       const dc = actionDcForAcquire(baseDc, tier);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
 
@@ -4165,7 +4174,7 @@ export function decide(
       const baseDc = 14;
       const dc = baseDc + investmentDcModifier(levels);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
 
@@ -4252,7 +4261,7 @@ export function decide(
 
       const dc = 10 + investmentDcModifier(levels);
       const roll = rollD20(ctx.rng);
-      const mod = player.checks.influence;
+      const mod = effectiveCheck(player.checks.influence, state.round);
       const total = roll.total + mod;
       const tierResult = resolveSuccessTier(dc, total);
 

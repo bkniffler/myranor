@@ -38,6 +38,16 @@ export type PlayerProfile = {
   checks: PlayerChecks;
   agent: Agent;
   llmPreamble?: string;
+  strategyCard?: StrategyCard;
+};
+
+export type StrategyCard = {
+  title: string;
+  risk?: 'conservative' | 'aggressive';
+  primary: string[];
+  secondary?: string[];
+  avoid?: string[];
+  guardrails?: string[];
 };
 
 export type RoundContext = {
