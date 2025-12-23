@@ -1,67 +1,68 @@
 # Balancing – Erkenntnisse & Vorschläge
 
-Stand: 4x LLM-Playtests (20 Runden), Seeds 7/13/21/42, Scenario `core-v1-strategies`.
+Stand: 5x LLM-Playtests (15 Runden), Seeds 101/202/303/404/505, Scenario `core-v1-strategies`, Scoring: **GoldEq**.
 
 ## Kurzfazit
-- **Domänenfokus** ist aktuell klar zu stark und zugleich stark swingy.
-- **Handel & Geld** ist im Vergleich zu schwach (zu viel Lending/Conversion, zu wenig Trade-Engine).
-- **Stadt & Unterwelt** hat hohe Varianz; gutes Setup performt stark, schlechtes Setup fällt stark ab.
-- **Werkstattfokus** ist stabil, aber nur Mid-Tier; Workshops sind allgemein attraktiv (auch für andere Strategien).
-- **LLM-Fehler** (invalid actions) verzerren Ergebnisse und sollten reduziert werden.
+- Es gibt **keinen klaren Dominator** über 5 Seeds; Sieger wechseln (gut fürs Balancing).
+- **Handel & Geld** ist am **volatilsten** (wie gewünscht), und gewinnt 2/5 Seeds.
+- **Stadt & Unterwelt** ist im Schnitt **zu schwach** (0/5 Siege, niedrigster Ø‑Score).
+- **Handelsunternehmungen** werden aktuell **gar nicht** gebaut (0 in allen Runs) → Pfad ist zu unattraktiv oder schlecht sichtbar.
+- **Ämter** sind nicht nur für Amtsfokus attraktiv (viele Strategien kaufen 1–3 Ämter) → Office‑ROI/Accessibility im Blick behalten.
 
-## Ergebnisse (Scores pro Seed)
+## Ergebnisse (GoldEq Scores pro Seed)
 ```
-Seed 7 : Amtsfokus 153 | Handel & Geld 98 | Stadt & Unterwelt 150.5 | Werkstattfokus 116.5 | Domänenfokus 137.25
-Seed 13: Amtsfokus 183.5 | Handel & Geld 116.5 | Stadt & Unterwelt 210.5 | Werkstattfokus 121.5 | Domänenfokus 174.75
-Seed 21: Amtsfokus 197 | Handel & Geld 135.5 | Stadt & Unterwelt 86.5 | Werkstattfokus 138.5 | Domänenfokus 252.75
-Seed 42: Amtsfokus 95 | Handel & Geld 111 | Stadt & Unterwelt 193.75 | Werkstattfokus 117 | Domänenfokus 314
+Seed 101: Amtsfokus 401.30 | Handel & Geld 488.50 | Stadt & Unterwelt 503.45 | Werkstattfokus 509.95 | Domänenfokus 638.15
+Seed 202: Amtsfokus 474.60 | Handel & Geld 483.55 | Stadt & Unterwelt 421.40 | Werkstattfokus 616.15 | Domänenfokus 514.70
+Seed 303: Amtsfokus 534.95 | Handel & Geld 715.20 | Stadt & Unterwelt 436.85 | Werkstattfokus 592.25 | Domänenfokus 382.15
+Seed 404: Amtsfokus 567.60 | Handel & Geld 582.60 | Stadt & Unterwelt 425.30 | Werkstattfokus 553.30 | Domänenfokus 434.25
+Seed 505: Amtsfokus 589.70 | Handel & Geld 466.35 | Stadt & Unterwelt 334.70 | Werkstattfokus 481.45 | Domänenfokus 482.50
 ```
 
-## Durchschnitt (4 Runs)
+## Durchschnitt (5 Runs)
 ```
-Amtsfokus        Ø 157.1
-Handel & Geld    Ø 115.3
-Stadt & UnterweltØ 160.3
-Werkstattfokus   Ø 123.4
-Domänenfokus     Ø 219.7
+Werkstattfokus   Ø 550.62 (sd 49.95; min 481.45; max 616.15)
+Handel & Geld    Ø 547.24 (sd 93.29; min 466.35; max 715.20)
+Amtsfokus        Ø 513.63 (sd 68.26; min 401.30; max 589.70)
+Domänenfokus     Ø 490.35 (sd 86.43; min 382.15; max 638.15)
+Stadt & UnterweltØ 424.34 (sd 53.78; min 334.70; max 503.45)
+```
+
+## Durchschnittliche Holdings (15R, 5 Seeds)
+```
+Amtsfokus        d1.0 c1.6 o6.2 org0.0 trade0.0 ws1.0 store0.8
+Handel & Geld    d1.0 c4.8 o1.2 org1.2 trade0.0 ws1.0 store1.4
+Stadt & Unterweltd1.0 c3.0 o0.0 org1.6 trade0.0 ws1.0 store1.0
+Werkstattfokus   d1.0 c4.2 o2.2 org0.6 trade0.0 ws1.8 store0.6
+Domänenfokus     d1.8 c3.2 o1.6 org0.0 trade0.0 ws1.0 store1.6
 ```
 
 ## Beobachtetes LLM-Verhalten
-- **Generisch dominant:** `GainMaterials` + `MoneySell` in vielen Strategien.
-- **Amtsfokus:** sehr viele `GainInfluence` + `AcquireOffice`, hoher Einsatz von temporärem Einfluss.
-- **Handel & Geld:** viele `MoneyLend`, aber zu wenige `AcquireTradeEnterprise`.
-- **Stadt & Unterwelt:** Organisationen werden teils gekauft, aber nicht konstant.
-- **Werkstattfokus:** sehr viele Workshops; stabiler Goldfluss über Conversion.
-- **Domänenfokus:** starke Rohstoffproduktion + Market‑Sell + Lager‑Synergien.
-- **Fehler:** wiederholt invalid actions (z.B. `MoneySell ERR(AUTH)`), das drückt Scores.
+- **Generisch dominant:** `MoneySellBuy`/`MoneySell` + Lagerhaltung + City‑Scaling.
+- **Handel & Geld:** deutliche Varianz (Seed‑abhängig), aber **kein** `AcquireTradeEnterprise` → Kernpfad fehlt.
+- **Stadt & Unterwelt:** kauft Orgs, aber Score bleibt zurück (Unterwelt‑ROI zu niedrig oder zu spät).
+- **Viele Strategien kaufen Ämter**, selbst wenn nicht Fokus (spricht für hohen Office‑ROI).
 
 ## Haupttreiber der Balance-Probleme
-1. **Domänen-Snowball**: Rohstoffmengen + Marktverkauf + Lagerung erzeugen starken Gold-Loop.
-2. **Trade‑Pfad zu schwach / zu wenig sichtbar**: LLM greift lieber zu Lending/Conversion.
-3. **Influence‑Economy**: Amtsfokus kann sehr stark sein, wenn Office‑Kette früh sitzt, fällt aber ab bei schlechten Rolls.
-4. **LLM‑Stabilität**: invalid actions reduzieren Effektivität und verfälschen den Vergleich.
+1. **Trade‑Pfad fehlt praktisch** (0 Handelsunternehmungen) → Balance nicht bewertbar, weil die Strategie “Handel” über City+SellBuy läuft.
+2. **City/Office als Universal‑Investments** → Strategiedifferenzierung verwässert; ggf. sind diese zu effizient.
+3. **Unterwelt** liefert im Vergleich zu wenig GoldEq‑Wert (direkt/indirekt) → fällt zurück.
 
 ## Konkrete Balancing‑Tweaks (Vorschläge)
-### 1) Domänenfokus nerfen
-- **Option A:** Rohstoff‑Yield pro Domäne leicht senken.
-- **Option B:** Marktverkauf für Rohstoffe leicht nerfen (z.B. geringerer Multiplikator).
-- **Option C:** Kosten für zusätzliche Domänen leicht erhöhen.
-- **Option D:** Lager‑Synergie dämpfen (z.B. Lagerkosten/Upkeep oder geringere Lager‑Effizienz).
+### 1) Handelsunternehmungen “einschalten”
+- ROI klarer machen (Ertrag/Unterhalt/Facility‑Synergien) und im Prompt/Strategy‑Card explizit als primärer Pfad führen.
+- Optional: erste Handelsunternehmung leichter zugänglich (Kosten/DC oder frühe Einrichtung als “Ramp”).
 
-### 2) Handel & Geld buffen
-- **Trade‑Enterprises** attraktiver machen (höherer Ertrag oder Synergie mit `MoneySell`).
-- **MoneyLend** Risiko erhöhen oder ROI leicht senken, damit der Pfad nicht dominiert.
+### 2) Stadt & Unterwelt buffen
+- Unterwelt‑Orgs/Einstellungen messbar stärker (Gold/Influence/Slots/DC‑Vorteile) oder früher wirksam machen.
+- Alternativ: Unterwelt stärker mit Markt (bessere SellBuy‑Caps/Mods) oder City verknüpfen.
 
-### 3) Stadt & Unterwelt glätten
-- **Organization/City‑Pfad** stabiler machen (leichter zugängliche Erträge oder geringere Schwankung).
-- Optional: kleine, planbare Boni für City‑Holdings, damit der Pfad nicht komplett RNG‑getrieben ist.
+### 3) Office/City ROI prüfen
+- Wenn weiterhin “Universal‑Best‑Buy”: Office‑Kosten/Erträge/Facility‑ROI oder Caps nachziehen, damit Fokusstrategien klarer differenzieren.
 
-### 4) LLM-Qualität erhöhen
-- **Keine invalid actions** zulassen (striktere Action‑Validierung, dedupe, retries).
-- **Mehr Kontext im Prompt** (Ziele, Ressourcen, Score‑Beitrag je Asset, letzte 1–2 Runden). 
-- **Strategy Cards + Rolling Summary** konsequent verwenden.
+### 4) Testhorizont erhöhen (für Domänenfokus)
+- Domänenfokus ist “slow & stable” – 15 Runden sind evtl. zu kurz; zusätzlich 30–40R laufen lassen, bevor nerfs/buffs finalisiert werden.
 
 ## Nächste Schritte (empfohlen)
-1. **LLM-Fehler eliminieren**, dann 4–8 Seeds neu laufen lassen.
-2. **Ein Domänen‑Nerf + Trade‑Buff** testen (separat), dann erneut vergleichen.
-3. **Ergebnisse im selben Format** dokumentieren (Scores + Holdings + Action‑Mix).
+1. **TradeEnterprises** so buffen/sichtbar machen, dass “Handel & Geld” sie zuverlässig kauft.
+2. Unterwelt‑Pfad (Orgs+Einrichtungen) so justieren, dass er nicht systematisch hinterherhinkt.
+3. Danach: 10–20 Seeds, 20–30 Runden, gleiche Auswertung.
