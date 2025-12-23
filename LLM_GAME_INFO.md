@@ -4,7 +4,7 @@ Diese Datei fasst den aktuellen Stand der Engine-Regeln zusammen, damit ein LLM 
 Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk aus dem Aufbausystem-PDF.
 
 ## Ziel
-- Standardziel im LLM-Runner: **Gesamt-Score maximieren** (Gold + Inventar + Einfluss + Assets etc.).
+- Standardziel im LLM-Runner: **Gesamt-Score maximieren** (Gold + Inventar + Assets + Einfluss + **verdienter Einfluss (kumulativ)**).
 - Das LLM bekommt im Prompt einen kurzen Hinweis zur Score-Logik.
 
 ## Rundenablauf
@@ -35,7 +35,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Gold: 4
 - Holdings:
   - 1 Starter-Domaene (tier=starter)
-  - Starter-Domaene hat RM-Picks: raw.grainVeg, raw.fruit, raw.meat, raw.pigsSheep
+  - Starter-Domaene hat RM-Pick: raw.grainVeg
   - 1 Stadtbesitz (tier=small, mode=leased)
   - 1 Werkstatt (tier=small) auf Starter-Domaene (input=raw.grainVeg, output=special.pulpellen)
   - Permanenter Einfluss: 0, Permanente Arbeitskraft: 2
@@ -45,7 +45,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 ## Ertraege und Unterhalt (Kurzuebersicht)
 - **Domaenen**
   - AK/Runde: starter/small=2, medium=4, large=8
-  - RM/Runde: starter=8, small=12, medium=20, large=36 (auf 4 RM-Picks verteilt)
+  - RM/Runde: starter=8, small=12, medium=20, large=36 (gleichmaessig auf vorhandene RM-Picks verteilt)
   - Gold-Unterhalt: starter=0, small=2, medium=4, large=8
 - **Stadtbesitz (leased)**
   - AK/Runde: small=1, medium=2, large=4
@@ -56,8 +56,10 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Gold/Einfluss: 0
   - Gold-Unterhalt: small=2, medium=4, large=8
 - **Aemter**
-  - Ertrag (pro Runde, je Amt): small=4, medium=10, large=20 (Gold **oder** Einfluss je nach Yield-Mode)
+  - Ertrag (pro Runde, je Amt): small=2, medium=10, large=20 (Gold **oder** Einfluss **oder** Split 50/50 je nach Yield-Mode)
   - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt
+- **Einrichtungen an Aemtern/Werkstaetten/Handel**
+  - Einfluss/Runde: general small=+1, medium=+2, large=+3; special small=+2, medium=+3, large=+4
 - **Werkstaetten**
   - Unterhalt: small=1 AK, medium=2 AK +1 Gold, large=4 AK +2 Gold
   - Kapazitaet (Umwandlung):
@@ -77,6 +79,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Aemter: Einrichtungsplaetze wie Stadtbesitz (2/3/4).
 - Organisationen & Handelsunternehmungen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6).
 - Werkstaetten/Lager belegen 1 Einrichtungsplatz.
+- Werkstaetten haben eigene Facility-Slots: small=1, medium=2, large=3.
 - Domänen-Produktionscap (Werkstatt/Lager):
   - Kleine Domäne: max 1 kleine Produktion.
   - Mittlere Domäne: max 1 mittlere Produktion.
@@ -112,9 +115,9 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Caps: temp abhaengig von Aemtern/Orgs; perm = 2 + Summe (Aemter+Orgs Tiers)
 - **Geld gewinnen**
   - **MoneyLend**: 2 Gold/Invest -> Gold naechste Runde (Ertrag nach Erfolgsgrad)
-  - **MoneySell**: Verkauf RM/SM mit Marktfaktoren (6 RM oder 1 SM = 1 Invest)
+  - **MoneySell**: Verkauf RM/SM mit Marktfaktoren (6 RM oder 1 SM = 1 Invest; Cap = 2 + 2*TradeTierSum + DomainTierSum)
   - **MoneySellBuy**: Verkauf + Einkauf in einer Aktion (belegt money.sell + money.buy)
-  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM pro Invest)
+  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM pro Invest; Cap = 3 + 2*TradeTierSum + DomainTierSum)
 - **Material gewinnen**
   - **Domaenenverwaltung** oder **Werkstattaufsicht** (AK-gebunden)
 - **Permanente Posten**
@@ -132,6 +135,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 ## Markt
 - Marktinstanzen mit Modifiern pro Roh-/Sondermaterialgruppe.
 - Verkauf nutzt Markt-Modifier + Material-Bonus.
+- Einkauf nutzt die **invertierten** Markt-Modifier (hoher Mod = guenstiger).
 - Events koennen DCs/Modifier beeinflussen.
 
 ## Events
@@ -144,7 +148,7 @@ Der LLM-Runner zeigt weiterhin **nicht alle Engine-Aktionen**, aber eine deutlic
 - **Facility**
   - Starter-Domaene ausbauen
   - Stadtbesitz-Modus auf Produktion setzen
-  - Amt auf Gold-Ertrag umstellen
+  - Amt auf Gold-, Einfluss- oder Split-Ertrag umstellen
   - Handelsunternehmung auf Handel umstellen
   - Domaenen-Spezialisierung (Forst/Landwirtschaft/Bergbau/Viehzucht, wenn bezahlbar)
   - Werkstatt bauen (klein, Domaene oder Stadtbesitz/Produktion)

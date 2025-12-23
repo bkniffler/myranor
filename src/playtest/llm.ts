@@ -97,6 +97,7 @@ type StepLog = {
   kind: 'facility' | 'action';
   command: AgentCommand;
   ok: boolean;
+  note?: string | null;
   error?: { message: string; code?: string };
   outcome?: { actionKey: string; tier: string };
 };
@@ -121,6 +122,9 @@ type LlmPlayReport = {
       rawTotal: number;
       specialTotal: number;
       scoreTotal: number;
+      scoreBase: number;
+      scoreEarnedInfluence: number;
+      scoreEarnedInfluenceGoldEq: number;
       scoreBreakdown: NetWorthBreakdown;
       ledger: PlayerLedger;
       holdings: {
@@ -1072,6 +1076,17 @@ function recentSummaryLines(profile: PlayerProfile, limit = 2): string[] {
   return profile.roundSummaries.slice(-limit).map(formatRoundSummary);
 }
 
+function normalizeNote(note: string | null | undefined): string | null {
+  if (!note) return null;
+  const cleaned = note.replace(/\s+/g, ' ').trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function formatDecisionLabel(label: string, note: string | null): string {
+  if (!note) return label;
+  return `${label} (Grund: ${note})`;
+}
+
 
 function extractOutcome(
   events: GameEvent[]
@@ -1119,6 +1134,8 @@ function formatMarkdown(report: LlmPlayReport): string {
     return `${fmt(totals.total)}${detail}`;
   };
   const fmtTotalsValue = (totals: LedgerTotals) => `${fmt(totals.total)}`;
+  const fmtIncomeOnly = (totals: LedgerTotals) =>
+    `${fmt(totals.byType.income ?? 0)}`;
   const escapeCell = (value: string) => value.replace(/\|/g, '\\|');
   const pushTable = (headers: string[], rows: string[][]) => {
     lines.push(`| ${headers.map(escapeCell).join(' | ')} |`);
@@ -1149,6 +1166,7 @@ function formatMarkdown(report: LlmPlayReport): string {
       return [
         p.displayName,
         `${fmt(p.scoreTotal)}`,
+        `${fmt(p.scoreEarnedInfluenceGoldEq)}`,
         `${p.gold}`,
         `${fmt(p.scoreBreakdown.inventoryGoldEq)}`,
         `${p.scoreBreakdown.influence} (perm ${p.scoreBreakdown.permanentInfluence})`,
@@ -1159,7 +1177,8 @@ function formatMarkdown(report: LlmPlayReport): string {
     pushTable(
       [
         'Strategie',
-        'Score',
+        'Score (GoldEq)',
+        'Inf earned (GoldEq)',
         'Gold',
         'Inv≈',
         'Einfluss (perm)',
@@ -1183,6 +1202,33 @@ function formatMarkdown(report: LlmPlayReport): string {
     ]);
     pushTable(
       ['Strategie', 'Gold +', 'Gold -', 'Einfluss +', 'Einfluss -', 'AK -'],
+      rows
+    );
+  }
+  lines.push('');
+
+  lines.push('## Einkommen (Totals)');
+  {
+    const rows = report.final.byPlayer.map((p) => {
+      const m = p.ledger.materials;
+      return [
+        p.displayName,
+        fmtIncomeOnly(p.ledger.goldGained),
+        fmtIncomeOnly(p.ledger.influenceGained),
+        `${fmt(p.scoreEarnedInfluenceGoldEq)}`,
+        fmtIncomeOnly(m.rawGained),
+        fmtIncomeOnly(m.specialGained),
+      ];
+    });
+    pushTable(
+      [
+        'Strategie',
+        'Gold income',
+        'Einfluss income',
+        'Einfluss Pool (GoldEq)',
+        'RM income',
+        'SM income',
+      ],
       rows
     );
   }
@@ -1281,6 +1327,20 @@ function formatMarkdown(report: LlmPlayReport): string {
       lines.push(`- Werkstätten: ${r.holdingsEnd.workshops}`);
       lines.push(`- Lager: ${r.holdingsEnd.storages}`);
       lines.push(`- Pächter/Anhänger: ${r.holdingsEnd.tenants}`);
+      lines.push(
+        `- Einkommen: Gold +${fmtIncomeOnly(
+          r.ledger.goldGained
+        )} | Einfluss +${fmtIncomeOnly(
+          r.ledger.influenceGained
+        )} | RM +${fmtIncomeOnly(
+          m.rawGained
+        )} | SM +${fmtIncomeOnly(m.specialGained)}`
+      );
+      lines.push(
+        `- Pool: Einfluss ${fmt(r.start.influence)} | AK ${fmt(
+          r.start.labor
+        )}`
+      );
       lines.push(
         `- Gold: +${fmtTotals(r.ledger.goldGained)} / -${fmtTotals(
           r.ledger.goldSpent
@@ -1456,6 +1516,8 @@ async function main() {
       const facilityPlan = await planFacilityWithLlm({
         model,
         agentName: profile.displayName,
+        userId: profile.userId,
+        state,
         me,
         round: state.round,
         publicLog: newPublicLog,
@@ -1465,6 +1527,7 @@ async function main() {
         market: state.market,
       });
 
+      const facilityNote = normalizeNote(facilityPlan.note);
       if (facilityPlan.facility) {
         const cmd = toGameCommand(facilityPlan.facility, campaignId);
         const res = execute(state, cmd, actor, rng);
@@ -1478,6 +1541,7 @@ async function main() {
           kind: 'facility',
           command: cmd,
           ok: !res.error,
+          note: facilityNote,
           error: res.error
             ? {
                 message: res.error.message,
@@ -1495,7 +1559,10 @@ async function main() {
         const errorLabel = res.error
           ? ` ERR(${res.error instanceof GameRuleError ? res.error.code : 'ERR'})`
           : '';
-        roundLog.facility = `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
+        const facilityLabel = `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
+        roundLog.facility = formatDecisionLabel(facilityLabel, facilityNote);
+      } else if (facilityNote) {
+        roundLog.facility = formatDecisionLabel('keine Facility', facilityNote);
       }
 
       const actionsPerRound = state.rules.actionsPerRound;
@@ -1519,6 +1586,8 @@ async function main() {
         const actionPlan = await planActionWithLlm({
           model,
           agentName: profile.displayName,
+          userId: profile.userId,
+          state,
           me: meNow,
           round: state.round,
           actionSlot: slot,
@@ -1532,7 +1601,13 @@ async function main() {
           facilityLog: roundLog.facility,
         });
 
-        if (!actionPlan.action) break;
+        const actionNote = normalizeNote(actionPlan.note);
+        if (!actionPlan.action) {
+          if (actionNote) {
+            roundActionLog.push(formatDecisionLabel('keine Aktion', actionNote));
+          }
+          break;
+        }
 
         const cmd = toGameCommand(actionPlan.action, campaignId);
         const res = execute(state, cmd, actor, rng);
@@ -1547,6 +1622,7 @@ async function main() {
           kind: 'action',
           command: cmd,
           ok: !res.error,
+          note: actionNote,
           error: res.error
             ? {
                 message: res.error.message,
@@ -1565,9 +1641,8 @@ async function main() {
         const errorLabel = res.error
           ? ` ERR(${res.error instanceof GameRuleError ? res.error.code : 'ERR'})`
           : '';
-        roundActionLog.push(
-          `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`
-        );
+        const actionLabel = `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
+        roundActionLog.push(formatDecisionLabel(actionLabel, actionNote));
       }
     }
 
@@ -1635,6 +1710,16 @@ async function main() {
 
   if (!state) throw new Error('Simulation ended without state');
 
+  const earnedInfluenceByPlayerId = new Map<string, number>();
+  for (const round of roundReports) {
+    for (const p of round.byPlayer) {
+      earnedInfluenceByPlayerId.set(
+        p.playerId,
+        (earnedInfluenceByPlayerId.get(p.playerId) ?? 0) + p.start.influence
+      );
+    }
+  }
+
   const report: LlmPlayReport = {
     generatedAt: new Date().toISOString(),
     config: {
@@ -1663,13 +1748,23 @@ async function main() {
           FULL_NET_WORTH_WEIGHTS
         );
         const ledger = ledgerByPlayerId.get(p.playerId) ?? emptyLedger();
+        const scoreBase = scoreBreakdown.score;
+        const scoreEarnedInfluence =
+          earnedInfluenceByPlayerId.get(p.playerId) ?? 0;
+        const influenceGoldEq = FULL_NET_WORTH_WEIGHTS.influence;
+        const scoreEarnedInfluenceGoldEq =
+          scoreEarnedInfluence * influenceGoldEq;
+        const scoreTotal = scoreBase;
         return {
           playerId: p.playerId,
           displayName: p.displayName,
           gold: me.economy.gold,
           rawTotal: sumStock(me.economy.inventory.raw),
           specialTotal: sumStock(me.economy.inventory.special),
-          scoreTotal: scoreBreakdown.score,
+          scoreTotal,
+          scoreBase,
+          scoreEarnedInfluence,
+          scoreEarnedInfluenceGoldEq,
           scoreBreakdown,
           ledger,
           holdings: {

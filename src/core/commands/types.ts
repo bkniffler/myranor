@@ -158,6 +158,7 @@ export type BuildFacilityCommand = {
     | { kind: 'organization'; id: string }
     | { kind: 'office'; id: string }
     | { kind: 'tradeEnterprise'; id: string }
+    | { kind: 'workshop'; id: string }
     | { kind: 'troops' };
   facilityKey: string;
 };

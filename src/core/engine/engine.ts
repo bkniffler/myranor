@@ -27,6 +27,7 @@ import type { GameEvent } from '../events/types';
 import {
   DEFAULT_CAMPAIGN_RULES,
   RULES_VERSION,
+  DEFAULT_DOMAIN_RAW_PICKS,
   DEFAULT_STARTER_DOMAIN_RAW_PICKS,
   baseInfluencePerRound,
   baseLaborTotal,
@@ -40,6 +41,7 @@ import {
   storageCapacity,
   storageUpkeep,
   workshopCapacity,
+  workshopFacilitySlotsMax,
   workshopUpkeep,
 } from '../rules/v1';
 import { getMaterialOrThrow, MATERIALS_V1 } from '../rules/materials_v1';
@@ -183,18 +185,17 @@ function materialTierRank(tier: string): number {
   }
 }
 
-const DEFAULT_DOMAIN_RAW_PICKS = [...DEFAULT_STARTER_DOMAIN_RAW_PICKS];
-
 function normalizeRawPicks(
   picks: string[] | undefined,
-  options: { requireCheapBasic?: boolean } = {},
+  options: { requireCheapBasic?: boolean; allowSingle?: boolean } = {},
 ): string[] {
   const list = (picks?.length ? picks : DEFAULT_DOMAIN_RAW_PICKS).map((id) => id.trim());
   const unique = Array.from(new Set(list));
   if (unique.length !== list.length) {
     throw new GameRuleError('INPUT', 'Material-Picks enthalten Duplikate.');
   }
-  if (unique.length !== 4) {
+  const allowSingle = Boolean(options.allowSingle);
+  if (unique.length !== 4 && (!allowSingle || unique.length !== 1)) {
     throw new GameRuleError('INPUT', 'Material-Picks muessen genau 4 Rohmaterialien enthalten.');
   }
   let cheap = 0;
@@ -213,16 +214,20 @@ function normalizeRawPicks(
   return unique;
 }
 
-function safeDomainRawPicks(domain: { rawPicks?: string[] }): string[] {
+function safeDomainRawPicks(domain: { rawPicks?: string[]; tier?: DomainTier }): string[] {
+  const allowSingle = domain.tier === 'starter';
+  const fallback = allowSingle
+    ? [...DEFAULT_STARTER_DOMAIN_RAW_PICKS]
+    : [...DEFAULT_DOMAIN_RAW_PICKS];
   try {
-    return normalizeRawPicks(domain.rawPicks);
+    return normalizeRawPicks(domain.rawPicks ?? fallback, { allowSingle });
   } catch {
-    return [...DEFAULT_DOMAIN_RAW_PICKS];
+    return fallback;
   }
 }
 
 function distributeRawAcrossPicks(total: number, picks: string[]): MaterialStock {
-  const normalized = normalizeRawPicks(picks);
+  const normalized = normalizeRawPicks(picks, { allowSingle: picks.length === 1 });
   const per = Math.floor(total / normalized.length);
   let remainder = total - per * normalized.length;
   const stock: MaterialStock = {};
@@ -1278,6 +1283,7 @@ export function applyEvent(
       let organizations = player.holdings.organizations;
       let offices = player.holdings.offices;
       let tradeEnterprises = player.holdings.tradeEnterprises;
+      let workshops = player.holdings.workshops;
       let troops = player.holdings.troops;
       const facility = {
         id: event.facilityInstanceId,
@@ -1320,6 +1326,13 @@ export function applyEvent(
             ? { ...t, facilities: [...t.facilities, facility] }
             : t,
         );
+      } else if (event.location.kind === 'workshop') {
+        const id = event.location.id;
+        workshops = workshops.map((w) =>
+          w.id === id
+            ? { ...w, facilities: [...w.facilities, facility] }
+            : w,
+        );
       } else if (event.location.kind === 'troops') {
         troops = {
           ...troops,
@@ -1334,6 +1347,7 @@ export function applyEvent(
         organizations,
         offices,
         tradeEnterprises,
+        workshops,
         troops,
       };
       return {
@@ -1461,6 +1475,24 @@ export function applyEvent(
                 ...player.holdings,
                 tradeEnterprises: player.holdings.tradeEnterprises.map((t) =>
                   t.id === tradeEnterpriseId ? { ...t, facilities: patchFacilities(t.facilities) as any } : t,
+                ),
+              },
+            },
+          },
+        };
+      }
+      if (event.location.kind === 'workshop') {
+        const workshopId = event.location.id;
+        return {
+          ...state,
+          players: {
+            ...state.players,
+            [event.playerId]: {
+              ...player,
+              holdings: {
+                ...player.holdings,
+                workshops: player.holdings.workshops.map((w) =>
+                  w.id === workshopId ? { ...w, facilities: patchFacilities(w.facilities) as any } : w,
                 ),
               },
             },
@@ -2363,6 +2395,7 @@ export function decide(
                     | { kind: 'organization'; id: string }
                     | { kind: 'office'; id: string }
                     | { kind: 'tradeEnterprise'; id: string }
+                    | { kind: 'workshop'; id: string }
                     | { kind: 'troops' };
                   id: string;
                 }
@@ -2388,6 +2421,9 @@ export function decide(
             }
             for (const t of player.holdings.tradeEnterprises) {
               for (const f of t.facilities) if (!f.damage) targets.push({ kind: 'facility', location: { kind: 'tradeEnterprise', id: t.id }, id: f.id });
+            }
+            for (const w of player.holdings.workshops) {
+              for (const f of w.facilities) if (!f.damage) targets.push({ kind: 'facility', location: { kind: 'workshop', id: w.id }, id: f.id });
             }
             for (const f of player.holdings.troops.facilities) if (!f.damage) targets.push({ kind: 'facility', location: { kind: 'troops' }, id: f.id });
 
@@ -3217,16 +3253,13 @@ export function decide(
 
           // Auto conversion (default): RM 4:1, SM 1:2.
           const convertedRawByType: MaterialStock = {};
-          const lostRawByType: MaterialStock = {};
           let goldFromRaw = 0;
           for (const [materialId, count] of Object.entries(rawRemaining)) {
             const divisor = rawAutoConvertDivisor(materialId, state.globalEvents, state.round);
-            const gold = Math.floor(count / divisor);
-            const consumed = gold * divisor;
+            const gold = count / divisor;
+            const consumed = count;
             goldFromRaw += gold;
             if (consumed > 0) convertedRawByType[materialId] = consumed;
-            const lost = count - consumed;
-            if (lost > 0) lostRawByType[materialId] = lost;
           }
 
           const convertedSpecialByType: MaterialStock = {};
@@ -3248,7 +3281,7 @@ export function decide(
               specialByType: convertedSpecialByType,
               goldGained: goldFromRaw + goldFromSpecial,
             },
-            lost: { rawLost: lostRawByType, specialLost: {} },
+            lost: { rawLost: {}, specialLost: {} },
           });
         }
       }
@@ -3650,7 +3683,7 @@ export function decide(
         (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
         0,
       );
-      const investmentCap = 3 + capFromTrade + capFromDomains;
+      const investmentCap = 2 + capFromTrade + capFromDomains;
       if (investments > investmentCap) {
         throw new GameRuleError('INPUT', `Zu viele Investitionen (max. ${investmentCap}).`);
       }
@@ -3818,7 +3851,7 @@ export function decide(
         (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
         0,
       );
-      const sellCap = 3 + capFromTrade + capFromDomains;
+      const sellCap = 2 + capFromTrade + capFromDomains;
       if (sellInvestments > sellCap) {
         throw new GameRuleError('INPUT', `Zu viele Investitionen (max. ${sellCap}).`);
       }
@@ -3887,7 +3920,7 @@ export function decide(
           baseCostGold += inv * 3;
           buyMarketDeltaGold +=
             inv *
-            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+            (-marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) -
               marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
           continue;
         }
@@ -3900,7 +3933,7 @@ export function decide(
           baseCostGold += inv * 3;
           buyMarketDeltaGold +=
             inv *
-            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+            (-marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) -
               marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
         }
       }
@@ -4053,7 +4086,7 @@ export function decide(
           baseCostGold += inv * 3;
           marketDeltaGold +=
             inv *
-            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+            (-marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) -
               marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
           continue;
         }
@@ -4066,7 +4099,7 @@ export function decide(
           baseCostGold += inv * 3;
           marketDeltaGold +=
             inv *
-            (marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) +
+            (-marketModifierPerInvestment(state, marketUsed.instanceId, item.materialId) -
               marketDeltaPerInvestment(item.materialId, state.globalEvents, state.round));
         }
       }
@@ -4231,9 +4264,9 @@ export function decide(
         else if (tier === 'poor') perInvRaw = 1;
         else perInvRaw = 0;
       } else {
-        if (tier === 'veryGood') perInvSpecial = 3;
-        else if (tier === 'good') perInvSpecial = 2;
-        else if (tier === 'success') perInvSpecial = 1;
+        if (tier === 'veryGood') perInvSpecial = 4;
+        else if (tier === 'good') perInvSpecial = 3;
+        else if (tier === 'success') perInvSpecial = 2;
         else if (tier === 'poor') perInvSpecial = 0.5;
         else perInvSpecial = 0;
       }
@@ -5147,6 +5180,16 @@ export function decide(
             if (te) {
               usedSlots = te.facilities.length;
               maxSlots = 2 * postTierRank(te.tier);
+            }
+          }
+          break;
+        case 'workshop':
+          {
+            const workshop = player.holdings.workshops.find((w) => w.id === location.id);
+            existingFacilities = workshop?.facilities;
+            if (workshop) {
+              usedSlots = workshop.facilities.length;
+              maxSlots = workshopFacilitySlotsMax(workshop.tier);
             }
           }
           break;

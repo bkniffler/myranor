@@ -1,11 +1,26 @@
 import { type LanguageModel, Output, generateText } from 'ai';
 import { z } from 'zod';
 
-import type { GameCommand, PlayerState } from '../core';
+import {
+  asUserId,
+  createSeededRng,
+  decide,
+  reduceEvents,
+  type ActorContext,
+  type CampaignState,
+  type GameCommand,
+  type PlayerState,
+} from '../core';
+import { facilityInfluencePerRound, workshopFacilitySlotsMax } from '../core/rules/v1';
 import { getMaterialOrThrow, MATERIALS_V1 } from '../core/rules/materials_v1';
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { llmEnv } from '../llm/env';
+import {
+  computeNetWorth,
+  FULL_NET_WORTH_WEIGHTS,
+  type NetWorthWeights,
+} from './plannerScore';
 import {
   bonusMaterialsSlots,
   bonusMoneySlots,
@@ -27,6 +42,28 @@ type Candidate = {
   summary: string;
 };
 
+type McCandidate = {
+  id: string;
+  kind: 'facility' | 'action';
+  command: GameCommand | null;
+  summary: string;
+  possibleNow: boolean;
+};
+
+type McScoredCandidate = {
+  candidate: McCandidate;
+  mean: number;
+  p10: number;
+  p90: number;
+  samples: number;
+};
+
+const MC_TOP_N_ACTION = 8;
+const MC_TOP_N_FACILITY = 6;
+const MC_ROLLOUTS = 2;
+const MC_DEPTH = 3;
+const MC_MAX_ACTION_CANDIDATES = 18;
+
 export type LlmFacilityPlan = {
   facility: AgentCommand | null;
   note: string | null;
@@ -47,12 +84,12 @@ export type LlmActionPlan = {
 
 const facilityDecisionSchema = z.object({
   facilityCandidateId: z.string().nullable(),
-  note: z.string().optional(),
+  note: z.string().min(1).max(400),
 });
 
 const actionDecisionSchema = z.object({
   actionCandidateId: z.string(),
-  note: z.string().optional(),
+  note: z.string().min(1).max(400),
 });
 
 function sumStock(stock: Record<string, number>): number {
@@ -71,6 +108,163 @@ function formatStockSummary(
     .slice(0, limit)
     .map(([id, count]) => `${id}x${Math.trunc(count ?? 0)}`);
   return entries.length > 0 ? entries.join(', ') : '-';
+}
+
+type McContext = {
+  userId: string;
+  weights: NetWorthWeights;
+  seedSalt: string;
+  rollouts: number;
+  depth: number;
+  bufferFactor: number;
+  maxActionCandidates: number;
+};
+
+function hashStringToSeed(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function patchCampaignId(command: GameCommand, campaignId: string): GameCommand {
+  return { ...command, campaignId } as GameCommand;
+}
+
+function getPlayerByUserId(state: CampaignState, userId: string): PlayerState {
+  const playerId = state.playerIdByUserId[asUserId(userId)];
+  const player = state.players[playerId];
+  if (!player) throw new Error(`Player missing for userId=${userId}`);
+  return player;
+}
+
+function tryExecute(
+  state: CampaignState,
+  command: GameCommand,
+  actor: ActorContext,
+  rng: ReturnType<typeof createSeededRng>
+): CampaignState | null {
+  try {
+    const events = decide(state, patchCampaignId(command, state.id), {
+      actor,
+      rng,
+      emitPublicLogs: false,
+    });
+    return reduceEvents(state, events) as CampaignState;
+  } catch {
+    return null;
+  }
+}
+
+function tryAdvanceToNextRoundActions(
+  state: CampaignState,
+  rng: ReturnType<typeof createSeededRng>
+): CampaignState | null {
+  const gm: ActorContext = { role: 'gm', userId: 'gm' };
+  let s = tryExecute(state, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
+  if (!s) return null;
+  s = tryExecute(s, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
+  if (!s) return null;
+  s = tryExecute(s, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
+  if (!s) return null;
+  s = tryExecute(s, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
+  if (!s) return null;
+  return s;
+}
+
+function weightsForStrategy(strategyCard?: StrategyCard): NetWorthWeights {
+  if (!strategyCard?.title) return { ...FULL_NET_WORTH_WEIGHTS };
+  return { ...FULL_NET_WORTH_WEIGHTS };
+}
+
+function evaluateTerminalOnce(state: CampaignState, ctx: McContext, tag: string): number | null {
+  const rng = createSeededRng(hashStringToSeed(`${ctx.seedSalt}|terminal|${tag}`));
+  const next = tryAdvanceToNextRoundActions(state, rng);
+  if (!next) return null;
+  const me = getPlayerByUserId(next, ctx.userId);
+  return computeNetWorth(next, me, ctx.weights).score;
+}
+
+function pickBestFollowUpScore(state: CampaignState, ctx: McContext, tag: string): number | null {
+  if (ctx.depth <= 1) return null;
+  const me = getPlayerByUserId(state, ctx.userId);
+  const actionCandidates = buildActionCandidates({
+    round: state.round,
+    me,
+    state: { market: state.market },
+    bufferFactor: ctx.bufferFactor,
+  });
+  const allowed = filterActionCandidates(
+    me,
+    actionCandidates,
+    state.rules.actionsPerRound
+  ).slice(
+    0,
+    Math.max(1, ctx.maxActionCandidates)
+  );
+  if (allowed.length === 0) return null;
+  const actor: ActorContext = { role: 'player', userId: ctx.userId };
+  let best: number | null = null;
+  for (const candidate of allowed) {
+    const rng = createSeededRng(
+      hashStringToSeed(`${ctx.seedSalt}|follow|${tag}|${candidate.id}`)
+    );
+    const next = tryExecute(state, candidate.command, actor, rng);
+    if (!next) continue;
+    const score = evaluateTerminalOnce(next, ctx, `${tag}|${candidate.id}`);
+    if (score == null) continue;
+    if (best == null || score > best) best = score;
+  }
+  return best;
+}
+
+function scoreCandidateWithMc(
+  state: CampaignState,
+  candidate: McCandidate,
+  ctx: McContext
+): McScoredCandidate | null {
+  const actor: ActorContext = { role: 'player', userId: ctx.userId };
+  const samples: number[] = [];
+  for (let i = 0; i < ctx.rollouts; i += 1) {
+    const rng = createSeededRng(
+      hashStringToSeed(`${ctx.seedSalt}|cand|${candidate.id}|${i}`)
+    );
+    const next = candidate.command ? tryExecute(state, candidate.command, actor, rng) : state;
+    if (!next) continue;
+    const tag = `${candidate.id}|${i}`;
+    const followUp = pickBestFollowUpScore(next, ctx, tag);
+    const score = followUp ?? evaluateTerminalOnce(next, ctx, tag);
+    if (score == null) continue;
+    samples.push(score);
+  }
+  if (samples.length === 0) return null;
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const p10 = sorted[Math.floor((sorted.length - 1) * 0.1)];
+  const p90 = sorted[Math.floor((sorted.length - 1) * 0.9)];
+  return { candidate, mean, p10, p90, samples: samples.length };
+}
+
+function scoreCandidatesWithMc(
+  state: CampaignState,
+  candidates: McCandidate[],
+  ctx: McContext
+): McScoredCandidate[] {
+  const scored: McScoredCandidate[] = [];
+  for (const candidate of candidates) {
+    if (!candidate.possibleNow) continue;
+    const score = scoreCandidateWithMc(state, candidate, ctx);
+    if (score) scored.push(score);
+  }
+  scored.sort((a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id));
+  return scored;
+}
+
+function formatMcScore(score: McScoredCandidate): string {
+  const fmt = (value: number) => Math.round(value * 100) / 100;
+  return `mc=${fmt(score.mean)} p10=${fmt(score.p10)} p90=${fmt(score.p90)}`;
 }
 
 function postTierRank(tier: 'small' | 'medium' | 'large'): number {
@@ -129,6 +323,133 @@ function strategyWantsOffices(
   if (systemPreamble) parts.push(systemPreamble);
   const hay = parts.join(' ').toLowerCase();
   return hay.includes('amt') || hay.includes('aemter');
+}
+
+function strategyWantsMoney(
+  strategyCard?: StrategyCard,
+  systemPreamble?: string
+): boolean {
+  const parts: string[] = [];
+  if (strategyCard?.title) parts.push(strategyCard.title);
+  if (strategyCard?.primary) parts.push(...strategyCard.primary);
+  if (strategyCard?.secondary) parts.push(...strategyCard.secondary);
+  if (systemPreamble) parts.push(systemPreamble);
+  const hay = parts.join(' ').toLowerCase();
+  return (
+    hay.includes('handel') ||
+    hay.includes('geld') ||
+    hay.includes('money') ||
+    hay.includes('trade')
+  );
+}
+
+function strategyWantsUnderworld(
+  strategyCard?: StrategyCard,
+  systemPreamble?: string
+): boolean {
+  const parts: string[] = [];
+  if (strategyCard?.title) parts.push(strategyCard.title);
+  if (strategyCard?.primary) parts.push(...strategyCard.primary);
+  if (strategyCard?.secondary) parts.push(...strategyCard.secondary);
+  if (strategyCard?.avoid) parts.push(...strategyCard.avoid);
+  if (systemPreamble) parts.push(systemPreamble);
+  const hay = parts.join(' ').toLowerCase();
+  return hay.includes('unterwelt');
+}
+
+function underworldTier(me: PlayerState): number {
+  return Math.max(
+    0,
+    ...me.holdings.organizations
+      .filter((o) => o.kind === 'underworld')
+      .map((o) => postTierRank(o.tier))
+  );
+}
+
+function isInfluencePostCommand(cmd?: GameCommand | null): boolean {
+  if (!cmd) return false;
+  if (cmd.type === 'AcquireOffice') return true;
+  if (cmd.type === 'AcquireOrganization') return true;
+  if (cmd.type === 'AcquireTenants') return true;
+  if (cmd.type === 'RecruitTroops') {
+    return cmd.troopKind === 'bodyguard' || cmd.troopKind === 'thug';
+  }
+  return false;
+}
+
+function findTempInfluenceUnlockCandidate(params: {
+  state: CampaignState;
+  me: PlayerState;
+  userId: string;
+  round: number;
+  actionSlot: number;
+  actionsPerRound: number;
+  actionCandidates: Candidate[];
+  allowedCandidates: Candidate[];
+}): Candidate | null {
+  const {
+    state,
+    me,
+    userId,
+    round,
+    actionSlot,
+    actionsPerRound,
+    actionCandidates,
+    allowedCandidates,
+  } = params;
+
+  const baseRemaining = actionsPerRound - me.turn.actionsUsed;
+  const canUseBonusInfluence = hasRemainingInfluenceBonus(me);
+  const canTempThenPost =
+    baseRemaining >= 2 || (baseRemaining >= 1 && canUseBonusInfluence);
+  if (!canTempThenPost) return null;
+
+  const alreadyPossiblePost = allowedCandidates.some((c) =>
+    isInfluencePostCommand(c.command)
+  );
+  if (alreadyPossiblePost) return null;
+
+  const tempCandidates = allowedCandidates
+    .filter(
+      (c) =>
+        c.command?.type === 'GainInfluence' && c.command.kind === 'temporary'
+    )
+    .sort((a, b) => {
+      const aInv =
+        a.command?.type === 'GainInfluence' ? a.command.investments : 0;
+      const bInv =
+        b.command?.type === 'GainInfluence' ? b.command.investments : 0;
+      return aInv - bInv;
+    });
+  if (tempCandidates.length === 0) return null;
+
+  const postCandidates = actionCandidates.filter((c) =>
+    isInfluencePostCommand(c.command)
+  );
+  if (postCandidates.length === 0) return null;
+
+  const actor: ActorContext = { role: 'player', userId };
+
+  for (const temp of tempCandidates) {
+    const tempRng = createSeededRng(
+      hashStringToSeed(
+        `${state.id}|${userId}|r${round}|slot${actionSlot}|temp|${temp.id}`
+      )
+    );
+    const tempState = tryExecute(state, temp.command!, actor, tempRng);
+    if (!tempState) continue;
+    for (const post of postCandidates) {
+      const postRng = createSeededRng(
+        hashStringToSeed(
+          `${state.id}|${userId}|r${round}|slot${actionSlot}|post|${temp.id}|${post.id}`
+        )
+      );
+      const postState = tryExecute(tempState, post.command!, actor, postRng);
+      if (postState) return temp;
+    }
+  }
+
+  return null;
 }
 
 function officeRequirements(me: PlayerState): OfficeRequirement[] {
@@ -240,7 +561,19 @@ function dedupeCandidates(candidates: Candidate[]): Candidate[] {
   });
 }
 
-function sellBuyInvestmentCap(me: PlayerState): number {
+function sellInvestmentCap(me: PlayerState): number {
+  const capFromTrade = me.holdings.tradeEnterprises.reduce(
+    (sum, te) => sum + 2 * postTierRank(te.tier),
+    0
+  );
+  const capFromDomains = me.holdings.domains.reduce(
+    (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
+    0
+  );
+  return 2 + capFromTrade + capFromDomains;
+}
+
+function buyInvestmentCap(me: PlayerState): number {
   const capFromTrade = me.holdings.tradeEnterprises.reduce(
     (sum, te) => sum + 2 * postTierRank(te.tier),
     0
@@ -401,7 +734,19 @@ function buildFacilityCandidates(
   }
 
   const leasedCity = citiesByTier.find((c) => c.mode === 'leased');
-  if (leasedCity) {
+  const minGoldForCityProduction = buffered(8, bufferFactor);
+  const canBuildProductionInCity = leasedCity
+    ? countFacilitySlotsUsedAtCity(me.holdings, leasedCity.id) + 1 <=
+        cityFacilitySlotsMax(leasedCity.tier) &&
+      countProductionUnitsUsedAtCity(me.holdings, leasedCity.id) +
+        tierUnits('small') <=
+        productionCapacityUnitsMaxForCity(leasedCity.tier)
+    : false;
+  if (
+    leasedCity &&
+    canBuildProductionInCity &&
+    me.economy.gold >= minGoldForCityProduction
+  ) {
     candidates.push({
       id: `facility.city.mode.production.${leasedCity.id}`,
       kind: 'facility',
@@ -413,7 +758,7 @@ function buildFacilityCandidates(
       },
       actionKey: null,
       possibleNow: true,
-      summary: `Stadtbesitz ${leasedCity.id} auf Produktion umstellen.`,
+      summary: `Stadtbesitz ${leasedCity.id} auf Produktion umstellen (nur wenn Werkstatt/Lager bau moeglich; mind. ${minGoldForCityProduction} Gold).`,
     });
   }
 
@@ -451,6 +796,117 @@ function buildFacilityCandidates(
       possibleNow: true,
       summary: `Amt ${officeMode.id} auf Gold-Ertrag umstellen.`,
     });
+  }
+  const officeSplit = me.holdings.offices.find((o) => o.yieldMode !== 'split');
+  if (officeSplit) {
+    candidates.push({
+      id: `facility.office.mode.split.${officeSplit.id}`,
+      kind: 'facility',
+      command: {
+        type: 'SetOfficeYieldMode',
+        campaignId: '',
+        officeId: officeSplit.id,
+        mode: 'split',
+      },
+      actionKey: null,
+      possibleNow: true,
+      summary: `Amt ${officeSplit.id} auf Split-Ertrag umstellen (50/50 Gold + Einfluss).`,
+    });
+  }
+
+  const facilitySizes = [
+    { size: 'small', general: 8, special: 10 },
+    { size: 'medium', general: 12, special: 20 },
+    { size: 'large', general: 30, special: 40 },
+  ] as const;
+
+  const pushFacilityBuildOptions = (
+    location: { kind: 'office' | 'tradeEnterprise' | 'workshop'; id: string },
+    label: string,
+    usedSlots: number,
+    maxSlots: number,
+    influenceKind: 'office' | 'tradeEnterprise' | 'workshop'
+  ) => {
+    if (usedSlots + 1 > maxSlots) return;
+    for (const tier of facilitySizes) {
+      const generalKey = `general.${tier.size}.${influenceKind}`;
+      const specialKey = `special.${tier.size}.${influenceKind}`;
+      const generalInfluence = facilityInfluencePerRound(
+        generalKey,
+        influenceKind
+      );
+      const specialInfluence = facilityInfluencePerRound(
+        specialKey,
+        influenceKind
+      );
+      candidates.push({
+        id: `facility.${location.kind}.${location.id}.general.${tier.size}`,
+        kind: 'facility',
+        command: {
+          type: 'BuildFacility',
+          campaignId: '',
+          location,
+          facilityKey: generalKey,
+        },
+        actionKey: null,
+        possibleNow: me.economy.gold >= buffered(tier.general, bufferFactor),
+        summary:
+          `Allg. Einrichtung (${tier.size}) bauen an ${label} ` +
+          `(${tier.general} Gold, +${generalInfluence} Einfluss/Runde).`,
+      });
+      candidates.push({
+        id: `facility.${location.kind}.${location.id}.special.${tier.size}`,
+        kind: 'facility',
+        command: {
+          type: 'BuildFacility',
+          campaignId: '',
+          location,
+          facilityKey: specialKey,
+        },
+        actionKey: null,
+        possibleNow: me.economy.gold >= buffered(tier.special, bufferFactor),
+        summary:
+          `Bes. Einrichtung (${tier.size}) bauen an ${label} ` +
+          `(${tier.special} Gold, +${specialInfluence} Einfluss/Runde).`,
+      });
+    }
+  };
+
+  for (const office of me.holdings.offices) {
+    const used =
+      office.facilities.length + (office.specialization?.facilities.length ?? 0);
+    const max = cityFacilitySlotsMax(office.tier);
+    pushFacilityBuildOptions(
+      { kind: 'office', id: office.id },
+      `Amt ${office.id}`,
+      used,
+      max,
+      'office'
+    );
+  }
+
+  for (const trade of me.holdings.tradeEnterprises) {
+    const used = trade.facilities.length;
+    const max = 2 * postTierRank(trade.tier);
+    pushFacilityBuildOptions(
+      { kind: 'tradeEnterprise', id: trade.id },
+      `Handelsunternehmung ${trade.id}`,
+      used,
+      max,
+      'tradeEnterprise'
+    );
+  }
+
+  for (const workshop of me.holdings.workshops) {
+    const used = workshop.facilities.length;
+    const max = workshopFacilitySlotsMax(workshop.tier);
+    pushFacilityBuildOptions(
+      { kind: 'workshop', id: workshop.id },
+      `Werkstatt ${workshop.id}`,
+      used,
+      max,
+      'workshop'
+    );
   }
 
   const specDomain = domainsByTier.find(
@@ -886,7 +1342,7 @@ function formatMarketSnapshot(
   };
 
   return instances.map((inst) => {
-    const best = buildSellItems(me, inst, sellBuyInvestmentCap(me));
+    const best = buildSellItems(me, inst, sellInvestmentCap(me));
     const bestInv =
       best && best.topIds.length > 0
         ? `${best.topIds.join(', ')} (mod≈${best.topScore})`
@@ -930,8 +1386,17 @@ function formatStrategyCard(card: StrategyCard): string[] {
 
 function filterActionCandidates(
   me: PlayerState,
-  candidates: Candidate[]
+  candidates: Candidate[],
+  actionsPerRound: number
 ): Candidate[] {
+  const baseRemaining = actionsPerRound - me.turn.actionsUsed;
+  const allowBase = baseRemaining > 0;
+  const allowBonusInfluence = hasRemainingInfluenceBonus(me);
+  const allowBonusMoney =
+    bonusMoneySlots(me) > 0 && !hasUsedMarker(me, 'bonus.money.1');
+  const allowBonusMaterials =
+    bonusMaterialsSlots(me) > 0 && !hasUsedMarker(me, 'bonus.materials.1');
+
   return candidates.filter((c) => {
     if (!c.possibleNow) return false;
     if (!c.actionKey) return true;
@@ -942,22 +1407,10 @@ function filterActionCandidates(
       return false;
     }
     const used = hasUsedCanonicalAction(me, c.actionKey);
-    if (!used) return true;
-    if (c.actionKey === 'influence') return hasRemainingInfluenceBonus(me);
-    if (
-      c.actionKey.startsWith('money.') &&
-      bonusMoneySlots(me) > 0 &&
-      !hasUsedMarker(me, 'bonus.money.1')
-    ) {
-      return true;
-    }
-    if (
-      c.actionKey.startsWith('materials.') &&
-      bonusMaterialsSlots(me) > 0 &&
-      !hasUsedMarker(me, 'bonus.materials.1')
-    ) {
-      return true;
-    }
+    if (!used && allowBase) return true;
+    if (c.actionKey === 'influence') return allowBonusInfluence;
+    if (c.actionKey.startsWith('money.')) return allowBonusMoney;
+    if (c.actionKey.startsWith('materials.')) return allowBonusMaterials;
     return false;
   });
 }
@@ -1052,7 +1505,7 @@ function buildMoneySellCandidates(
   maxInvestments?: number
 ): Candidate[] {
   const me = state.me;
-  const cap = sellBuyInvestmentCap(me);
+  const cap = sellInvestmentCap(me);
   const budgetMax = Math.max(
     0,
     Math.min(cap, Math.trunc(maxInvestments ?? cap))
@@ -1135,13 +1588,13 @@ function estimateBuyCost(
       const inv = Math.floor(count / 5);
       baseCost += inv * 3;
       const mod = Math.trunc(inst.raw.modifiersByGroup[mat.marketGroup] ?? 0);
-      deltaCost += inv * Math.max(0, mod);
+      deltaCost += inv * -mod;
       continue;
     }
     const inv = count;
     baseCost += inv * 3;
     const mod = Math.trunc(inst.special.modifiersByGroup[mat.marketGroup] ?? 0);
-    deltaCost += inv * Math.max(0, mod);
+    deltaCost += inv * -mod;
   }
   return baseCost + deltaCost;
 }
@@ -1153,7 +1606,7 @@ function buildBestBuyItems(
   for (const material of Object.values(MATERIALS_V1)) {
     if (material.kind !== 'raw') continue;
     const mod = Math.trunc(inst.raw.modifiersByGroup[material.marketGroup] ?? 0);
-    if (!bestRaw || mod < bestRaw.score || (mod === bestRaw.score && material.id < bestRaw.id)) {
+    if (!bestRaw || mod > bestRaw.score || (mod === bestRaw.score && material.id < bestRaw.id)) {
       bestRaw = { id: material.id, score: mod };
     }
   }
@@ -1169,7 +1622,7 @@ function buildMoneySellBuyCandidates(
   maxInvestments?: number
 ): Candidate[] {
   const me = state.me;
-  const cap = sellBuyInvestmentCap(me);
+  const cap = sellInvestmentCap(me);
   const budgetMax = Math.max(
     0,
     Math.min(cap, Math.trunc(maxInvestments ?? cap))
@@ -1214,7 +1667,7 @@ function buildMoneyBuyCandidates(
   maxInvestments?: number
 ): Candidate[] {
   const me = state.me;
-  const cap = sellBuyInvestmentCap(me);
+  const cap = buyInvestmentCap(me);
   const budgetMax = Math.max(
     0,
     Math.min(cap, Math.trunc(maxInvestments ?? cap))
@@ -1420,7 +1873,7 @@ function buildActionCandidates(options: {
   {
     const sells = buildMoneySellCandidates(
       { me, market: options.state.market },
-      sellBuyInvestmentCap(me)
+      sellInvestmentCap(me)
     );
     candidates.push(...sells);
   }
@@ -1428,7 +1881,7 @@ function buildActionCandidates(options: {
   {
     const sellBuy = buildMoneySellBuyCandidates(
       { me, market: options.state.market },
-      sellBuyInvestmentCap(me)
+      sellInvestmentCap(me)
     );
     candidates.push(...sellBuy);
   }
@@ -1436,7 +1889,7 @@ function buildActionCandidates(options: {
   {
     const buys = buildMoneyBuyCandidates(
       { me, market: options.state.market },
-      sellBuyInvestmentCap(me)
+      buyInvestmentCap(me)
     );
     candidates.push(...buys);
   }
@@ -1850,8 +2303,10 @@ function buildActionCandidates(options: {
 function ruleCheatSheet(): string {
   return [
     'Regelhinweise (v1, stark verkürzt):',
-    '- Zielwertung: Gold + Inventarwert + Assets + Einfluss (grob).',
+    '- Zielwertung (GoldEq): Gold + Inventarwert + Assets (Preis + erwarteter ROI) + Einfluss (GoldEq).',
     '- Pro Runde: 2 Aktionen + 1 freie Einrichtungs-/Ausbauaktion (Sonderaktion).',
+    '- Einrichtungen an Aemtern/Werkstaetten/Handel geben Einfluss pro Runde (general: +1/+2/+3; special: +2/+3/+4).',
+    '- Aemter koennen auf Einfluss, Gold oder Split (50/50) gestellt werden.',
     '- Pro Runde je ActionKey nur 1x (Ausnahme: Einfluss-Bonusaktionen, falls verfügbar).',
     '- Verkauf kann optional einen Kauf im selben Zug enthalten (belegt money.sell und money.buy).',
     '- MoneyBuy ermoeglicht reinen Einkauf (5 RM oder 1 SM pro Invest).',
@@ -1861,6 +2316,7 @@ function ruleCheatSheet(): string {
     '- Veredelungs-Einrichtungen werten Werkstatt-Output pro Stufe um 1 Kategorie auf.',
     '- Rohmaterial/Sondermaterial wird am Rundenende auto-konvertiert (RM 4:1, SM 1:2), außer gelagert.',
     '- Verkauf: je 6 RM oder 1 SM = 1 Investment; Marktsystem kann Wert pro Investment verändern.',
+    '- Einkauf: je 5 RM oder 1 SM = 1 Investment; Markt-Modifier wirken invers (hoher Mod = guenstiger).',
     '- Fehlschlag bei Erwerb-Posten (Domäne/Stadt/Ämter/Circel/Truppen/Pächter): Aktion verbraucht, Ressourcen bleiben erhalten.',
     '- Check-Bonus skaliert: Basis +1 ab Runde 10, 20, 30 (effektiv = base + floor(Runde/10)).',
   ].join('\n');
@@ -1873,9 +2329,17 @@ function summarizeIds(ids: string[], limit = 20): string {
     : `${shown.join(', ')}, … (+${ids.length - limit})`;
 }
 
+function normalizeNote(note: string | null | undefined): string | null {
+  if (!note) return null;
+  const cleaned = note.replace(/\s+/g, ' ').trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 export async function planFacilityWithLlm(options: {
   model: LanguageModel;
   agentName: string;
+  userId: string;
+  state: CampaignState;
   me: PlayerState;
   round: number;
   publicLog: string[];
@@ -1891,18 +2355,89 @@ export async function planFacilityWithLlm(options: {
   const facilityCandidates = buildFacilityCandidates(options.me, bufferFactor);
   const possibleFacilities = facilityCandidates.filter((c) => c.possibleNow);
   if (possibleFacilities.length === 0) {
-    return { facility: null, note: null };
+    return { facility: null, note: 'keine Facility verfuegbar' };
   }
+
+  const mcCandidates: McCandidate[] = [
+    {
+      id: 'null',
+      kind: 'facility',
+      command: null,
+      summary: 'keine Facility',
+      possibleNow: true,
+    },
+    ...possibleFacilities.map((c) => ({
+      id: c.id,
+      kind: c.kind,
+      command: c.command,
+      summary: c.summary,
+      possibleNow: c.possibleNow,
+    })),
+  ];
+  const mcContext: McContext = {
+    userId: options.userId,
+    weights: weightsForStrategy(options.strategyCard),
+    seedSalt: `${options.state.id}|${options.userId}|r${options.round}|facility`,
+    rollouts: MC_ROLLOUTS,
+    depth: MC_DEPTH,
+    bufferFactor,
+    maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
+  };
+  const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
+  if (mcRanked.length === 0) {
+    throw new Error(
+      `[LLM] ${options.agentName} R${options.round} facility: MC ranking empty`
+    );
+  }
+  const mcTopBase = mcRanked.slice(0, MC_TOP_N_FACILITY);
+  const nullScore = mcRanked.find((c) => c.candidate.command == null);
+  const mcTop = [...mcTopBase];
+  if (nullScore && !mcTop.some((c) => c.candidate.command == null)) {
+    mcTop.push(nullScore);
+  }
+  const shouldPreferOfficeSplit =
+    strategyWantsOffices(options.strategyCard, options.systemPreamble) &&
+    options.round >= 2;
+  if (shouldPreferOfficeSplit) {
+    const splitCandidate = facilityCandidates.find(
+      (c) =>
+        c.command?.type === 'SetOfficeYieldMode' &&
+        c.command.mode === 'split' &&
+        c.possibleNow
+    );
+    if (
+      splitCandidate &&
+      !mcTop.some((c) => c.candidate.id === splitCandidate.id)
+    ) {
+      const scored = mcRanked.find(
+        (c) => c.candidate.id === splitCandidate.id
+      );
+      if (scored) mcTop.push(scored);
+    }
+  }
+  const allowNullFacility = true;
+  const allowedFacilityCandidates = mcTop
+    .filter((c) => c.candidate.command != null)
+    .map((c) => c.candidate);
+  const allowedFacilityIds = new Set(
+    allowedFacilityCandidates.map((c) => c.id)
+  );
+  const allowedFacilityCandidatesTop = facilityCandidates.filter((c) =>
+    allowedFacilityIds.has(c.id)
+  );
 
   const system = [
     options.systemPreamble?.trim(),
     'Du bist ein Spieler-Agent im Myranor Aufbausystem.',
     'Du darfst nur Candidate-IDs aus der Liste auswählen (keine eigenen Commands erfinden).',
-    'Ziel: Maximiere deinen Gesamt-Score (Gold + Assets + Einfluss).',
+    'Ziel: Maximiere deinen Gesamt-Score (GoldEq).',
     'Wähle genau eine Facility-Candidate-ID oder null (Sonderaktion).',
     'Diese Sonderaktion wird nur einmal pro Runde abgefragt.',
+    `Du siehst die MC Top-${MC_TOP_N_FACILITY} Optionen (plus ggf. "null" zum Aussetzen).`,
+    'Wähle ausschließlich aus dieser Liste; wenn du einen niedrigeren MC-Score nimmst, begründe es klar mit der Strategie.',
     'Wähle ausschließlich IDs aus dieser Liste; kopiere sie exakt (keine eigenen Zahlen/Varianten).',
     'Bevorzuge Kandidaten mit [now]; wähle [later?] nur wenn keine [now] existieren.',
+    'Gib im Feld "note" eine kurze Begründung (1 Satz) für deine Entscheidung an.',
     'Antworte auf Deutsch, im JSON Format.',
     ruleCheatSheet(),
   ]
@@ -1952,10 +2487,16 @@ export async function planFacilityWithLlm(options: {
     promptLines.push('');
   }
 
-  promptLines.push('Facility-Candidates:');
-  for (const c of possibleFacilities) {
+  promptLines.push(
+    `Facility-Candidates (MC Top ${mcTop.length}, depth=${MC_DEPTH}, rollouts=${MC_ROLLOUTS}):`
+  );
+  for (const scored of mcTop) {
+    const c = scored.candidate;
+    const label = c.command ? c.id : 'null';
     const possible = c.possibleNow ? 'now' : 'later?';
-    promptLines.push(`- ${c.id} [${possible}]: ${c.summary}`);
+    promptLines.push(
+      `- ${label} [${possible}]: ${c.summary} | ${formatMcScore(scored)}`
+    );
   }
 
   const maxPlanAttempts = 3;
@@ -1972,7 +2513,7 @@ export async function planFacilityWithLlm(options: {
       const attemptPrompt = [
         ...promptLines,
         attempt > 1 && lastError
-          ? `\nACHTUNG: Deine letzte Antwort war ungültig: ${lastError.message}\nAntworte erneut mit korrekter Facility-ID (nur [now]) oder null.`
+          ? `\nACHTUNG: Deine letzte Antwort war ungültig: ${lastError.message}\nAntworte erneut mit korrekter Facility-ID (nur [now]) oder null und einer kurzen note.`
           : null,
       ]
         .filter(Boolean)
@@ -2011,36 +2552,47 @@ export async function planFacilityWithLlm(options: {
     }
 
     try {
-      const facilityId = raw.facilityCandidateId;
-      if (
-        facilityId != null &&
-        !facilityCandidates.some((c) => c.id === facilityId)
-      ) {
-        throw new Error(
-          `unknown facilityCandidateId "${facilityId}". Valid: ${summarizeIds(
-            facilityCandidates.map((c) => c.id)
-          )}`
+      const facilityIdRaw = raw.facilityCandidateId;
+      const normalized =
+        typeof facilityIdRaw === 'string'
+          ? facilityIdRaw.trim().toLowerCase()
+          : null;
+      const facilityId =
+        normalized === 'null' || normalized === 'none' ? null : facilityIdRaw;
+      const note = normalizeNote(raw.note);
+      if (!note) throw new Error('note missing or empty');
+      if (facilityId == null) {
+        if (!allowNullFacility) {
+          throw new Error('null facility ist nicht in der MC Top-Liste');
+        }
+      } else {
+        const allowed = allowedFacilityCandidatesTop.find(
+          (c) => c.id === facilityId
         );
-      }
-      if (
-        facilityId != null &&
-        !facilityCandidates.find((c) => c.id === facilityId)?.possibleNow
-      ) {
-        throw new Error(`facilityCandidateId "${facilityId}" is not [now]`);
+        if (!allowed) {
+          throw new Error(
+            `unknown facilityCandidateId "${facilityId}". Valid: ${summarizeIds(
+              allowedFacilityCandidatesTop.map((c) => c.id)
+            )}`
+          );
+        }
+        if (!allowed.possibleNow) {
+          throw new Error(`facilityCandidateId "${facilityId}" is not [now]`);
+        }
       }
 
       const facility =
         facilityId == null
           ? null
-          : (facilityCandidates.find((c) => c.id === facilityId)?.command ??
-              null);
+          : (allowedFacilityCandidatesTop.find((c) => c.id === facilityId)
+              ?.command ?? null);
 
       return {
         facility,
-        note: raw.note?.trim() ? raw.note.trim() : null,
+        note,
         debug: llmEnv.MYRANOR_LLM_DEBUG
           ? {
-              facilityCandidates,
+              facilityCandidates: allowedFacilityCandidatesTop,
               rawModelOutput: raw,
             }
           : undefined,
@@ -2063,6 +2615,8 @@ export async function planFacilityWithLlm(options: {
 export async function planActionWithLlm(options: {
   model: LanguageModel;
   agentName: string;
+  userId: string;
+  state: CampaignState;
   me: PlayerState;
   round: number;
   actionSlot: number;
@@ -2085,41 +2639,241 @@ export async function planActionWithLlm(options: {
     state: { market: options.market },
     bufferFactor,
   });
-  const allowedCandidates = filterActionCandidates(
+  let allowedCandidates = filterActionCandidates(
     options.me,
-    actionCandidates
+    actionCandidates,
+    options.actionsPerRound
   );
+  if (
+    strategyWantsUnderworld(options.strategyCard, options.systemPreamble) &&
+    underworldTier(options.me) < 2
+  ) {
+    const filtered = allowedCandidates.filter((c) => {
+      const cmd = c.command;
+      if (!cmd) return true;
+      if (cmd.type === 'AcquireOffice') return false;
+      if (cmd.type === 'AcquireTradeEnterprise') return false;
+      if (
+        cmd.type === 'AcquireOrganization' &&
+        cmd.kind !== 'underworld' &&
+        cmd.kind !== 'spy'
+      ) {
+        return false;
+      }
+      return true;
+    });
+    if (filtered.length > 0) allowedCandidates = filtered;
+  }
+
+  const tempUnlockCandidate =
+    strategyWantsOffices(options.strategyCard, options.systemPreamble)
+      ? findTempInfluenceUnlockCandidate({
+          state: options.state,
+          me: options.me,
+          userId: options.userId,
+          round: options.round,
+          actionSlot: options.actionSlot,
+          actionsPerRound: options.actionsPerRound,
+          actionCandidates,
+          allowedCandidates,
+        })
+      : null;
+
+  if (tempUnlockCandidate) {
+    allowedCandidates = allowedCandidates.filter((c) => {
+      if (c.command?.type !== 'GainInfluence') return true;
+      return c.command.kind !== 'permanent';
+    });
+  }
   if (allowedCandidates.length === 0) {
-    return { action: null, note: null };
+    return { action: null, note: 'keine Aktionen verfuegbar' };
   }
-
-  const heuristicTempInfluence = pickTempInfluenceForOffice({
-    me: options.me,
-    actionsPerRound: options.actionsPerRound,
-    candidates: allowedCandidates,
-    strategyCard: options.strategyCard,
-    systemPreamble: options.systemPreamble,
+  const mcCandidates: McCandidate[] = allowedCandidates.map((c) => ({
+    id: c.id,
+    kind: c.kind,
+    command: c.command,
+    summary: c.summary,
+    possibleNow: c.possibleNow,
+  }));
+  const mcContext: McContext = {
+    userId: options.userId,
+    weights: weightsForStrategy(options.strategyCard),
+    seedSalt: `${options.state.id}|${options.userId}|r${options.round}|slot${options.actionSlot}`,
+    rollouts: MC_ROLLOUTS,
+    depth: MC_DEPTH,
     bufferFactor,
-  });
-  if (heuristicTempInfluence) {
-    return {
-      action: heuristicTempInfluence.command,
-      note: 'heuristic: temp influence to unlock office',
-      debug: llmEnv.MYRANOR_LLM_DEBUG
-        ? { actionCandidates: allowedCandidates, rawModelOutput: null }
-        : undefined,
-    };
+    maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
+  };
+  const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
+  if (mcRanked.length === 0) {
+    throw new Error(
+      `[LLM] ${options.agentName} R${options.round} A${options.actionSlot}: MC ranking empty`
+    );
   }
+  const mcTopBase = mcRanked.slice(0, MC_TOP_N_ACTION);
+  const mcTop = [...mcTopBase];
+  const shouldPreferMoneyLend =
+    strategyWantsMoney(options.strategyCard, options.systemPreamble) &&
+    options.round <= 4;
+  if (shouldPreferMoneyLend) {
+    const moneyLendCandidates = allowedCandidates.filter(
+      (c) => c.command?.type === 'MoneyLend'
+    );
+    const bestMoneyLend = moneyLendCandidates.sort((a, b) => {
+      const invA =
+        a.command?.type === 'MoneyLend' ? a.command.investments : 0;
+      const invB =
+        b.command?.type === 'MoneyLend' ? b.command.investments : 0;
+      return invB - invA;
+    })[0];
+    if (bestMoneyLend && !mcTop.some((c) => c.candidate.id === bestMoneyLend.id)) {
+      const scored = mcRanked.find(
+        (c) => c.candidate.id === bestMoneyLend.id
+      );
+      if (scored) mcTop.push(scored);
+    }
+  }
+  const shouldPreferOffices =
+    strategyWantsOffices(options.strategyCard, options.systemPreamble) &&
+    options.round >= 2;
+  if (shouldPreferOffices) {
+    const officeCandidates = allowedCandidates.filter(
+      (c) => c.command?.type === 'AcquireOffice'
+    );
+    const bestOffice =
+      officeCandidates.find((c) => c.possibleNow) ?? officeCandidates[0];
+    if (bestOffice && !mcTop.some((c) => c.candidate.id === bestOffice.id)) {
+      const scored = mcRanked.find((c) => c.candidate.id === bestOffice.id);
+      if (scored) mcTop.push(scored);
+    }
 
+    const tempInfluenceCandidate =
+      tempUnlockCandidate ??
+      pickTempInfluenceForOffice({
+        me: options.me,
+        actionsPerRound: options.actionsPerRound,
+        candidates: allowedCandidates,
+        strategyCard: options.strategyCard,
+        systemPreamble: options.systemPreamble,
+        bufferFactor,
+      });
+    const influenceCandidates = allowedCandidates.filter(
+      (c) => c.command?.type === 'GainInfluence'
+    );
+    const bestInfluence =
+      tempInfluenceCandidate ??
+      influenceCandidates
+        .sort((a, b) => {
+          const cmdA = a.command?.type === 'GainInfluence' ? a.command : null;
+          const cmdB = b.command?.type === 'GainInfluence' ? b.command : null;
+          const kindScore = (cmd: typeof cmdA) =>
+            cmd?.kind === 'permanent' ? 2 : 1;
+          const scoreA =
+            kindScore(cmdA) * 100 + (cmdA?.investments ?? 0);
+          const scoreB =
+            kindScore(cmdB) * 100 + (cmdB?.investments ?? 0);
+          return scoreB - scoreA;
+        })[0];
+    if (
+      bestInfluence &&
+      !mcTop.some((c) => c.candidate.id === bestInfluence.id)
+    ) {
+      const scored = mcRanked.find(
+        (c) => c.candidate.id === bestInfluence.id
+      );
+      if (scored) mcTop.push(scored);
+    }
+  }
+  if (tempUnlockCandidate) {
+    const scored = mcRanked.find(
+      (c) => c.candidate.id === tempUnlockCandidate.id
+    );
+    if (scored && !mcTop.some((c) => c.candidate.id === scored.candidate.id)) {
+      mcTop.push(scored);
+    }
+  }
+  const shouldPreferUnderworld = strategyWantsUnderworld(
+    options.strategyCard,
+    options.systemPreamble
+  );
+  if (shouldPreferUnderworld) {
+    const underworldCandidate = allowedCandidates.find(
+      (c) =>
+        c.command?.type === 'AcquireOrganization' &&
+        c.command.kind === 'underworld'
+    );
+    const spyCandidate = allowedCandidates.find(
+      (c) => c.command?.type === 'AcquireOrganization' && c.command.kind === 'spy'
+    );
+    if (
+      underworldCandidate &&
+      !mcTop.some((c) => c.candidate.id === underworldCandidate.id)
+    ) {
+      const scored = mcRanked.find(
+        (c) => c.candidate.id === underworldCandidate.id
+      );
+      if (scored) mcTop.push(scored);
+    }
+    if (
+      !underworldCandidate &&
+      spyCandidate &&
+      !mcTop.some((c) => c.candidate.id === spyCandidate.id)
+    ) {
+      const scored = mcRanked.find((c) => c.candidate.id === spyCandidate.id);
+      if (scored) mcTop.push(scored);
+    }
+
+    const underworldOrg = [...options.me.holdings.organizations]
+      .filter((o) => o.kind === 'underworld')
+      .sort((a, b) => postTierRank(b.tier) - postTierRank(a.tier))[0];
+    if (underworldOrg) {
+      const followerCandidate = allowedCandidates
+        .filter((c) => c.command?.type === 'AcquireTenants')
+        .filter(
+          (c) =>
+            c.command?.type === 'AcquireTenants' &&
+            c.command.location.kind === 'organization' &&
+            c.command.location.id === underworldOrg.id
+        )
+        .sort((a, b) => {
+          const aLevels =
+            a.command?.type === 'AcquireTenants' ? a.command.levels : 0;
+          const bLevels =
+            b.command?.type === 'AcquireTenants' ? b.command.levels : 0;
+          return bLevels - aLevels;
+        })[0];
+      if (
+        followerCandidate &&
+        !mcTop.some((c) => c.candidate.id === followerCandidate.id)
+      ) {
+        const scored = mcRanked.find(
+          (c) => c.candidate.id === followerCandidate.id
+        );
+        if (scored) mcTop.push(scored);
+      }
+    }
+  }
+  const allowedCandidateIds = new Set(mcTop.map((c) => c.candidate.id));
+  const allowedCandidatesTop = allowedCandidates.filter((c) =>
+    allowedCandidateIds.has(c.id)
+  );
+
+  const tempUnlockHint = tempUnlockCandidate
+    ? 'Hinweis: Eine temp. Einfluss-Aktion ermoeglicht diese Runde einen Posten-Kauf. Priorisiere temp. Einfluss vor permanentem Einfluss.'
+    : null;
   const system = [
     options.systemPreamble?.trim(),
     'Du bist ein Spieler-Agent im Myranor Aufbausystem.',
     'Du darfst nur Candidate-IDs aus der Liste auswählen (keine eigenen Commands erfinden).',
-    'Ziel: Maximiere deinen Gesamt-Score (Gold + Assets + Einfluss).',
+    'Ziel: Maximiere deinen Gesamt-Score (GoldEq).',
     'Wähle genau eine Action-Candidate-ID aus der Liste.',
     'Du planst sequentiell: Nach jeder Aktion wirst du erneut gefragt. Wähle nur die beste nächste Aktion.',
+    `Du siehst die MC Top-${MC_TOP_N_ACTION} Optionen (ggf. plus MoneyLend-Bias in frühen Runden, Amtsfokus-Bias ab Runde 2, Unterwelt-Bias).`,
+    'Wähle ausschließlich aus dieser Liste; wenn du einen niedrigeren MC-Score nimmst, begründe es klar mit der Strategie.',
     'Wähle ausschließlich IDs aus dieser Liste; kopiere sie exakt (keine eigenen Zahlen/Varianten).',
+    'Gib im Feld "note" eine kurze Begründung (1 Satz) für deine Entscheidung an.',
     'Antworte auf Deutsch, im JSON Format.',
+    tempUnlockHint,
     ruleCheatSheet(),
   ]
     .filter(Boolean)
@@ -2182,9 +2936,19 @@ export async function planActionWithLlm(options: {
     promptLines.push('');
   }
 
-  promptLines.push('Action-Candidates:');
-  for (const c of allowedCandidates) {
-    promptLines.push(`- ${c.id} [now]: ${c.summary}`);
+  if (shouldPreferMoneyLend) {
+    promptLines.push(
+      'Hinweis: Fruehe Runden (<=4) priorisieren kurzfristiges Gold. MoneyLend ist bevorzugt, wenn es die beste Kurzfrist-Option ist.'
+    );
+    promptLines.push('');
+  }
+
+  promptLines.push(
+    `Action-Candidates (MC Top ${mcTop.length}, depth=${MC_DEPTH}, rollouts=${MC_ROLLOUTS}):`
+  );
+  for (const scored of mcTop) {
+    const c = scored.candidate;
+    promptLines.push(`- ${c.id} [now]: ${c.summary} | ${formatMcScore(scored)}`);
   }
 
   const maxPlanAttempts = 3;
@@ -2201,7 +2965,7 @@ export async function planActionWithLlm(options: {
       const attemptPrompt = [
         ...promptLines,
         attempt > 1 && lastError
-          ? `\nACHTUNG: Deine letzte Antwort war ungültig: ${lastError.message}\nAntworte erneut mit einer gültigen Action-ID (nur [now]).`
+          ? `\nACHTUNG: Deine letzte Antwort war ungültig: ${lastError.message}\nAntworte erneut mit einer gültigen Action-ID (nur [now]) und einer kurzen note.`
           : null,
       ]
         .filter(Boolean)
@@ -2241,21 +3005,25 @@ export async function planActionWithLlm(options: {
 
     try {
       const actionId = raw.actionCandidateId;
-      const actionCandidate = allowedCandidates.find((c) => c.id === actionId);
+      const note = normalizeNote(raw.note);
+      if (!note) throw new Error('note missing or empty');
+      const actionCandidate = allowedCandidatesTop.find(
+        (c) => c.id === actionId
+      );
       if (!actionCandidate) {
         throw new Error(
           `unknown actionCandidateId "${actionId}". Valid: ${summarizeIds(
-            allowedCandidates.map((c) => c.id)
+            allowedCandidatesTop.map((c) => c.id)
           )}`
         );
       }
 
       return {
         action: actionCandidate.command,
-        note: raw.note?.trim() ? raw.note.trim() : null,
+        note,
         debug: llmEnv.MYRANOR_LLM_DEBUG
           ? {
-              actionCandidates: allowedCandidates,
+              actionCandidates: allowedCandidatesTop,
               rawModelOutput: raw,
             }
           : undefined,

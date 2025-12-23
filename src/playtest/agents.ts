@@ -29,10 +29,10 @@ function largestWorkshopId(me: PlayerState): string | null {
   return workshops[0]?.id ?? null;
 }
 
-function sellBuyInvestmentCap(me: PlayerState): number {
+function sellInvestmentCap(me: PlayerState): number {
   const capFromTrade = me.holdings.tradeEnterprises.reduce((sum, te) => sum + 2 * postTierRank(te.tier), 0);
   const capFromDomains = me.holdings.domains.reduce((sum, d) => sum + domainTierRank(d.tier), 0);
-  return 3 + capFromTrade + capFromDomains;
+  return 2 + capFromTrade + capFromDomains;
 }
 
 function localMarketInstanceId(): string {
@@ -64,7 +64,7 @@ function buildMoneySellCommand(
   } = {},
 ): GameCommand | null {
   const me = ctx.me;
-  const cap = Math.max(0, sellBuyInvestmentCap(me));
+  const cap = Math.max(0, sellInvestmentCap(me));
   const maxInvestments = Math.max(0, Math.trunc(opts.maxInvestments ?? cap));
   const budget = Math.min(cap, maxInvestments);
   if (budget <= 0) return null;

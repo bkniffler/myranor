@@ -1,5 +1,6 @@
 {
   "bun.test.filePattern": "**/*{.test.,.spec.,_test_,_spec_}{js,ts,tsx,jsx,mts,cts}",
+  "workbench.colorTheme": "Bearded Theme Black & Emerald Soft",
   "typescript.tsdk": "./node_modules/typescript/lib",
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {

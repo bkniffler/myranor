@@ -23,11 +23,13 @@ export const DEFAULT_CAMPAIGN_RULES: CampaignRules = {
   actionsPerRound: 2,
   freeFacilityBuildsPerRound: 1,
   storageCapacityMultiplier: 2,
-  // Hausregel (siehe Diskussion): kleines Amt gibt wahlweise 4 Einfluss ODER 4 Gold.
-  officeGoldPerRound: 4,
+  // Hausregel (siehe Diskussion): kleines Amt gibt wahlweise 2 Einfluss ODER 2 Gold.
+  officeGoldPerRound: 2,
 };
 
-export const DEFAULT_STARTER_DOMAIN_RAW_PICKS = [
+export const DEFAULT_STARTER_DOMAIN_RAW_PICKS = ['raw.grainVeg'] as const;
+
+export const DEFAULT_DOMAIN_RAW_PICKS = [
   'raw.grainVeg',
   'raw.fruit',
   'raw.meat',
@@ -266,6 +268,17 @@ export function workshopCapacity(tier: WorkshopTier): { rawIn: number; specialOu
   }
 }
 
+export function workshopFacilitySlotsMax(tier: WorkshopTier): number {
+  switch (tier) {
+    case 'small':
+      return 1;
+    case 'medium':
+      return 2;
+    case 'large':
+      return 3;
+  }
+}
+
 export function storageUpkeep(tier: StorageTier): { labor: number } {
   switch (tier) {
     case 'small':
@@ -292,13 +305,31 @@ export function storageCapacity(
   }
 }
 
+export function facilityInfluencePerRound(
+  facilityKey: string,
+  locationKind: 'office' | 'tradeEnterprise' | 'workshop',
+): number {
+  if (locationKind !== 'office' && locationKind !== 'tradeEnterprise' && locationKind !== 'workshop') return 0;
+  const [category, size] = facilityKey.split('.', 2);
+  const tier = size === 'small' ? 1 : size === 'medium' ? 2 : size === 'large' ? 3 : 0;
+  if (!tier) return 0;
+  const base = tier;
+  if (category === 'special') return base + 1;
+  if (category === 'general') return base;
+  return 0;
+}
+
 export function officesIncomePerRound(
   tier: PostTier,
   mode: OfficeYieldMode,
   rules: CampaignRules,
 ): { influence: number; gold: number } {
   const base =
-    tier === 'small' ? { influence: 4, gold: rules.officeGoldPerRound } : tier === 'medium' ? { influence: 8, gold: 10 } : { influence: 16, gold: 20 };
+    tier === 'small'
+      ? { influence: 2, gold: rules.officeGoldPerRound }
+      : tier === 'medium'
+        ? { influence: 8, gold: 10 }
+        : { influence: 16, gold: 20 };
   if (mode === 'influence') return { influence: base.influence, gold: 0 };
   if (mode === 'gold') return { influence: 0, gold: base.gold };
   // split 50/50 (Administrative Reformen)
@@ -339,7 +370,24 @@ export function baseInfluencePerRound(holdings: PlayerHoldings): number {
     (sum, office) => sum + officesIncomePerRound(office.tier, office.yieldMode, DEFAULT_CAMPAIGN_RULES).influence,
     0,
   );
-  return Math.max(0, city + org + offices + holdings.permanentInfluence);
+  const officeFacilities = holdings.offices.reduce((sum, office) => {
+    let total = 0;
+    for (const f of office.facilities) total += facilityInfluencePerRound(f.key, 'office');
+    const specFacilities = office.specialization?.facilities ?? [];
+    for (const f of specFacilities) total += facilityInfluencePerRound(f.key, 'office');
+    return sum + total;
+  }, 0);
+  const tradeFacilities = holdings.tradeEnterprises.reduce((sum, t) => {
+    let total = 0;
+    for (const f of t.facilities) total += facilityInfluencePerRound(f.key, 'tradeEnterprise');
+    return sum + total;
+  }, 0);
+  const workshopFacilities = holdings.workshops.reduce((sum, w) => {
+    let total = 0;
+    for (const f of w.facilities) total += facilityInfluencePerRound(f.key, 'workshop');
+    return sum + total;
+  }, 0);
+  return Math.max(0, city + org + offices + holdings.permanentInfluence + officeFacilities + tradeFacilities + workshopFacilities);
 }
 
 export function baseLaborTotal(holdings: PlayerHoldings): number {

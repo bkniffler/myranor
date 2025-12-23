@@ -84,7 +84,14 @@ function tryAdvanceToNextRoundActions(
   return s;
 }
 
-function sellBuyInvestmentCap(player: PlayerState): number {
+function sellInvestmentCap(player: PlayerState): number {
+  const tierRank = (tier: 'small' | 'medium' | 'large') => (tier === 'small' ? 1 : tier === 'medium' ? 2 : 3);
+  const capFromTrade = player.holdings.tradeEnterprises.reduce((sum, te) => sum + 2 * tierRank(te.tier), 0);
+  const capFromDomains = player.holdings.domains.reduce((sum, d) => sum + (d.tier === 'starter' ? 0 : tierRank(d.tier)), 0);
+  return 2 + capFromTrade + capFromDomains;
+}
+
+function buyInvestmentCap(player: PlayerState): number {
   const tierRank = (tier: 'small' | 'medium' | 'large') => (tier === 'small' ? 1 : tier === 'medium' ? 2 : 3);
   const capFromTrade = player.holdings.tradeEnterprises.reduce((sum, te) => sum + 2 * tierRank(te.tier), 0);
   const capFromDomains = player.holdings.domains.reduce((sum, d) => sum + (d.tier === 'starter' ? 0 : tierRank(d.tier)), 0);
@@ -122,7 +129,7 @@ function marketModifierPerInvestment(
 }
 
 function buildMoneySellForMarket(state: CampaignState, me: PlayerState, marketInstanceId: string): GameCommand | null {
-  const cap = Math.max(0, sellBuyInvestmentCap(me));
+  const cap = Math.max(0, sellInvestmentCap(me));
   if (cap <= 0) return null;
 
   type Lot = { kind: 'raw' | 'special'; materialId: string; investments: number; score: number };
@@ -344,7 +351,7 @@ function buildRecruitTroops(): GameCommand[] {
 }
 
 function buildMoneyBuyCandidates(state: CampaignState, me: PlayerState): GameCommand[] {
-  const cap = Math.max(0, sellBuyInvestmentCap(me));
+  const cap = Math.max(0, buyInvestmentCap(me));
   if (cap <= 0) return [];
 
   const out: GameCommand[] = [];
@@ -359,13 +366,15 @@ function buildMoneyBuyCandidates(state: CampaignState, me: PlayerState): GameCom
     });
   }
 
-  // Buy 5 raw of the "best discount" material this round.
+  // Buy 5 raw of the "best price" material this round.
   // (We approximate "best" via market modifier only; engine will apply full pricing + checks.)
   let bestRaw: { id: string; score: number } | null = null;
   for (const material of Object.values(MATERIALS_V1)) {
     if (material.kind !== 'raw') continue;
     const score = marketModifierPerInvestment(state, localMarketInstanceId(), material.id);
-    if (!bestRaw || score < bestRaw.score) bestRaw = { id: material.id, score };
+    if (!bestRaw || score > bestRaw.score || (score === bestRaw.score && material.id < bestRaw.id)) {
+      bestRaw = { id: material.id, score };
+    }
   }
   if (bestRaw && me.economy.gold >= 3) {
     out.push({
@@ -376,12 +385,14 @@ function buildMoneyBuyCandidates(state: CampaignState, me: PlayerState): GameCom
     });
   }
 
-  // Buy 1 special of the "best discount" material this round.
+  // Buy 1 special of the "best price" material this round.
   let bestSpecial: { id: string; score: number } | null = null;
   for (const material of Object.values(MATERIALS_V1)) {
     if (material.kind !== 'special') continue;
     const score = marketModifierPerInvestment(state, localMarketInstanceId(), material.id);
-    if (!bestSpecial || score < bestSpecial.score) bestSpecial = { id: material.id, score };
+    if (!bestSpecial || score > bestSpecial.score || (score === bestSpecial.score && material.id < bestSpecial.id)) {
+      bestSpecial = { id: material.id, score };
+    }
   }
   if (bestSpecial && me.economy.gold >= 3) {
     out.push({

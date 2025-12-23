@@ -15,11 +15,20 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Pro Runde: 2 Aktionen + 1 freie Einrichtungs-/Ausbauaktion.
 - Pro Runde und ActionKey nur 1x (Ausnahme: Bonusaktionen durch spezielle Posten).
 
+## Erfolgswuerfe & Checks
+- W20 + Check (influence/money/materials).
+- Check-Skalierung: `effectiveCheck = base + floor(round/10)` (R1–9 +0, R10–19 +1, R20–29 +2, ...).
+- DC-Investment-Mod: +4 bei Investitionen >= 4, +8 bei Investitionen >= 8.
+- Erfolgsstufen:
+  - veryGood: >= DC + 10
+  - good: >= DC + 5
+  - success: >= DC
+  - poor: >= DC - 5
+  - fail: < DC - 5
+
 ## Startbedingungen (Soll)
 - Starter-Domaene: tier `starter`, Ertrag 2 AK, 8 RM pro Runde.
-- Starter-Domaene hat **Material-Picks** (2 billig + 2 einfach, Nahrung):
-  - billig: `raw.grainVeg`, `raw.fruit`
-  - einfach: `raw.meat`, `raw.pigsSheep`
+- Starter-Domaene hat **1 Material-Pick** (Nahrung): `raw.grainVeg`.
 - 2 permanente Arbeitskraft.
 - Kleine Werkstatt (Starter) auf Starter-Domaene.
 - Kleiner staedtischer Besitz, verpachtet.
@@ -36,9 +45,11 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Material-IDs/Tags aus `materials_v1`.
 - Markt rollt je Runde 1x Rohmaterial- und 1x Sondermaterial-Tabelle.
 - Verkauf/Kauf nutzt Markt-Modifier + Event-Modifier + Material-Bonus.
+- Markt Modifer +Gold wird zu -Gold bei Aktion: Ankauf/Einkauf
+- Handelsunternehmungen erzeugen **zusaetzliche Marktinstanzen** (Anzahl = Tier-Rang), die wie der lokale Markt gerollt werden.
 
 ## Domaenen: Material-Picks (Soll)
-- Jede Domaene hat **4 Rohmaterial-Picks** (`rawPicks`).
+- Jede Domaene hat **4 Rohmaterial-Picks** (`rawPicks`), **Starter-Domaene hat 1 Pick**.
 - Diese Picks bestimmen:
   - Domaenen-Ertrag (Maintenance)
   - Materialgewinn (Domänenverwaltung)
@@ -48,7 +59,9 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 
 ## Domaenen-Ertrag (Maintenance)
 - Domaenen liefern pro Runde RM nach Tier: starter 8, small 12, medium 20, large 36.
-- Der Gesamtbetrag wird **gleichmaessig** auf die 4 `rawPicks` verteilt.
+- Dazu kommen ebenfalls AK nach Tier
+- Der Gesamtbetrag wird **gleichmaessig** auf die vorhandenen `rawPicks` verteilt (1 oder 4).
+- Dasselbe gilt für Aktion: Materialgewinnungs Ertrag
 - Ereignis-Modifikationen (Duerre, gutes Jahr, magische Bestien) wirken auf den Gesamtbetrag.
 - Zusatz-Ernte (z.B. gute Ernte) geht auf den **ersten** Pick ("Hauptertrag").
 
@@ -57,14 +70,18 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
   - `inputMaterialId` (RM, billig oder einfach)
   - `outputMaterialId` (SM, billig oder einfach)
 - `inputMaterialId` wird beim Bau festgelegt und gilt als **fix**.
+- Der Output ist dasselbe Material auch bei Materialgewinn-Aktion Werkstattüberwachung
 - `outputMaterialId` wird beim Bau festgelegt und ist standardmaessig ein passendes SM zur RM-Kategorie.
+- Werkstatt ist immer Einrichtung von Domäne oder Stadtbesitz und kann in Freier Aktion aufgebaut werden
+- Werkstaetten wandeln im **Conversion**-Schritt automatisch um (nur wenn unterhalten).
 
 ## Veredelung (Soll)
-- Spezialeinrichtungen koennen Werkstatt-Erzeugnisse **eine Kategorie aufwerten**:
+- Werkstätten und Spezialeinrichtungen der Werkstätten koennen RM und /Oder Werkstatt-Erzeugnisse **eine Kategorie aufwerten**:
   - billig -> einfach -> teuer -> luxus
 - Jede Veredelungs-Einrichtung erzeugt **+1 Upgrade-Stufe** fuer Werkstaetten am selben Ort.
 - Luxus wird als **teures Sondermaterial mit Tag `luxury`** umgesetzt.
 - Mehrere Veredelungs-Einrichtungen stacken (mehrstufige Aufwertung).
+- Beachte Einrichungs/Facility Caps
 - Veredelungseinrichtung im Code: `facilityKey` beginnt mit `special.{small|medium|large}.refine`.
 
 ## Konversion & Lagerung
@@ -72,22 +89,31 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Ergebnis-SM ist `outputMaterialId`, nach Veredelungsstufen ggf. aufgewertet.
 - Lagerung: nur in unterhaltenen Lagern, Kapazitaet * storageMultiplier (2x).
 - Auto-Konversion (Rundenende):
-  - RM -> Gold: 4:1 (Ausnahme bei Hungersnot).
+  - RM -> Gold: 4:1 (Ausnahme bei Hungersnot), **Bruchteile sind erlaubt** (z.B. 2 RM = 0.5 Gold).
   - SM -> Gold: 1 SM = 2 Gold.
-- Nicht gelagerte Reste verfallen.
+- Nicht gelagerte RM/SM werden auto-konvertiert (keine RM-Verluste durch Rundung).
+- Nicht unterhaltene Werkstaetten/Lager produzieren bzw. speichern **nicht**.
 
 ## Posten-Ertraege (Maintenance)
-- Domaenen: RM-Ertrag pro Tier (starter 8, small 12, medium 20, large 36).
-- Stadtbesitz (verpachtet): Gold + Einfluss + AK nach Tier.
-- Stadtbesitz (produktion): AK nach Tier, kein Gold/Einfluss.
-- Aemter: pro Runde entweder Einfluss **oder** Gold (kleines Amt: 4 Gold; mittleres Amt: 10 Gold; großes Amt: 20 Gold).
+- Domaenen: RM-Ertrag pro Tier (starter 8, small 12, medium 20, large 36) + AK Ertrag nach Tier (2/2/4/8).
+- Stadtbesitz (verpachtet): Gold + Einfluss + AK nach Tier, keine Werkstatt Kapazitäten.
+- Stadtbesitz (produktion): AK nach Tier, Erweitertes Cap für Werstätten, kein Gold/Einfluss.
+- Aemter: pro Runde Einfluss **oder** Gold **oder** Split 50/50
+  - small: 2 Einfluss / 2 Gold
+  - medium: 8 Einfluss / 10 Gold
+  - large: 16 Einfluss / 20 Gold
 - Organisationen (Unterwelt/Kult/Spion/Collegium): Einfluss/AK je Stufe (v1-Interpretation).
 - Handelsunternehmungen: SM oder SM->Gold (Modus `produce`/`trade`).
 - Paechter/Anhaenger: +1 Gold/Stufe +1 AK/Stufe; Domaenen zusaetzlich +1 RM/Stufe (einfaches RM aus Picks).
+- Viele Posten geben auch Sonderaktionen oder DC Erleichterungen nach Tier (Angegeben unter Vorteilen)
+- Einrichtungen an Aemtern/Werkstaetten/Handelsunternehmungen geben Einfluss pro Runde:
+  - General: small +1, medium +2, large +3.
+  - Special: small +2, medium +3, large +4.
 
 ## Unterhalt (ab Runde 2)
 - Domaenen, Stadtbesitz (produktion), Organisationen, Handelsunternehmungen, Truppen.
 - Werkstaetten/Lager muessen unterhalten werden (sonst inaktiv).
+- Unterhalt fuer Domaenen/Stadtbesitz/Organisationen/Handel/Truppen wird als Kosten abgezogen, diese Posten bleiben aktiv (Gold kann negativ werden).
 - AK-Unterhalt: 1 RM je 4 AK, fehlende RM reduzieren AK (v1-Interpretation).
 
 ## Aktionen (Kurzfassung)
@@ -96,25 +122,32 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Temporaer: investiert Gold -> Einfluss (Erfolgsstaffel).
 - Permanent: investiert Gold -> permanenter Einfluss (Erfolgsstaffel).
 - Caps: temporaer 4/6/8/12 je Besitz; permanent v1: 2 + Summe Tier-Raenge (Aemter+Orgs).
+- DC: 12 + Investment-Mod + Event-Mod.
+- DC -1 wenn Aktionsgroesse zu einem verpachteten Stadtbesitz-Tier passt.
+- DC -1 wenn Aktionsgroesse zu einem Amt-Tier passt.
+- Kult senkt DC um Tier-Rang (1/2/3).
 
 ### 2) Geldgewinn
 - Geldverleih: DC 14, Auszahlung naechste Runde, Cap 2/4/6/10 je Trade-Tier.
 - Verkauf:
   - 6 RM oder 1 SM oder 1 perm. AK = 1 Investment.
-  - Cap: 3 + (2 * TradeTierSum) + (DomainTierSum ohne Starter).
+  - Cap: 2 + (2 * TradeTierSum) + (DomainTierSum ohne Starter).
   - Preis = Basis + Marktmodifikator + Eventmodifikator + material.saleBonusGold.
 - Kauf:
   - 5 RM oder 1 SM oder 1 perm. AK pro Investment.
+  - Cap: 3 + (2 * TradeTierSum) + (DomainTierSum ohne Starter).
   - Preis = Basis + Marktmodifikator + Eventmodifikator.
 - Verkauf kann im selben Zug optional einen Kauf enthalten (belegt money.sell + money.buy).
 
 ### 3) Materialgewinn
 - Domaenenverwaltung: DC 10, Cap 4 * DomainTierRank.
 - Werkstattaufsicht: DC 12, Cap 2 * WorkshopTierRank.
+- DC: + Investment-Mod; Handwerkscollegium senkt DC um 2 * Tier-Rang.
+- Domänen-Vorteil: DC -1 wenn Aktionsgroesse zur Domaenen-Groesse passt (small/medium/large).
 - Ertraege (pro Investment):
-  - Sehr gut: 16 RM oder 3 SM
-  - Gut: 12 RM oder 2 SM
-  - Erfolg: 8 RM oder 1 SM
+  - Sehr gut: 16 RM oder 4 SM
+  - Gut: 12 RM oder 3 SM
+  - Erfolg: 8 RM oder 2 SM
   - Schlecht: 1 RM oder 0.5 SM
 - Output (Soll):
   - RM wird auf Domaenen-Picks verteilt.
@@ -136,7 +169,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Starter-Domaene ausbauen (10 Gold, 4 AK).
 - Domaenen-Spezialisierung (Landwirtschaft/Tierzucht/Forst/Bergbau) gesetzt, Kosten vereinfacht.
 - Werkstaetten/Lager bauen + upgraden (Slot- und Kapazitaetsregeln).
-- Allgemeine/Besondere Einrichtungen sind generisch (Kosten je Tier, Effekte nicht voll abgebildet).
+- Allgemeine/Besondere Einrichtungen sind generisch (Kosten je Tier, Effekte vereinfacht).
 
 ## Werkstaetten und Lager (Kapazitaet)
 - Werkstatt small: 8 RM -> 2 SM (4:1), Upkeep 1 AK.
@@ -150,15 +183,17 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Aemter: Einrichtungsplaetze wie Stadtbesitz (2/3/4 je Tier).
 - Organisationen & Handelsunternehmungen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6).
 - Werkstaetten/Lager belegen 1 Einrichtungsplatz (unabhaengig von ihrer Groesse).
+- Werkstaetten haben eigene Facility-Slots: small=1, medium=2, large=3.
 - Domänen-Produktionscap (Werkstatt/Lager):
   - Kleine Domäne: max 1 kleine Produktion (Werkstatt/Lager).
   - Mittlere Domäne: max 1 mittlere Produktion (Werkstatt/Lager).
   - Große Domäne: max 1 kleine **und** 1 mittlere Produktion (insgesamt 2).
   - Große Werkstaetten/Lager sind **nicht** auf Domänen erlaubt.
-- Stadtbesitz (Eigenproduktion) Produktionskapazitaet:
+- Stadtbesitz (Eigenproduktion) Produktionskapazitaet: Öffnet zusätzliche Plätze für Werkstätten:
   - Klein: 2 kleine **oder** 1 mittlere Produktion.
   - Mittel: 2 mittlere **oder** 1 große Produktion.
   - Groß: 2 große Produktionen.
+- Starter-Domaenen muessen ausgebaut werden, bevor neue Werkstaetten/Lager gebaut werden koennen.
 
 ## Ereignissystem (Abschnitt)
 - Alle 5 Runden werden 2 Events gerollt (ab Runde 1, wirken 5 Runden).

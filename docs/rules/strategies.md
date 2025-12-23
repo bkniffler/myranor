@@ -8,11 +8,14 @@ Diese Datei listet die LLM-Strategien fuer das Szenario `core-v1-strategies`.
   - Aemter sammeln (klein -> mittel -> gross), wenn bezahlbar
   - Temporaeren Einfluss nutzen, um Aemter frueh zu sichern
   - Grosse Domaene anstreben (small -> medium -> large), sobald finanzierbar
+  - Grosser Städtischen besitz anstreben wenn finanzierbar
 - Sekundaer:
   - Staedtischer Besitz fuer Einfluss/Gold
   - Geldgewinnaktionen zur Finanzierung
   - Lager bauen, um RM/SM zu halten (bei schlechtem Markt)
+  - Werkstätten bauen wenn möglich, gelegentlich
   - Organisationen (Kult/Collegium), wenn moeglich
+  - Pächter/Kleinten gewinnen, wenn sinnvoll
 - Guardrails:
   - Goldreserve >= 6
   - Wenn Einfluss < 4: Einfluss gewinnen
@@ -29,6 +32,8 @@ Diese Datei listet die LLM-Strategien fuer das Szenario `core-v1-strategies`.
   - Grosse Domaene anstreben (Cap + Rohstoffzufuhr)
 - Sekundaer:
   - Staedtischer Besitz fuer Gold/Einfluss
+  - Handelscircel für DC Vorteile
+  - Einrichtungen der Werkstätte anstreben für Vorteile
   - Werkstattaufsicht fuer SM
   - Werkstatt bauen, wenn genug RM fuer Umwandlung
 - Guardrails:
@@ -46,6 +51,7 @@ Diese Datei listet die LLM-Strategien fuer das Szenario `core-v1-strategies`.
 - Sekundaer:
   - Einflussgewinn fuer Orga-Kosten
   - Werkstattaufsicht wenn AK uebrig
+  - Werkstattaufbau wenn Geld übrig
   - Lager bauen, wenn Markt schlecht und Vorrat sinnvoll
 - Guardrails:
   - Goldreserve >= 6
@@ -60,9 +66,13 @@ Diese Datei listet die LLM-Strategien fuer das Szenario `core-v1-strategies`.
   - Lager bauen, um RM/SM zu puffern
   - Staedtischer Besitz fuer Produktionskapazitaet
   - Grosse Domaene anstreben (Rohstoffbasis)
+  - SM Verkaufen wenn Markt günstig
 - Sekundaer:
   - Geldgewinn bei Ueberschuss
+  - Geldinvestition bei Geldmangel
   - Handwerkscollegium, wenn moeglich
+  - Pächter/Klienten wenn möglich für AK
+  - Werkstatt spezialisieren, Einrichtungen ausbauen
 - Guardrails:
   - AK nicht unter 1 druecken
   - Goldreserve >= 6
@@ -72,12 +82,14 @@ Diese Datei listet die LLM-Strategien fuer das Szenario `core-v1-strategies`.
 - Risiko: conservative
 - Primaer:
   - Domaenen erwerben (small -> medium -> large)
+  - Weitere Domänen erwerben
   - Materialgewinn Domaene
   - Lager bauen, um RM/SM zu halten
   - Verkauf von RM/SM, wenn Markt gut
 - Sekundaer:
   - Handelsunternehmung, wenn Gold uebrig
   - Werkstatt bauen, wenn RM-Ueberschuss
+  - Domäne spezialisieren, Einrichtungen ausbauen
 - Guardrails:
   - Goldreserve >= 6
   - Wenn Inventar voll: MoneySell priorisieren
