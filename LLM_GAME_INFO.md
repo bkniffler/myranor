@@ -4,7 +4,9 @@ Diese Datei fasst den aktuellen Stand der Engine-Regeln zusammen, damit ein LLM 
 Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk aus dem Aufbausystem-PDF.
 
 ## Ziel
-- Standardziel im LLM-Runner: **Gesamt-Score maximieren** (Gold + Inventar + Assets + Einfluss + **verdienter Einfluss (kumulativ)**).
+- Standardziel im LLM-Runner: **Gesamt-Score (GoldEq) maximieren**.
+  - GoldEq umfasst aktuelles Gold, Inventar, Assets und den **aktuellen Einfluss pro Runde**.
+  - **Verdienter Einfluss** wird getrennt ausgewiesen (Auswertung), ist **nicht Teil** des Scores.
 - Das LLM bekommt im Prompt einen kurzen Hinweis zur Score-Logik.
 
 ## Rundenablauf
@@ -42,6 +44,11 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Keine Lager, Orgs, Aemter, Handelsunternehmungen, Truppen, Fachkraefte
 - Inventar (RM/SM/Zauberkraft) leer
 
+## Domaenen: Material-Picks
+- Starter-Domaene: 1 Pick (default `raw.grainVeg`).
+- Andere Domaenen: 4 Picks (default aus `DEFAULT_DOMAIN_RAW_PICKS`).
+- Landwirtschafts-Spezialisierung erfordert **2 billige + 2 einfache** Rohmaterial-Picks.
+
 ## Ertraege und Unterhalt (Kurzuebersicht)
 - **Domaenen**
   - AK/Runde: starter/small=2, medium=4, large=8
@@ -56,7 +63,8 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Gold/Einfluss: 0
   - Gold-Unterhalt: small=2, medium=4, large=8
 - **Aemter**
-  - Ertrag (pro Runde, je Amt): small=2, medium=10, large=20 (Gold **oder** Einfluss **oder** Split 50/50 je nach Yield-Mode)
+  - Ertrag (pro Runde, je Amt): small=2/2, medium=8/10, large=16/20
+    - Wahl: Gold **oder** Einfluss **oder** Split 50/50 je nach Yield-Mode
   - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt
 - **Einrichtungen an Aemtern/Werkstaetten/Handel**
   - Einfluss/Runde: general small=+1, medium=+2, large=+3; special small=+2, medium=+3, large=+4
@@ -72,6 +80,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
     - small: 20 RM / 10 SM
     - medium: 40 RM / 20 SM
     - large: 80 RM / 40 SM
+- Unterhalt gilt ab Runde 2. Domaenen/Staedte/Orgs/Handel bleiben aktiv (Gold kann negativ werden), aber **Werkstaetten/Lager nur bei Unterhalt**.
 
 ## Einrichtungs- und Produktions-Caps (v1)
 - Domaenen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6), Starter=0.
@@ -89,25 +98,27 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Klein: 2 kleine oder 1 mittlere Produktion.
   - Mittel: 2 mittlere oder 1 große Produktion.
   - Groß: 2 große Produktionen.
+- Starter-Domaenen muessen ausgebaut werden, bevor zusaetzliche Werkstaetten/Lager gebaut werden koennen.
 
 ## Material-Conversion (Conversion-Phase)
-1. Werkstaetten wandeln **ihr inputMaterial** RM -> output SM um (Kapazitaeten oben).
+1. Werkstaetten wandeln **ihr inputMaterial** RM -> output SM um (Kapazitaeten oben, **nur wenn unterhalten**).
 2. Veredelungs-Einrichtungen am Standort werten output SM pro Stufe um 1 Kategorie auf.
 3. Lager speichern RM/SM bis Kapazitaet.
 4. Rest wird **auto-konvertiert**:
-  - RM: Standard 4:1 zu Gold (Ereignisse koennen Divisor aendern)
+  - RM: Standard 4:1 zu Gold (Ereignisse koennen Divisor aendern, **Bruchteile erlaubt**)
   - SM: 1:2 zu Gold
-5. Nicht konvertierte RM werden verworfen.
+5. Alles Nicht-Gelagerte wird konvertiert; **nichts wird verworfen**.
 
 ## Erfolgswuerfe (allgemein)
 - W20 + Check (influence/money/materials)
+- DC-Investment-Mod: +4 bei Investitionen >= 4, +8 bei Investitionen >= 8
 - Tiers:
   - veryGood: >= DC + 10
   - good: >= DC + 5
   - success: >= DC
   - poor: >= DC - 5
   - fail: < DC - 5
-- Check-Skalierung: Effektiver Check = base + floor(Runde/10) (ab Runde 10 +1, ab Runde 20 +2, ...).
+- Check-Skalierung: Effektiver Check = base + floor(Runde/10) (R1-9 +0, R10-19 +1, R20-29 +2, ...).
 
 ## Aktionen (Engine v1, Zusammenfassung)
 - **Einfluss gewinnen** (temporary oder permanent)
@@ -115,9 +126,9 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Caps: temp abhaengig von Aemtern/Orgs; perm = 2 + Summe (Aemter+Orgs Tiers)
 - **Geld gewinnen**
   - **MoneyLend**: 2 Gold/Invest -> Gold naechste Runde (Ertrag nach Erfolgsgrad)
-  - **MoneySell**: Verkauf RM/SM mit Marktfaktoren (6 RM oder 1 SM = 1 Invest; Cap = 2 + 2*TradeTierSum + DomainTierSum)
+  - **MoneySell**: Verkauf RM/SM/perm. AK mit Marktfaktoren (6 RM oder 1 SM oder 1 perm. AK = 1 Invest; Cap = 2 + 2*TradeTierSum + DomainTierSum)
   - **MoneySellBuy**: Verkauf + Einkauf in einer Aktion (belegt money.sell + money.buy)
-  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM pro Invest; Cap = 3 + 2*TradeTierSum + DomainTierSum)
+  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM oder 1 perm. AK pro Invest; Cap = 3 + 2*TradeTierSum + DomainTierSum)
 - **Material gewinnen**
   - **Domaenenverwaltung** oder **Werkstattaufsicht** (AK-gebunden)
 - **Permanente Posten**
@@ -137,6 +148,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Verkauf nutzt Markt-Modifier + Material-Bonus.
 - Einkauf nutzt die **invertierten** Markt-Modifier (hoher Mod = guenstiger).
 - Events koennen DCs/Modifier beeinflussen.
+- Handelsunternehmungen erzeugen zusaetzliche Marktinstanzen (Anzahl = Tier-Rang).
 
 ## Events
 - Globale Events (Abschnitte) werden ab Runde 1 gerollt und wirken 5 Runden.
