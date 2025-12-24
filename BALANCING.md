@@ -1,68 +1,70 @@
 # Balancing – Erkenntnisse & Vorschläge
 
-Stand: 5x LLM-Playtests (15 Runden), Seeds 101/202/303/404/505, Scenario `core-v1-strategies`, Scoring: **GoldEq**.
+Stand: 10x LLM-Playtests (20 Runden), Seeds 111/222/333/444/555/666/777/888/999/1111, Scenario `core-v1-strategies`, Scoring: **GoldEq** (ROI-Horizont in Scoring: 10 Runden).
+
+## Änderungen seit letztem Stand
+- **TradeEnterprises**: Unterhalt angepasst (2/4/6 Gold + 0/1/2 AK), Produce-Ertrag buff (3/6/12 `special.tools`), Trade kann jetzt auch negative Markt-Deltas korrekt abbilden; LLM bekommt TradeEnterprise-Kandidaten zuverlässig angeboten.
+- **Unterwelt**: Gold+Einfluss aus Unterwelt wird in GoldEq-Scoring berücksichtigt; **Organisationen haben jetzt auch Einrichtungen** (Einfluss/Runde) im Scoring und als Facility-Candidates für LLM.
+- **LLM Runner Stabilität**: MC-Ranking kann nicht mehr “leer” crashen (Fallback-Scoring statt Abort).
 
 ## Kurzfazit
-- Es gibt **keinen klaren Dominator** über 5 Seeds; Sieger wechseln (gut fürs Balancing).
-- **Handel & Geld** ist am **volatilsten** (wie gewünscht), und gewinnt 2/5 Seeds.
-- **Stadt & Unterwelt** ist im Schnitt **zu schwach** (0/5 Siege, niedrigster Ø‑Score).
-- **Handelsunternehmungen** werden aktuell **gar nicht** gebaut (0 in allen Runs) → Pfad ist zu unattraktiv oder schlecht sichtbar.
-- **Ämter** sind nicht nur für Amtsfokus attraktiv (viele Strategien kaufen 1–3 Ämter) → Office‑ROI/Accessibility im Blick behalten.
+- **Handel & Geld** ist aktuell der stärkste Pfad (Ø‑Score am höchsten) und bleibt **volatil** (sehr hoher Max‑Score).
+- **TradeEnterprises funktionieren jetzt**: “Handel & Geld” kauft sie **10/10 Runs** (Ø 1.3).
+- **Unterwelt hängt nicht mehr systematisch hinterher** (Ø ähnlich Amtsfokus/Domänenfokus) und baut **Organisationen+Einrichtungen** konsistent.
+- Auffällig: **Unterwelt skaliert bis Runde 20 nicht über “small” hinaus** (Unterwelt‑Tier bleibt 1/10 Seeds bei “medium/large”).
 
-## Ergebnisse (GoldEq Scores pro Seed)
-```
-Seed 101: Amtsfokus 401.30 | Handel & Geld 488.50 | Stadt & Unterwelt 503.45 | Werkstattfokus 509.95 | Domänenfokus 638.15
-Seed 202: Amtsfokus 474.60 | Handel & Geld 483.55 | Stadt & Unterwelt 421.40 | Werkstattfokus 616.15 | Domänenfokus 514.70
-Seed 303: Amtsfokus 534.95 | Handel & Geld 715.20 | Stadt & Unterwelt 436.85 | Werkstattfokus 592.25 | Domänenfokus 382.15
-Seed 404: Amtsfokus 567.60 | Handel & Geld 582.60 | Stadt & Unterwelt 425.30 | Werkstattfokus 553.30 | Domänenfokus 434.25
-Seed 505: Amtsfokus 589.70 | Handel & Geld 466.35 | Stadt & Unterwelt 334.70 | Werkstattfokus 481.45 | Domänenfokus 482.50
-```
+## Aggregierte Ergebnisse (10 Runs, 20 Runden)
 
-## Durchschnitt (5 Runs)
+### Siege (höchster Score pro Seed)
 ```
-Werkstattfokus   Ø 550.62 (sd 49.95; min 481.45; max 616.15)
-Handel & Geld    Ø 547.24 (sd 93.29; min 466.35; max 715.20)
-Amtsfokus        Ø 513.63 (sd 68.26; min 401.30; max 589.70)
-Domänenfokus     Ø 490.35 (sd 86.43; min 382.15; max 638.15)
-Stadt & UnterweltØ 424.34 (sd 53.78; min 334.70; max 503.45)
+Handel & Geld: 4
+Werkstattfokus: 2
+Domänenfokus: 2
+Amtsfokus: 1
+Stadt & Unterwelt: 1
 ```
 
-## Durchschnittliche Holdings (15R, 5 Seeds)
+### Scores (GoldEq) pro Strategie
 ```
-Amtsfokus        d1.0 c1.6 o6.2 org0.0 trade0.0 ws1.0 store0.8
-Handel & Geld    d1.0 c4.8 o1.2 org1.2 trade0.0 ws1.0 store1.4
-Stadt & Unterweltd1.0 c3.0 o0.0 org1.6 trade0.0 ws1.0 store1.0
-Werkstattfokus   d1.0 c4.2 o2.2 org0.6 trade0.0 ws1.8 store0.6
-Domänenfokus     d1.8 c3.2 o1.6 org0.0 trade0.0 ws1.0 store1.6
+Amtsfokus        Ø 903.0 | median 889.7 | min 741.5 | max 1178.3
+Stadt & UnterweltØ 927.7 | median 925.4 | min 717.1 | max 1154.0
+Domänenfokus     Ø 1046.6 | median 1000.1 | min 746.0 | max 1533.5
+Werkstattfokus   Ø 1148.2 | median 1115.0 | min 764.3 | max 1708.1
+Handel & Geld    Ø 1396.9 | median 1279.3 | min 850.0 | max 2658.8
+```
+
+### Durchschnittliche Holdings (20R, 10 Seeds)
+```
+Amtsfokus        d1.00 c1.00 o7.10 org0.60 trade0.00 ws1.00 store0.30
+Handel & Geld    d1.00 c5.50 o1.60 org1.80 trade1.30 ws1.00 store1.20
+Stadt & Unterweltd1.00 c3.50 o0.00 org2.00 trade0.00 ws1.00 store1.00
+Werkstattfokus   d1.10 c4.90 o2.90 org1.30 trade0.00 ws1.60 store0.90
+Domänenfokus     d1.30 c2.50 o4.40 org0.30 trade0.00 ws1.00 store1.10
 ```
 
 ## Beobachtetes LLM-Verhalten
-- **Generisch dominant:** `MoneySellBuy`/`MoneySell` + Lagerhaltung + City‑Scaling.
-- **Handel & Geld:** deutliche Varianz (Seed‑abhängig), aber **kein** `AcquireTradeEnterprise` → Kernpfad fehlt.
-- **Stadt & Unterwelt:** kauft Orgs, aber Score bleibt zurück (Unterwelt‑ROI zu niedrig oder zu spät).
-- **Viele Strategien kaufen Ämter**, selbst wenn nicht Fokus (spricht für hohen Office‑ROI).
+- **Handel & Geld:** nutzt Sell/SellBuy/Lend und baut *früh* TradeEnterprise + TradeFacilities (TradeEnterprises: 10/10 Runs).
+- **Stadt & Unterwelt:** baut Unterwelt (small) + Organisationseinrichtungen konsistent (Org-Facilities: 37 über 10 Runs), aber bleibt bei Underworld-Tier 1.
+- **Viele Strategien** bauen weiter **Ämter** auch außerhalb Amtsfokus (Office scheint weiterhin ein starker “Universal”-Pfad).
 
 ## Haupttreiber der Balance-Probleme
-1. **Trade‑Pfad fehlt praktisch** (0 Handelsunternehmungen) → Balance nicht bewertbar, weil die Strategie “Handel” über City+SellBuy läuft.
-2. **City/Office als Universal‑Investments** → Strategiedifferenzierung verwässert; ggf. sind diese zu effizient.
-3. **Unterwelt** liefert im Vergleich zu wenig GoldEq‑Wert (direkt/indirekt) → fällt zurück.
+1. **Handel & Geld dominiert** im Mittelwert und hat Outlier (Max 2658.8) → Volatilität ok, aber evtl. zu hoher “Ceiling”.
+2. **Unterwelt skaliert nicht** (bis Runde 20 keine Upgrades über small) → Kosten/HQ/Anreize fürs Upgraden prüfen.
+3. **City/Office als Universal‑Investments** → Strategiedifferenzierung verwässert weiter; ROI/Costs/Caps beobachten.
 
 ## Konkrete Balancing‑Tweaks (Vorschläge)
-### 1) Handelsunternehmungen “einschalten”
-- ROI klarer machen (Ertrag/Unterhalt/Facility‑Synergien) und im Prompt/Strategy‑Card explizit als primärer Pfad führen.
-- Optional: erste Handelsunternehmung leichter zugänglich (Kosten/DC oder frühe Einrichtung als “Ramp”).
+### 1) Handel & Geld Ceiling prüfen (ohne Pfad kaputt zu nerfen)
+- Money-Lend / SellBuy Expected Value vs. TradeEnterprise (Upkeep/Ertrag) gegenrechnen; ggf. DC-Boni oder Bonusgold-Events abschwächen.
+- Alternativ: TradeEnterprise-ROI leicht runter, aber TradeCaps/DC‑Vorteile hoch lassen (damit es Pfad bleibt, aber weniger “free money”).
 
-### 2) Stadt & Unterwelt buffen
-- Unterwelt‑Orgs/Einstellungen messbar stärker (Gold/Influence/Slots/DC‑Vorteile) oder früher wirksam machen.
-- Alternativ: Unterwelt stärker mit Markt (bessere SellBuy‑Caps/Mods) oder City verknüpfen.
+### 2) Unterwelt-Upgrades ermöglichen/erzwingen
+- HQ-Anforderung prüfen (z.B. “medium HQ” früher erreichbar machen) oder Upgrade-Kosten leicht senken.
+- Oder Underworld small stärker belohnen, aber Upgrade-Pfade (medium/large) klarer (mehr Gold/Influence pro CityRank oder Facilities stärker gewichten).
 
-### 3) Office/City ROI prüfen
-- Wenn weiterhin “Universal‑Best‑Buy”: Office‑Kosten/Erträge/Facility‑ROI oder Caps nachziehen, damit Fokusstrategien klarer differenzieren.
-
-### 4) Testhorizont erhöhen (für Domänenfokus)
-- Domänenfokus ist “slow & stable” – 15 Runden sind evtl. zu kurz; zusätzlich 30–40R laufen lassen, bevor nerfs/buffs finalisiert werden.
+### 3) Office/City als Universal‑ROI weiterhin beobachten
+- Wenn Offices/City zu dominant bleiben: Kosten/Erträge/Caps oder Facility‑ROI feinjustieren, damit Fokusstrategien differenzierter werden.
 
 ## Nächste Schritte (empfohlen)
-1. **TradeEnterprises** so buffen/sichtbar machen, dass “Handel & Geld” sie zuverlässig kauft.
-2. Unterwelt‑Pfad (Orgs+Einrichtungen) so justieren, dass er nicht systematisch hinterherhinkt.
-3. Danach: 10–20 Seeds, 20–30 Runden, gleiche Auswertung.
+1. 10–20 Seeds mit **30 Runden** laufen lassen (prüft Skalierung: Underworld/Domain vs. Trade).
+2. Unterwelt-Upgrades (medium/large) gezielt testen: Kosten/HQ/LLM-Entscheidung.
+3. Danach ggf. gezielte Nerfs/Buffs iterieren (mit gleicher Auswertung).

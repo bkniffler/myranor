@@ -102,11 +102,22 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
   - small: 2 Einfluss / 2 Gold
   - medium: 8 Einfluss / 10 Gold
   - large: 16 Einfluss / 20 Gold
-- Organisationen (Unterwelt/Kult/Spion/Collegium): Einfluss/AK je Stufe (v1-Interpretation).
-- Handelsunternehmungen: SM oder SM->Gold (Modus `produce`/`trade`).
+- Organisationen (v1)
+  - Unterwelt: pro Runde **Gold + Einfluss**, skaliert mit hoechstem Stadtbesitz (Tier-Rang).
+    - `maxCityRank = max(postTierRank(city.tier))`
+    - Gold: `goldPer * orgRank * maxCityRank` (goldPer: small=4, medium=5, large=6)
+    - Einfluss: `per * orgRank * maxCityRank` (per: small=1, medium=2, large=3)
+  - Spionage: Einfluss `6 * orgRank` (ab medium/large zusaetzlich permanenter Einfluss als Pool: +1/+2).
+  - Kult: Einfluss `5 * orgRank` (ab medium/large zusaetzlich permanenter Einfluss als Pool: +2/+4).
+  - Handwerks-/Handelscollegium: AK `3 * orgRank` (Handwerk) bzw. DC/Bonusaktionen (siehe Aktionen).
+- Handelsunternehmungen (v1)
+  - Mode `produce`: produziert pro Runde `special.tools` (small=3, medium=6, large=12).
+  - Mode `trade`: konsumiert pro Runde Sondermaterial (guenstigstes) (small=1, medium=2, large=4) und erzeugt Gold:
+    - Basisgold: small=4, medium=10, large=24
+    - plus Trade-Markt-Modifikatoren (beste eigene Handelsmarktinstanz) + Event-Delta (kann negativ sein).
 - Paechter/Anhaenger: +1 Gold/Stufe +1 AK/Stufe; Domaenen zusaetzlich +1 RM/Stufe (einfaches RM aus Picks).
 - Viele Posten geben auch Sonderaktionen oder DC Erleichterungen nach Tier (Angegeben unter Vorteilen)
-- Einrichtungen an Aemtern/Werkstaetten/Handelsunternehmungen geben Einfluss pro Runde:
+- Einrichtungen an Aemtern/Orgs/Werkstaetten/Handelsunternehmungen geben Einfluss pro Runde:
   - General: small +1, medium +2, large +3.
   - Special: small +2, medium +3, large +4.
 
@@ -114,6 +125,10 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Domaenen, Stadtbesitz (produktion), Organisationen, Handelsunternehmungen, Truppen.
 - Werkstaetten/Lager muessen unterhalten werden (sonst inaktiv).
 - Unterhalt fuer Domaenen/Stadtbesitz/Organisationen/Handel/Truppen wird als Kosten abgezogen, diese Posten bleiben aktiv (Gold kann negativ werden).
+- Handelsunternehmungen-Unterhalt (v1):
+  - small: 2 Gold
+  - medium: 4 Gold + 1 AK
+  - large: 6 Gold + 2 AK
 - AK-Unterhalt: 1 RM je 4 AK, fehlende RM reduzieren AK (v1-Interpretation).
 
 ## Aktionen (Kurzfassung)

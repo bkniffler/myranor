@@ -2967,14 +2967,13 @@ export function decide(
               (activeEvents.some((e) => e.tableRollTotal === 22) ? 3 : 0);
             for (const te of player.holdings.tradeEnterprises) {
               if (te.tier === 'small') {
-                upkeepGold += 3;
-                upkeepLabor += 1;
+                upkeepGold += 2;
               } else if (te.tier === 'medium') {
-                upkeepGold += 5;
-                upkeepLabor += 2;
+                upkeepGold += 4;
+                upkeepLabor += 1;
               } else {
                 upkeepGold += 6;
-                upkeepLabor += 4;
+                upkeepLabor += 2;
               }
               upkeepGold += tradeUpkeepExtraPerTier * postTierRank(te.tier);
             }
@@ -3025,7 +3024,7 @@ export function decide(
           );
           const tradeYieldBonusActive = activeEvents.some((e) => e.tableRollTotal === 33);
           for (const te of player.holdings.tradeEnterprises) {
-            const produceCount = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
+            const produceCount = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
             const tradeInput = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
             const tradeGold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
             const tierRank = postTierRank(te.tier);
@@ -3059,15 +3058,16 @@ export function decide(
               const marketCandidates = Array.from({ length: tierRank }, (_, i) =>
                 tradeMarketInstanceId(player.id, te.id, i + 1)
               );
-              let bestMarketDelta = 0;
+              let bestMarketDelta: number | null = null;
               for (const marketId of marketCandidates) {
                 let delta = 0;
                 for (const [materialId, count] of Object.entries(taken)) {
                   if (count <= 0) continue;
                   delta += count * marketModifierPerInvestment(workingState, marketId, materialId);
                 }
-                if (delta > bestMarketDelta) bestMarketDelta = delta;
+                if (bestMarketDelta == null || delta > bestMarketDelta) bestMarketDelta = delta;
               }
+              bestMarketDelta ??= 0;
 
               let globalEventDelta = 0;
               for (const [materialId, count] of Object.entries(taken)) {

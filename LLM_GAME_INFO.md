@@ -66,7 +66,15 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Ertrag (pro Runde, je Amt): small=2/2, medium=8/10, large=16/20
     - Wahl: Gold **oder** Einfluss **oder** Split 50/50 je nach Yield-Mode
   - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt
-- **Einrichtungen an Aemtern/Werkstaetten/Handel**
+- **Organisationen (v1)**
+  - Unterwelt: pro Runde **Gold + Einfluss**, skaliert mit hoechstem Stadtbesitz (Tier-Rang).
+  - Spionage: Einfluss `6 * Stufe` (ab Stufe 2/3 zusaetzlich permanenter Einfluss als Pool +1/+2).
+  - Kult: Einfluss `5 * Stufe` (ab Stufe 2/3 zusaetzlich permanenter Einfluss als Pool +2/+4).
+- **Handelsunternehmungen (v1)**
+  - Unterhalt: small=2 Gold; medium=4 Gold +1 AK; large=6 Gold +2 AK.
+  - Mode `produce`: produziert `special.tools` (small=3, medium=6, large=12).
+  - Mode `trade`: konsumiert Sondermaterial (small=1, medium=2, large=4) und erzeugt Gold (Basis 4/10/24 + Markt/Event).
+- **Einrichtungen an Aemtern/Orgs/Werkstaetten/Handel**
   - Einfluss/Runde: general small=+1, medium=+2, large=+3; special small=+2, medium=+3, large=+4
 - **Werkstaetten**
   - Unterhalt: small=1 AK, medium=2 AK +1 Gold, large=4 AK +2 Gold

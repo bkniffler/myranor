@@ -6,7 +6,7 @@ berechnet. Die Werte sind bewusst konservativ und koennen spaeter feinjustiert
 werden. Annahme: erwarteter ROI wird ueber `ROI_ROUNDS` Runden bewertet.
 
 ## Annahmen
-- ROI_ROUNDS = 5
+- ROI_ROUNDS = 10
 - Gold ist Referenzwert (1.0).
 - Erwartete Ertraege basieren auf Standard-DCs ohne starke Event-Boni.
 
@@ -40,8 +40,8 @@ werden. Annahme: erwarteter ROI wird ueber `ROI_ROUNDS` Runden bewertet.
   - gold: Gold
   - split: (Gold + Einfluss*0.6) / 2
 - Handelsunternehmung:
-  - trade: Gold (4/10/24 je Tier) - Unterhalt
-  - produce: SM (2/4/8 Gold) - Unterhalt
+  - trade: Gold (4/10/24 je Tier) - (verbrauchtes SM * 2 Gold) - Unterhalt (+/- Markt/Event, nicht in der Basis eingerechnet)
+  - produce: SM (6/12/24 Gold je Tier) - Unterhalt
 - Werkstatt (auto-Konversion):
   - Netto = (SM-Out*2.0 - RM-In*0.25 - Unterhalt)
   - Hinweis: Marktboni koennen diesen Wert in der Praxis deutlich erhoehen.

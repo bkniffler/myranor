@@ -33,7 +33,7 @@ export type NetWorthWeights = {
   assetsGoldEq: number;
 };
 
-const ROI_ROUNDS = 5;
+const ROI_ROUNDS = 10;
 const RAW_GOLD_EQ = 0.25;
 const SPECIAL_GOLD_EQ = 2;
 const INFLUENCE_GOLD_EQ = 0.6;
@@ -241,7 +241,10 @@ function orgIncomeGoldEq(
   if (org.kind === 'underworld') {
     const cityRank = Math.max(0, ...holdings.cityProperties.map((c) => postTierRank(c.tier)));
     const per = tier === 1 ? 1 : tier === 2 ? 2 : 3;
-    return per * tier * cityRank * INFLUENCE_GOLD_EQ;
+    const goldPer = tier === 1 ? 4 : tier === 2 ? 5 : 6;
+    const influence = per * tier * cityRank;
+    const gold = goldPer * tier * cityRank;
+    return gold + influence * INFLUENCE_GOLD_EQ;
   }
   return 0;
 }
@@ -250,12 +253,14 @@ function tradeIncomeGoldEq(
   te: PlayerState['holdings']['tradeEnterprises'][number]
 ): number {
   const gold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
-  const special = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
-  const upkeepGold = te.tier === 'small' ? 3 : te.tier === 'medium' ? 5 : 6;
-  const upkeepLabor = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
+  const tradeSpecialIn = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
+  const produceSpecialOut = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
+  const upkeepGold = te.tier === 'small' ? 2 : te.tier === 'medium' ? 4 : 6;
+  const upkeepLabor = te.tier === 'small' ? 0 : te.tier === 'medium' ? 1 : 2;
   const upkeep = upkeepGold + upkeepLabor * LABOR_GOLD_EQ;
-  if (te.mode === 'produce') return special * SPECIAL_GOLD_EQ - upkeep;
-  return gold - upkeep;
+  if (te.mode === 'produce') return produceSpecialOut * SPECIAL_GOLD_EQ - upkeep;
+  // "Trade": consumes Sondermaterial (opportunity cost) for gold (plus market/event deltas not modeled here).
+  return gold - tradeSpecialIn * SPECIAL_GOLD_EQ - upkeep;
 }
 
 function workshopIncomeGoldEq(
@@ -427,9 +432,12 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
   }
 
   for (const org of player.holdings.organizations) {
+    let facilityInfluence = 0;
+    for (const f of org.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'organization');
+    const facilityIncome = facilityInfluence * INFLUENCE_GOLD_EQ;
     organizations +=
       orgCostGoldEq(org.kind, org.tier) +
-      orgIncomeGoldEq(player.holdings, org) * ROI_ROUNDS;
+      (orgIncomeGoldEq(player.holdings, org) + facilityIncome) * ROI_ROUNDS;
     for (const f of org.facilities) facilities += facilityGoldCost(f.key);
 
     if (org.kind === 'underworld') {

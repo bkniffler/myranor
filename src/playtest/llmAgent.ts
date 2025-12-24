@@ -262,6 +262,45 @@ function scoreCandidatesWithMc(
   return scored;
 }
 
+function scoreCandidatesFallback(
+  state: CampaignState,
+  candidates: McCandidate[],
+  ctx: McContext,
+  tag: string
+): McScoredCandidate[] {
+  const actor: ActorContext = { role: 'player', userId: ctx.userId };
+  const scored: McScoredCandidate[] = [];
+
+  for (const candidate of candidates) {
+    if (!candidate.possibleNow) continue;
+    const rng = createSeededRng(
+      hashStringToSeed(`${ctx.seedSalt}|fallback|${tag}|${candidate.id}`)
+    );
+    const next = candidate.command
+      ? tryExecute(state, candidate.command, actor, rng)
+      : state;
+    if (!next) continue;
+
+    const terminal = evaluateTerminalOnce(next, ctx, `fallback|${tag}|${candidate.id}`);
+    const score =
+      terminal ??
+      (() => {
+        try {
+          const me = getPlayerByUserId(next, ctx.userId);
+          return computeNetWorth(next, me, ctx.weights).score;
+        } catch {
+          return null;
+        }
+      })();
+    if (score == null) continue;
+
+    scored.push({ candidate, mean: score, p10: score, p90: score, samples: 1 });
+  }
+
+  scored.sort((a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id));
+  return scored;
+}
+
 function formatMcScore(score: McScoredCandidate): string {
   const fmt = (value: number) => Math.round(value * 100) / 100;
   return `mc=${fmt(score.mean)} p10=${fmt(score.p10)} p90=${fmt(score.p90)}`;
@@ -821,11 +860,14 @@ function buildFacilityCandidates(
   ] as const;
 
   const pushFacilityBuildOptions = (
-    location: { kind: 'office' | 'tradeEnterprise' | 'workshop'; id: string },
+    location: {
+      kind: 'office' | 'tradeEnterprise' | 'workshop' | 'organization';
+      id: string;
+    },
     label: string,
     usedSlots: number,
     maxSlots: number,
-    influenceKind: 'office' | 'tradeEnterprise' | 'workshop'
+    influenceKind: 'office' | 'tradeEnterprise' | 'workshop' | 'organization'
   ) => {
     if (usedSlots + 1 > maxSlots) return;
     for (const tier of facilitySizes) {
@@ -894,6 +936,18 @@ function buildFacilityCandidates(
       used,
       max,
       'tradeEnterprise'
+    );
+  }
+
+  for (const org of me.holdings.organizations) {
+    const used = org.facilities.length;
+    const max = 2 * postTierRank(org.tier);
+    pushFacilityBuildOptions(
+      { kind: 'organization', id: org.id },
+      `Organisation ${org.kind} ${org.id}`,
+      used,
+      max,
+      'organization'
     );
   }
 
@@ -2305,7 +2359,7 @@ function ruleCheatSheet(): string {
     'Regelhinweise (v1, stark verkürzt):',
     '- Zielwertung (GoldEq): Gold + Inventarwert + Assets (Preis + erwarteter ROI) + Einfluss (GoldEq).',
     '- Pro Runde: 2 Aktionen + 1 freie Einrichtungs-/Ausbauaktion (Sonderaktion).',
-    '- Einrichtungen an Aemtern/Werkstaetten/Handel geben Einfluss pro Runde (general: +1/+2/+3; special: +2/+3/+4).',
+    '- Einrichtungen an Aemtern/Orgs/Werkstaetten/Handel geben Einfluss pro Runde (general: +1/+2/+3; special: +2/+3/+4).',
     '- Aemter koennen auf Einfluss, Gold oder Split (50/50) gestellt werden.',
     '- Pro Runde je ActionKey nur 1x (Ausnahme: Einfluss-Bonusaktionen, falls verfügbar).',
     '- Verkauf kann optional einen Kauf im selben Zug enthalten (belegt money.sell und money.buy).',
@@ -2317,6 +2371,7 @@ function ruleCheatSheet(): string {
     '- Rohmaterial/Sondermaterial wird am Rundenende auto-konvertiert (RM 4:1, SM 1:2), außer gelagert.',
     '- Verkauf: je 6 RM oder 1 SM = 1 Investment; Marktsystem kann Wert pro Investment verändern.',
     '- Einkauf: je 5 RM oder 1 SM = 1 Investment; Markt-Modifier wirken invers (hoher Mod = guenstiger).',
+    '- Unterwelt-Organisationen liefern Gold und Einfluss (skaliert mit Staedtischem Besitz).',
     '- Fehlschlag bei Erwerb-Posten (Domäne/Stadt/Ämter/Circel/Truppen/Pächter): Aktion verbraucht, Ressourcen bleiben erhalten.',
     '- Check-Bonus skaliert: Basis +1 ab Runde 10, 20, 30 (effektiv = base + floor(Runde/10)).',
   ].join('\n');
@@ -2384,13 +2439,20 @@ export async function planFacilityWithLlm(options: {
     maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
   };
   const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
-  if (mcRanked.length === 0) {
-    throw new Error(
-      `[LLM] ${options.agentName} R${options.round} facility: MC ranking empty`
-    );
+  const mcRankedSafe =
+    mcRanked.length > 0
+      ? mcRanked
+      : scoreCandidatesFallback(
+          options.state,
+          mcCandidates,
+          mcContext,
+          `facility|r${options.round}`
+        );
+  if (mcRankedSafe.length === 0) {
+    return { facility: null, note: 'keine Facility verfuegbar' };
   }
-  const mcTopBase = mcRanked.slice(0, MC_TOP_N_FACILITY);
-  const nullScore = mcRanked.find((c) => c.candidate.command == null);
+  const mcTopBase = mcRankedSafe.slice(0, MC_TOP_N_FACILITY);
+  const nullScore = mcRankedSafe.find((c) => c.candidate.command == null);
   const mcTop = [...mcTopBase];
   if (nullScore && !mcTop.some((c) => c.candidate.command == null)) {
     mcTop.push(nullScore);
@@ -2409,7 +2471,7 @@ export async function planFacilityWithLlm(options: {
       splitCandidate &&
       !mcTop.some((c) => c.candidate.id === splitCandidate.id)
     ) {
-      const scored = mcRanked.find(
+      const scored = mcRankedSafe.find(
         (c) => c.candidate.id === splitCandidate.id
       );
       if (scored) mcTop.push(scored);
@@ -2705,12 +2767,19 @@ export async function planActionWithLlm(options: {
     maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
   };
   const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
-  if (mcRanked.length === 0) {
-    throw new Error(
-      `[LLM] ${options.agentName} R${options.round} A${options.actionSlot}: MC ranking empty`
-    );
+  const mcRankedSafe =
+    mcRanked.length > 0
+      ? mcRanked
+      : scoreCandidatesFallback(
+          options.state,
+          mcCandidates,
+          mcContext,
+          `action|r${options.round}|s${options.actionSlot}`
+        );
+  if (mcRankedSafe.length === 0) {
+    return { action: null, note: 'keine Aktionen verfuegbar' };
   }
-  const mcTopBase = mcRanked.slice(0, MC_TOP_N_ACTION);
+  const mcTopBase = mcRankedSafe.slice(0, MC_TOP_N_ACTION);
   const mcTop = [...mcTopBase];
   const shouldPreferMoneyLend =
     strategyWantsMoney(options.strategyCard, options.systemPreamble) &&
@@ -2727,9 +2796,30 @@ export async function planActionWithLlm(options: {
       return invB - invA;
     })[0];
     if (bestMoneyLend && !mcTop.some((c) => c.candidate.id === bestMoneyLend.id)) {
-      const scored = mcRanked.find(
+      const scored = mcRankedSafe.find(
         (c) => c.candidate.id === bestMoneyLend.id
       );
+      if (scored) mcTop.push(scored);
+    }
+  }
+  const shouldPreferTradeEnterprise =
+    strategyWantsMoney(options.strategyCard, options.systemPreamble) &&
+    options.me.holdings.tradeEnterprises.length === 0;
+  if (shouldPreferTradeEnterprise) {
+    const tradeCandidates = allowedCandidates.filter(
+      (c) => c.command?.type === 'AcquireTradeEnterprise'
+    );
+    const bestTrade =
+      tradeCandidates.find(
+        (c) =>
+          c.command?.type === 'AcquireTradeEnterprise' &&
+          c.command.tier === 'small' &&
+          c.possibleNow
+      ) ??
+      tradeCandidates.find((c) => c.possibleNow) ??
+      tradeCandidates[0];
+    if (bestTrade && !mcTop.some((c) => c.candidate.id === bestTrade.id)) {
+      const scored = mcRankedSafe.find((c) => c.candidate.id === bestTrade.id);
       if (scored) mcTop.push(scored);
     }
   }
@@ -2743,7 +2833,7 @@ export async function planActionWithLlm(options: {
     const bestOffice =
       officeCandidates.find((c) => c.possibleNow) ?? officeCandidates[0];
     if (bestOffice && !mcTop.some((c) => c.candidate.id === bestOffice.id)) {
-      const scored = mcRanked.find((c) => c.candidate.id === bestOffice.id);
+      const scored = mcRankedSafe.find((c) => c.candidate.id === bestOffice.id);
       if (scored) mcTop.push(scored);
     }
 
@@ -2778,14 +2868,14 @@ export async function planActionWithLlm(options: {
       bestInfluence &&
       !mcTop.some((c) => c.candidate.id === bestInfluence.id)
     ) {
-      const scored = mcRanked.find(
+      const scored = mcRankedSafe.find(
         (c) => c.candidate.id === bestInfluence.id
       );
       if (scored) mcTop.push(scored);
     }
   }
   if (tempUnlockCandidate) {
-    const scored = mcRanked.find(
+    const scored = mcRankedSafe.find(
       (c) => c.candidate.id === tempUnlockCandidate.id
     );
     if (scored && !mcTop.some((c) => c.candidate.id === scored.candidate.id)) {
@@ -2809,7 +2899,7 @@ export async function planActionWithLlm(options: {
       underworldCandidate &&
       !mcTop.some((c) => c.candidate.id === underworldCandidate.id)
     ) {
-      const scored = mcRanked.find(
+      const scored = mcRankedSafe.find(
         (c) => c.candidate.id === underworldCandidate.id
       );
       if (scored) mcTop.push(scored);
@@ -2819,7 +2909,7 @@ export async function planActionWithLlm(options: {
       spyCandidate &&
       !mcTop.some((c) => c.candidate.id === spyCandidate.id)
     ) {
-      const scored = mcRanked.find((c) => c.candidate.id === spyCandidate.id);
+      const scored = mcRankedSafe.find((c) => c.candidate.id === spyCandidate.id);
       if (scored) mcTop.push(scored);
     }
 
@@ -2846,7 +2936,7 @@ export async function planActionWithLlm(options: {
         followerCandidate &&
         !mcTop.some((c) => c.candidate.id === followerCandidate.id)
       ) {
-        const scored = mcRanked.find(
+        const scored = mcRankedSafe.find(
           (c) => c.candidate.id === followerCandidate.id
         );
         if (scored) mcTop.push(scored);

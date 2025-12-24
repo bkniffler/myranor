@@ -307,9 +307,15 @@ export function storageCapacity(
 
 export function facilityInfluencePerRound(
   facilityKey: string,
-  locationKind: 'office' | 'tradeEnterprise' | 'workshop',
+  locationKind: 'office' | 'tradeEnterprise' | 'workshop' | 'organization',
 ): number {
-  if (locationKind !== 'office' && locationKind !== 'tradeEnterprise' && locationKind !== 'workshop') return 0;
+  if (
+    locationKind !== 'office' &&
+    locationKind !== 'tradeEnterprise' &&
+    locationKind !== 'workshop' &&
+    locationKind !== 'organization'
+  )
+    return 0;
   const [category, size] = facilityKey.split('.', 2);
   const tier = size === 'small' ? 1 : size === 'medium' ? 2 : size === 'large' ? 3 : 0;
   if (!tier) return 0;
@@ -382,12 +388,28 @@ export function baseInfluencePerRound(holdings: PlayerHoldings): number {
     for (const f of t.facilities) total += facilityInfluencePerRound(f.key, 'tradeEnterprise');
     return sum + total;
   }, 0);
+  const orgFacilities = holdings.organizations.reduce((sum, o) => {
+    if (o.followers.inUnrest) return sum;
+    let total = 0;
+    for (const f of o.facilities) total += facilityInfluencePerRound(f.key, 'organization');
+    return sum + total;
+  }, 0);
   const workshopFacilities = holdings.workshops.reduce((sum, w) => {
     let total = 0;
     for (const f of w.facilities) total += facilityInfluencePerRound(f.key, 'workshop');
     return sum + total;
   }, 0);
-  return Math.max(0, city + org + offices + holdings.permanentInfluence + officeFacilities + tradeFacilities + workshopFacilities);
+  return Math.max(
+    0,
+    city +
+      org +
+      offices +
+      holdings.permanentInfluence +
+      officeFacilities +
+      tradeFacilities +
+      orgFacilities +
+      workshopFacilities,
+  );
 }
 
 export function baseLaborTotal(holdings: PlayerHoldings): number {
