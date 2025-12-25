@@ -1,4 +1,4 @@
-Das ist ein fantastisches Projekt. Das "Aufbausystem.md" ist komplex, tiefgreifend und voller Abhängigkeiten – genau die Art von System, die am Spieltisch oft den Fluss bremst ("Warte, ich muss kurz ausrechnen, wie viel Rohmaterial ich für die Werkstatt brauche..."), aber asynchron zwischen den Sitzungen glänzen kann.
+Das ist ein fantastisches Projekt. Das `docs/reference/Aufbausystem.md` ist komplex, tiefgreifend und voller Abhängigkeiten – genau die Art von System, die am Spieltisch oft den Fluss bremst ("Warte, ich muss kurz ausrechnen, wie viel Rohmaterial ich für die Werkstatt brauche..."), aber asynchron zwischen den Sitzungen glänzen kann.
 
 Ein **Protodemestikon-Bot** (nennen wir ihn "Kassian" oder einfach "Den Verwalter") ist die perfekte Lösung. Er nimmt den Spielern die Buchhaltung ab und verpackt sie in In-Game-Roleplay.
 
@@ -142,3 +142,12 @@ const RULES = {
 4.  **App:** React Native App, die mit der API spricht. Der Chatbot ist nur das UI für die API-Aufrufe.
 
 Das wird das Spiel enorm bereichern, weil die Spieler in der Session nicht mehr rechnen müssen, sondern sich auf die Intrigen und das Rollenspiel konzentrieren können ("Ich habe letzte Woche meine Festung ausgebaut, jetzt bin ich sicher!").
+---
+status: legacy
+scope: brainstorming
+---
+
+# Konzept (Legacy / Brainstorming)
+
+Dieses Dokument ist **kein canonical Rules-Dokument**. Es ist ein historischer Entwurf/Brainstorming-Text und kann veraltet sein.
+Für Regeln/Listen gilt: `docs/rules/README.md`.

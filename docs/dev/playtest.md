@@ -1,6 +1,6 @@
 # Playtest-System (v1) – Kernregeln evaluieren
 
-Dieses Dokument beschreibt, wie wir die **Kernregeln** aus `Aufbausystem.md` (Rundenablauf, Unterhalt, Umwandlung, Markt, Ereignisse, Aktionen 1–4/6) automatisch simulieren und auswerten, um **Balancing**, **Skalierung** und Entscheidungsqualität zu beurteilen.
+Dieses Dokument beschreibt, wie wir die **Kernregeln** aus `docs/reference/Aufbausystem.md` (Rundenablauf, Unterhalt, Umwandlung, Markt, Ereignisse, Aktionen 1–4/6) automatisch simulieren und auswerten, um **Balancing**, **Skalierung** und Entscheidungsqualität zu beurteilen.
 
 Wichtig: `rulesVersion = v1` ist das **Kern-Aufbausystem**. **„Das Erste Lager“** ist nicht Teil der Engine und wird (falls gewünscht) als separater Ruleset behandelt.
 
@@ -17,7 +17,7 @@ Wichtig: `rulesVersion = v1` ist das **Kern-Aufbausystem**. **„Das Erste Lager
   - 6) Sonderaktion Einrichtungen/Ausbau (Starterdomäne ausbauen, Spezialisierungen, Werkstatt/Lager)
 - Nicht im Scope: Aktion 5 „Politische Schritte“
 
-Aktueller Implementierungsstand (inkl. Abweichungen/Interpretationen) ist in `IMPLEMENTATION_STATUS.md` dokumentiert.
+Aktueller Implementierungsstand (inkl. Abweichungen/Interpretationen) ist in `docs/dev/implementation-status.md` dokumentiert.
 
 ## Monte-Carlo Runner (deterministisch)
 

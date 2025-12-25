@@ -1,6 +1,9 @@
-# Facilities Catalog (Draft, Phase 1 = Economy/Rules)
+# Facilities – Draft-Spezifikation (vNext)
 
-Status: draft derived from `Aufbausystem.md`. This document is the source of truth for *facility effects* we plan to model in the engine. It intentionally focuses on **economic + action mechanics** (income, upkeep, DCs, caps, storage, conversion, bonus actions). Narrative/RPG-only effects are listed as Phase 3.
+Status: draft/spec (nicht 1:1 in der Engine umgesetzt; dient als Backlog/Spezifikation)
+
+Quelle: abgeleitet aus `docs/reference/Aufbausystem.md`.
+Zweck: Sammlung/Strukturierung von **geplanten** Einrichtungs-Effekten (DCs, Caps, Erträge, Unterhalt, Markt/Conversion, Bonusaktionen).
 
 ## Scope
 - **Phase 1 (implement first):** economic effects, action DC/caps, bonus actions, market modifiers, storage, workshop conversion/refinement, facility slots, recruiting discounts.
@@ -27,7 +30,7 @@ Status: draft derived from `Aufbausystem.md`. This document is the source of tru
 - Domain general facility slots: small=2, medium=4, large=6.
 - City property facility slots: small=2, medium=3, large=4.
 - Workshops/Lagers count as facilities (per domain/city production caps).
-- See `docs/rules/rules-implemented.md` for domain/city production caps.
+- Siehe `docs/rules/rules-v1.md` (Produktionscaps Domäne/Stadt/Eigenproduktion).
 
 ---
 
@@ -108,7 +111,7 @@ Status: draft derived from `Aufbausystem.md`. This document is the source of tru
   - `facility.domain.agri.magic-greenhouse`: +1 expensive RM or +1 expensive SM (every 2 rounds)
 
 ### Animal husbandry (specialization)
-- Base effect: chosen animal package (see Aufbausystem.md)
+- Base effect: chosen animal package (see `docs/reference/Aufbausystem.md`)
 - Upkeep: 1 labor
 - Facilities:
   - `facility.domain.husbandry.slaughterhouse`: +4 RM meat for 1 simple RM upkeep
@@ -126,7 +129,7 @@ Status: draft derived from `Aufbausystem.md`. This document is the source of tru
   - `facility.domain.forestry.hardwood`: upgrade wood -> expensive RM or simple SM furniture
 
 ### Mining/Quarry (specialization)
-- Base effect: choose quarry/ore/gems (see Aufbausystem.md)
+- Base effect: choose quarry/ore/gems (see `docs/reference/Aufbausystem.md`)
 - Upkeep: quarry=3 labor, ore/gem=6 labor
 - Facilities:
   - `facility.domain.mining.smelter`: +2 RM refined metal for 2 RM ore upkeep
@@ -301,7 +304,7 @@ Status: draft derived from `Aufbausystem.md`. This document is the source of tru
 
 ---
 
-## Trade enterprise facilities (from Aufbausystem.md)
+## Trade enterprise facilities (from `docs/reference/Aufbausystem.md`)
 - General cap: 2 general facilities per trade tier
 - Only 1 trade enterprise per market instance
 
@@ -358,7 +361,7 @@ Status: draft derived from `Aufbausystem.md`. This document is the source of tru
 
 ---
 
-## Circel / Collegium facilities (from Aufbausystem.md)
+## Circel / Collegium facilities (from `docs/reference/Aufbausystem.md`)
 Applies to: underworld, spy, cult, collegiumTrade, collegiumCraft
 
 ### Base circel effects (context, not facilities)
@@ -437,7 +440,7 @@ Applies to: underworld, spy, cult, collegiumTrade, collegiumCraft
 - Effect: +2 gold/round, +1 influence/round
 
 #### facility.circel.underworld.bathhouse
-- Cost: TODO (not specified in Aufbausystem.md)
+- Cost: TODO (not specified in `docs/reference/Aufbausystem.md`)
 - Effect: TODO (not specified)
 
 #### facility.circel.underworld.shabby-workshops
@@ -506,7 +509,7 @@ Applies to: underworld, spy, cult, collegiumTrade, collegiumCraft
 - Effect: -2 on specialist hiring roll; +1 basic specialist every 4 rounds; upgrade produced goods to simple/expensive
 
 ### Spy ring facilities
-- No explicit facility list in Aufbausystem.md yet (TODO)
+- No explicit facility list in `docs/reference/Aufbausystem.md` yet (TODO)
 
 ---
 

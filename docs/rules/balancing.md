@@ -76,7 +76,7 @@ Domänenfokus     d1.30 c2.50 o4.40 org0.30 trade0.00 ws1.00 store1.10
 Ziel: konkrete, prüfbare Aussagen zu **übermächtigen** vs. **zu schwachen** Elementen der aktuell implementierten Engine v1.
 
 ## Bewertungsbasis
-- GoldEq-Mapping: `docs/rules/gold-equivalents.md`
+- GoldEq-Mapping: `docs/rules/scoring.md`
 - ROI-Horizont in Score: 10 Runden (`src/playtest/plannerScore.ts`)
 - Aktuelle Beobachtung aus 15-Partien Planner-Batch: Stadtbesitz wurde fast ausschließlich **verpachtet** genutzt; **0.0** Eigenproduktion-Städte in 30R (`reports/playtest-planner-strategies-batch-15partien-analysis.md`)
 

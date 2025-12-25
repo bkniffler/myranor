@@ -1,10 +1,16 @@
-# Myranor Aufbausystem (Soll) — Source of Truth
+# Regeln (Engine v1) — canonical
 
 Zweck: Dieses Dokument beschreibt die **Soll-Regeln**, die in der Engine umgesetzt sind.
 Wenn eine Regel hier steht, **muss** sie im Code so funktionieren.
 Wenn eine Regel fehlt, gilt sie als **nicht implementiert**.
 
-Stand: Engine `rulesVersion = v1` (Soll-Stand)
+Stand: Engine `rulesVersion = v1`
+
+Siehe Tabellen/Listen:
+- Events: `docs/rules/tables/events.md`
+- Markt: `docs/rules/tables/market.md`
+- Materialien: `docs/rules/tables/materials.md`
+- Facilities: `docs/rules/facilities/catalog.md`
 
 ## Scope
 - Enthalten: Kernsystem, Aktionen 1–4 und 6, Markt, Ereignistabelle, LLM-Playtest.

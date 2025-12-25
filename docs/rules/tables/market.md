@@ -1,5 +1,11 @@
 # Markttabellen (v1)
 
+Status: canonical (2d6-Tabellen, Modifikatoren pro Investment)
+
+Hinweise:
+- Modifikatoren gelten **pro Investment**.
+- Gruppen-Namen müssen zu `docs/rules/tables/materials.md` (`marketGroup`) passen.
+
 Diese Tabellen beschreiben die 2d6-Wuerfe fuer Rohmaterial und Sondermaterial.
 Die Modifikatoren gelten pro Investment.
 

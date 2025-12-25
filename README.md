@@ -1,7 +1,7 @@
 # Myranor Aufbausystem (Engine + API)
 
 ## Overview
-Deterministische Engine + zentrale API für das Aufbausystem aus `Aufbausystem.md` (LLM nur als UI/Persona via Tools).
+Deterministische Engine + zentrale API für das Aufbausystem aus `docs/reference/Aufbausystem.md` (LLM nur als UI/Persona via Tools).
 
 ## Project Structure
 
@@ -13,7 +13,12 @@ src/
 
 ## Architecture
 
-Siehe `ARCHITEKTUR.md`.
+Siehe `docs/design/architecture.md`.
+
+## Docs
+
+- Index: `docs/README.md`
+- Regeln (canonical): `docs/rules/README.md`
 
 ## Running the Game
 

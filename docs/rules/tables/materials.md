@@ -1,5 +1,11 @@
 # Materialkatalog (v1)
 
+Status: canonical (IDs/Market-Gruppen für Engine und Docs)
+
+Konventionen:
+- `id` ist stabil und wird im Code als Schlüssel verwendet.
+- `marketGroup` muss zu `docs/rules/tables/market.md` passen.
+
 | id | label | kind | tier | marketGroup | saleBonusGold | tags |
 | --- | --- | --- | --- | --- | --- | --- |
 | raw.bricks | Tonware/Ziegel | raw | cheap | rawCheapBuilding | 1 | building |

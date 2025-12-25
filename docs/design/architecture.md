@@ -1,6 +1,6 @@
 # Architektur & Stack (Neustart)
 
-Dieses Dokument hält die technischen Entscheidungen für den Neustart fest (Engine/API/LLM/Client). Quelle der Regeln ist `Aufbausystem.md`; `CONCEPT.md` beschreibt die Zielrichtung (hybrid: LLM + deterministische Logik).
+Dieses Dokument hält die technischen Entscheidungen für den Neustart fest (Engine/API/LLM/Client). Quelle der Regeln ist `docs/reference/Aufbausystem.md`; `docs/design/concept.md` beschreibt die Zielrichtung (hybrid: LLM + deterministische Logik).
 
 ## Ziele / Leitprinzipien
 
@@ -135,4 +135,4 @@ Transport für “live updates”:
 3. File/SQLite EventStore + SnapshotStore implementieren.
 4. Bun API endpoints bauen (inkl. GM/Player Rollen).
 5. LLM Tool-Interface & Systemprompt (“Protodemestikon”, Deutsch, tool-only für Änderungen).
-6. Playtests automatisieren: siehe `PLAYTEST.md` (Monte Carlo Runner + Metriken).
+6. Playtests automatisieren: siehe `docs/dev/playtest.md` (Monte Carlo Runner + Metriken).

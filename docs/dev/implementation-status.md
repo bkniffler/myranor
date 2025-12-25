@@ -1,6 +1,6 @@
 # Implementierungsstatus (Myranor Aufbausystem) – Engine `rulesVersion = v1`
 
-Quelle der Regeln: `Aufbausystem.md` (Kernsystem) + Projektkontext `CONCEPT.md`.
+Quelle der Regeln: `docs/reference/Aufbausystem.md` (Kernsystem) + Projektkontext `docs/design/concept.md`.
 
 Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engine **implementiert**, was **fehlt**, und welche **Interpretationen** gelten – damit Playtests belastbar auswertbar sind.
 
@@ -29,7 +29,7 @@ Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engi
 
 ## Startbedingungen
 
-Quelle: `Aufbausystem.md` → „Startbedingungen“ (Kernsystem).
+Quelle: `docs/reference/Aufbausystem.md` → „Startbedingungen“ (Kernsystem).
 
 - ✅ Starter-Domäne (`DomainTier: "starter"`) inkl. Basisertrag (2 AK, 4 RM)
 - ✅ 2 permanente Arbeitskraft (`holdings.permanentLabor = 2`)
@@ -38,7 +38,7 @@ Quelle: `Aufbausystem.md` → „Startbedingungen“ (Kernsystem).
 - ✅ Startgold: 4
 - ✅ Start-Aktionen: 2 Aktionen/Runde + 1 freie Einrichtungs-/Ausbauaktion (`campaign.rules`)
 
-Quelle: `Aufbausystem.md` → „Das Erste Lager“.
+Quelle: `docs/reference/Aufbausystem.md` → „Das Erste Lager“.
 
 - ❌ Startressourcen Nomisma/Nahrung/Tiere/KK/Werkzeuge sind nicht im Engine-State (nicht Teil `v1`)
 
@@ -53,7 +53,7 @@ Quelle: `Aufbausystem.md` → „Das Erste Lager“.
 
 ## Rundenablauf
 
-Quelle: `Aufbausystem.md` → „Die Runde“.
+Quelle: `docs/reference/Aufbausystem.md` → „Die Runde“.
 
 - ✅ Phasenmodell: `maintenance → actions → conversion → reset`
 
@@ -88,7 +88,7 @@ Quelle: `Aufbausystem.md` → „Die Runde“.
 
 ## Markt (Marktsystem)
 
-Quelle: `Aufbausystem.md` → „Marktsystem“.
+Quelle: `docs/reference/Aufbausystem.md` → „Marktsystem“.
 
 - ✅ Pro Runde: je 1× Rohmaterial- und Sondermaterial-Tabelle (2d6)
 - ✅ Typed-Matching: Markt-Modifikator pro Investment über `material.marketGroup`
@@ -99,7 +99,7 @@ Quelle: `Aufbausystem.md` → „Marktsystem“.
 
 ## Loyalität / Anhänger / Klienten / Pächter
 
-Quelle: `Aufbausystem.md` → „Pächter, Anhänger und Untertanen“.
+Quelle: `docs/reference/Aufbausystem.md` → „Pächter, Anhänger und Untertanen“.
 
 - ✅ Modell: `FollowersState = { levels, loyalty, inUnrest }` an Domäne/Stadt/Organisation
 - ✅ Erträge (wenn nicht `inUnrest`):
@@ -163,7 +163,7 @@ Quelle: `Aufbausystem.md` → „Pächter, Anhänger und Untertanen“.
 
 ## Ereignisse (Ereignistabellen)
 
-Quelle: `Aufbausystem.md` → „Ereignistabellen“.
+Quelle: `docs/reference/Aufbausystem.md` → „Ereignistabellen“.
 
 - ✅ Pro Abschnitt (5 Runden): 2× Event (2d20), ohne Doppelungen
 - ✅ Meta-Rolls werden einmalig gespeichert (z.B. Denera-Aufruhr-Trigger, Market-Deltas, Räuber/Piraten)

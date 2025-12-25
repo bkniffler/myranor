@@ -1,4 +1,4 @@
-# Gold-Aequivalenz (v1, Bewertungsbasis)
+# Scoring: Gold-Äquivalenz (v1)
 
 Diese Liste definiert die Basiskonversionen fuer die Erfolgsmessung in Gold.
 Gold ist der Referenzwert; alle anderen Werte werden als Gold-Aequivalent

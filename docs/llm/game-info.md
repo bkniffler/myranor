@@ -1,7 +1,10 @@
-# LLM-Game-Info (Engine v1)
+# LLM-Game-Info (Engine v1, derived)
 
 Diese Datei fasst den aktuellen Stand der Engine-Regeln zusammen, damit ein LLM die Spiel-Logik und Ressourcen besser versteht.
-Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk aus dem Aufbausystem-PDF.
+Sie ist **abgeleitet** aus den canonical Regeln/Listen und sollte nicht als primäre Quelle editiert werden.
+
+Canonical Rules: `docs/rules/rules-v1.md` (Regeln/Listen).
+Tabellen/Listen: `docs/rules/tables/*`.
 
 ## Ziel
 - Standardziel im LLM-Runner: **Gesamt-Score (GoldEq) maximieren**.
