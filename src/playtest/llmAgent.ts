@@ -624,10 +624,6 @@ function buyInvestmentCap(me: PlayerState): number {
   return 3 + capFromTrade + capFromDomains;
 }
 
-function localMarketInstanceId(): string {
-  return 'local';
-}
-
 function tierUnits(tier: 'small' | 'medium' | 'large'): number {
   return tier === 'small' ? 1 : tier === 'medium' ? 2 : 4;
 }
@@ -998,10 +994,7 @@ function buildFacilityCandidates(
         },
         actionKey: null,
         possibleNow: true,
-        summary:
-          'Domäne ' +
-          specDomain.id +
-          ' spezialisieren: Landwirtschaft (10 Gold, 2 RM raw.grainVeg).',
+        summary: `Domäne ${specDomain.id} spezialisieren: Landwirtschaft (10 Gold, 2 RM raw.grainVeg).`,
       });
     }
     if (
@@ -1019,10 +1012,7 @@ function buildFacilityCandidates(
         },
         actionKey: null,
         possibleNow: true,
-        summary:
-          'Domäne ' +
-          specDomain.id +
-          ' spezialisieren: Bergbau (20 Gold, 4 RM raw.wood).',
+        summary: `Domäne ${specDomain.id} spezialisieren: Bergbau (20 Gold, 4 RM raw.wood).`,
       });
     }
     const animalCount = Object.entries(me.economy.inventory.raw).reduce(
@@ -1049,10 +1039,7 @@ function buildFacilityCandidates(
         },
         actionKey: null,
         possibleNow: true,
-        summary:
-          'Domäne ' +
-          specDomain.id +
-          ' spezialisieren: Viehzucht (15 Gold, 4 RM Tiere).',
+        summary: `Domäne ${specDomain.id} spezialisieren: Viehzucht (15 Gold, 4 RM Tiere).`,
       });
     }
   }
@@ -2371,9 +2358,10 @@ function ruleCheatSheet(): string {
     '- Rohmaterial/Sondermaterial wird am Rundenende auto-konvertiert (RM 4:1, SM 1:2), außer gelagert.',
     '- Verkauf: je 6 RM oder 1 SM = 1 Investment; Marktsystem kann Wert pro Investment verändern.',
     '- Einkauf: je 5 RM oder 1 SM = 1 Investment; Markt-Modifier wirken invers (hoher Mod = guenstiger).',
+    '- Handelsmärkte (TradeEnterprises) sind in Stürmen/Piraterie/Konflikt riskant: beim Verkauf kann Frachtverlust Gold reduzieren.',
     '- Unterwelt-Organisationen liefern Gold und Einfluss (skaliert mit Staedtischem Besitz).',
     '- Fehlschlag bei Erwerb-Posten (Domäne/Stadt/Ämter/Circel/Truppen/Pächter): Aktion verbraucht, Ressourcen bleiben erhalten.',
-    '- Check-Bonus skaliert: Basis +1 ab Runde 10, 20, 30 (effektiv = base + floor(Runde/10)).',
+    '- Checks: Startwert (Modifikator) = +3; steigt um +1 ab Runde 10/20/30 (effektiv = base + floor(Runde/10)).',
   ].join('\n');
 }
 

@@ -205,6 +205,7 @@ export type TradeEnterpriseState = {
   id: string;
   tier: TradeEnterpriseTier;
   mode: TradeEnterpriseMode;
+  damage?: FacilityDamageState;
   facilities: FacilityInstance[];
 };
 

@@ -74,6 +74,8 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - Unterhalt: small=2 Gold; medium=4 Gold +1 AK; large=6 Gold +2 AK.
   - Mode `produce`: produziert `special.tools` (small=3, medium=6, large=12).
   - Mode `trade`: konsumiert Sondermaterial (small=1, medium=2, large=4) und erzeugt Gold (Basis 4/10/24 + Markt/Event).
+  - Beschädigt (`damage`): inaktiv (kein Unterhalt/Ertrag, keine Handelsmärkte, keine Einrichtungs-Einflüsse).
+  - Events 15/16(pirates)/26: Verkauf über Handelsmärkte kann Frachtverlust verursachen (Gold wird reduziert).
 - **Einrichtungen an Aemtern/Orgs/Werkstaetten/Handel**
   - Einfluss/Runde: general small=+1, medium=+2, large=+3; special small=+2, medium=+3, large=+4
 - **Werkstaetten**
@@ -137,6 +139,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
   - **MoneySell**: Verkauf RM/SM/perm. AK mit Marktfaktoren (6 RM oder 1 SM oder 1 perm. AK = 1 Invest; Cap = 2 + 2*TradeTierSum + DomainTierSum)
   - **MoneySellBuy**: Verkauf + Einkauf in einer Aktion (belegt money.sell + money.buy)
   - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM oder 1 perm. AK pro Invest; Cap = 3 + 2*TradeTierSum + DomainTierSum)
+  - Event 31 (Wirtschaftsaufschwung) — v1-Nerf: Bonusgold nur je **3** Investitionen (statt je 2).
 - **Material gewinnen**
   - **Domaenenverwaltung** oder **Werkstattaufsicht** (AK-gebunden)
 - **Permanente Posten**
@@ -156,7 +159,7 @@ Sie beschreibt, was im Code umgesetzt ist (v1), nicht das komplette Regelwerk au
 - Verkauf nutzt Markt-Modifier + Material-Bonus.
 - Einkauf nutzt die **invertierten** Markt-Modifier (hoher Mod = guenstiger).
 - Events koennen DCs/Modifier beeinflussen.
-- Handelsunternehmungen erzeugen zusaetzliche Marktinstanzen (Anzahl = Tier-Rang).
+- Handelsunternehmungen erzeugen zusaetzliche Marktinstanzen (Anzahl = Tier-Rang), **nur wenn nicht beschädigt**.
 
 ## Events
 - Globale Events (Abschnitte) werden ab Runde 1 gerollt und wirken 5 Runden.

@@ -14,17 +14,44 @@ import {
 } from '../core';
 
 import { moneyActionMods, officeIncomeMods, rawAutoConvertDivisor, taxGoldPerRound, workshopUpkeepMods } from '../core/rules/eventModifiers_v1';
-import { officesIncomePerRound } from '../core/rules/v1';
+import { cityGoldPerRound, cityGoldUpkeep, cityInfluencePerRound, cityLaborPerRound, officesIncomePerRound } from '../core/rules/v1';
 
 import type { AgentId, PlaytestConfig, PlayerProfile } from './types';
 import { tierProbabilities } from './probabilities';
 import { gini, mean, median, percentile } from './stats';
+import { DEFAULT_NET_WORTH_WEIGHTS, computeNetWorth } from './plannerScore';
 
 type AgentAggregate = {
   samples: number;
   wins: number;
+  winsScore: number;
   finalGold: number[];
+  finalScoreGoldEq: number[];
   finalOfficesGoldPerRound: number[];
+  cityAcquisitionCount: number[];
+  cityAcquisitionGoldSpent: number[];
+  finalHoldingsDomains: number[];
+  finalHoldingsCities: number[];
+  finalHoldingsCitiesByTierMode: {
+    smallLeased: number[];
+    smallProduction: number[];
+    mediumLeased: number[];
+    mediumProduction: number[];
+    largeLeased: number[];
+    largeProduction: number[];
+  };
+  finalCityIncomeGoldPerRound: number[];
+  finalCityIncomeInfluencePerRound: number[];
+  finalCityIncomeLaborPerRound: number[];
+  finalCityProductionUpkeepGoldPerRound: number[];
+  finalHoldingsOffices: number[];
+  finalHoldingsOrganizations: number[];
+  finalHoldingsTradeEnterprises: number[];
+  finalHoldingsTradeEnterprisesDamaged: number[];
+  finalHoldingsWorkshops: number[];
+  finalHoldingsStorages: number[];
+  finalHoldingsTenants: number[];
+  finalHoldingsFollowers: number[];
   firstOfficeRound: number[];
   firstDomainUpgradeRound: number[];
   firstStorageBuiltRound: number[];
@@ -37,6 +64,13 @@ type AgentAggregate = {
   idleActions: number;
   sellSamples: number;
   sellByResource: Record<'raw' | 'special', number>;
+  sellViaTradeMarkets: number;
+  sellViaLocalMarket: number;
+  cargoIncidentSamples: number;
+  cargoLossGold: number[];
+  cargoLossGoldByKind: Record<'storm' | 'pirates' | 'conflict', number>;
+  tradeEnterpriseDamagedEvents: number;
+  tradeEnterpriseLostEvents: number;
   sellGoldPerInvestment: number[];
   sellMarketModifierPerInvestment: number[];
   conversionSamples: number;
@@ -59,14 +93,47 @@ export type PlaytestReport = {
   };
   outcomes: {
     giniGold: { mean: number; p50: number; p90: number };
+    giniScoreGoldEq: { mean: number; p50: number; p90: number };
     byAgent: Record<
       AgentId,
       {
         samples: number;
         wins: number;
         winRate: number;
+        winsScore: number;
+        winRateScore: number;
         finalGold: { mean: number; p50: number; p10: number; p90: number };
+        finalScoreGoldEq: { mean: number; p50: number; p10: number; p90: number };
         finalOfficesGoldPerRound: { mean: number; p50: number };
+        cityAcquisition: {
+          count: { mean: number; p50: number; p10: number; p90: number };
+          goldSpent: { mean: number; p50: number; p10: number; p90: number };
+          costPerCity: number;
+        };
+        finalHoldings: {
+          domains: { mean: number; p50: number; p10: number; p90: number };
+          cities: { mean: number; p50: number; p10: number; p90: number };
+          citiesByTierMode: {
+            smallLeased: { mean: number; p50: number; p10: number; p90: number };
+            smallProduction: { mean: number; p50: number; p10: number; p90: number };
+            mediumLeased: { mean: number; p50: number; p10: number; p90: number };
+            mediumProduction: { mean: number; p50: number; p10: number; p90: number };
+            largeLeased: { mean: number; p50: number; p10: number; p90: number };
+            largeProduction: { mean: number; p50: number; p10: number; p90: number };
+          };
+          cityIncomeGoldPerRound: { mean: number; p50: number; p10: number; p90: number };
+          cityIncomeInfluencePerRound: { mean: number; p50: number; p10: number; p90: number };
+          cityIncomeLaborPerRound: { mean: number; p50: number; p10: number; p90: number };
+          cityProductionUpkeepGoldPerRound: { mean: number; p50: number; p10: number; p90: number };
+          offices: { mean: number; p50: number; p10: number; p90: number };
+          organizations: { mean: number; p50: number; p10: number; p90: number };
+          tradeEnterprises: { mean: number; p50: number; p10: number; p90: number };
+          tradeEnterprisesDamaged: { mean: number; p50: number; p10: number; p90: number };
+          workshops: { mean: number; p50: number; p10: number; p90: number };
+          storages: { mean: number; p50: number; p10: number; p90: number };
+          tenants: { mean: number; p50: number; p10: number; p90: number };
+          followers: { mean: number; p50: number; p10: number; p90: number };
+        };
         milestones: {
           firstOfficeRound: { mean: number; p50: number; neverRate: number };
           firstDomainUpgradeRound: { mean: number; p50: number; neverRate: number };
@@ -77,6 +144,14 @@ export type PlaytestReport = {
         sell: {
           samples: number;
           byResource: Record<'raw' | 'special', number>;
+          viaTradeMarkets: number;
+          viaLocalMarket: number;
+          cargoIncidents: number;
+          cargoLossGoldTotal: number;
+          cargoLossGoldByKind: Record<'storm' | 'pirates' | 'conflict', number>;
+          cargoLossGold: { mean: number; p50: number; p10: number; p90: number };
+          tradeEnterpriseDamagedEvents: number;
+          tradeEnterpriseLostEvents: number;
           goldPerInvestment: { mean: number; p50: number; p10: number; p90: number };
           marketModifierPerInvestment: { mean: number; p50: number; p10: number; p90: number };
         };
@@ -174,8 +249,34 @@ function ensureAgg(
   const agg: AgentAggregate = {
     samples: 0,
     wins: 0,
+    winsScore: 0,
     finalGold: [],
+    finalScoreGoldEq: [],
     finalOfficesGoldPerRound: [],
+    cityAcquisitionCount: [],
+    cityAcquisitionGoldSpent: [],
+    finalHoldingsDomains: [],
+    finalHoldingsCities: [],
+    finalHoldingsCitiesByTierMode: {
+      smallLeased: [],
+      smallProduction: [],
+      mediumLeased: [],
+      mediumProduction: [],
+      largeLeased: [],
+      largeProduction: [],
+    },
+    finalCityIncomeGoldPerRound: [],
+    finalCityIncomeInfluencePerRound: [],
+    finalCityIncomeLaborPerRound: [],
+    finalCityProductionUpkeepGoldPerRound: [],
+    finalHoldingsOffices: [],
+    finalHoldingsOrganizations: [],
+    finalHoldingsTradeEnterprises: [],
+    finalHoldingsTradeEnterprisesDamaged: [],
+    finalHoldingsWorkshops: [],
+    finalHoldingsStorages: [],
+    finalHoldingsTenants: [],
+    finalHoldingsFollowers: [],
     firstOfficeRound: [],
     firstDomainUpgradeRound: [],
     firstStorageBuiltRound: [],
@@ -188,6 +289,13 @@ function ensureAgg(
     idleActions: 0,
     sellSamples: 0,
     sellByResource: { raw: 0, special: 0 },
+    sellViaTradeMarkets: 0,
+    sellViaLocalMarket: 0,
+    cargoIncidentSamples: 0,
+    cargoLossGold: [],
+    cargoLossGoldByKind: { storm: 0, pirates: 0, conflict: 0 },
+    tradeEnterpriseDamagedEvents: 0,
+    tradeEnterpriseLostEvents: 0,
     sellGoldPerInvestment: [],
     sellMarketModifierPerInvestment: [],
     conversionSamples: 0,
@@ -521,6 +629,16 @@ function recordSellAndConversion(
       if (!profile) continue;
       const agg = ensureAgg(aggs, profile.agent.id, rounds);
 
+      if (event.marketUsed.instanceId.startsWith('trade-')) agg.sellViaTradeMarkets += 1;
+      else agg.sellViaLocalMarket += 1;
+
+      if (event.cargoIncident?.lossGold) {
+        const kind = event.cargoIncident.kind;
+        agg.cargoIncidentSamples += 1;
+        agg.cargoLossGold.push(event.cargoIncident.lossGold);
+        agg.cargoLossGoldByKind[kind] += event.cargoIncident.lossGold;
+      }
+
       let investments = 0;
       let rawInv = 0;
       let specialInv = 0;
@@ -544,6 +662,22 @@ function recordSellAndConversion(
       if (specialInv > 0) agg.sellByResource.special += 1;
       agg.sellGoldPerInvestment.push(event.goldGained / investments);
       agg.sellMarketModifierPerInvestment.push(event.marketDeltaGold / investments);
+      continue;
+    }
+
+    if (event.type === 'PlayerTradeEnterpriseDamaged') {
+      const profile = profileByPlayerId[String(event.playerId)];
+      if (!profile) continue;
+      const agg = ensureAgg(aggs, profile.agent.id, rounds);
+      agg.tradeEnterpriseDamagedEvents += 1;
+      continue;
+    }
+
+    if (event.type === 'PlayerTradeEnterpriseLost') {
+      const profile = profileByPlayerId[String(event.playerId)];
+      if (!profile) continue;
+      const agg = ensureAgg(aggs, profile.agent.id, rounds);
+      agg.tradeEnterpriseLostEvents += 1;
       continue;
     }
 
@@ -658,6 +792,7 @@ export function runPlaytest(
 ): PlaytestReport {
   const aggs: Record<string, AgentAggregate> = {};
   const giniByRun: number[] = [];
+  const giniScoreByRun: number[] = [];
   const marketAgg = { raw: emptyMarketAgg(), special: emptyMarketAgg() };
   const eventAgg = emptyEventAgg();
   const profileByPlayerId: Record<string, PlayerProfile> = Object.fromEntries(
@@ -697,6 +832,12 @@ export function runPlaytest(
       players.map((p) => [p.userId, 0]),
     );
     const firstStorageBuiltRoundByUserId: Record<string, number> = Object.fromEntries(
+      players.map((p) => [p.userId, 0]),
+    );
+    const cityAcquisitionGoldSpentByUserId: Record<string, number> = Object.fromEntries(
+      players.map((p) => [p.userId, 0]),
+    );
+    const cityAcquisitionCountByUserId: Record<string, number> = Object.fromEntries(
       players.map((p) => [p.userId, 0]),
     );
 
@@ -791,6 +932,12 @@ export function runPlaytest(
               if (e.type === 'PlayerOfficeAcquired' && e.tierResult !== 'fail' && firstOfficeRoundByUserId[profile.userId] === 0) {
                 firstOfficeRoundByUserId[profile.userId] = round;
               }
+              if (e.type === 'PlayerCityPropertyAcquired' && e.tierResult !== 'fail') {
+                cityAcquisitionGoldSpentByUserId[profile.userId] =
+                  (cityAcquisitionGoldSpentByUserId[profile.userId] ?? 0) + (e.goldSpent ?? 0);
+                cityAcquisitionCountByUserId[profile.userId] =
+                  (cityAcquisitionCountByUserId[profile.userId] ?? 0) + 1;
+              }
             }
 
             break;
@@ -828,6 +975,15 @@ export function runPlaytest(
     const finalGolds = players.map((p) => getPlayerByUserId(state, p.userId).economy.gold);
     giniByRun.push(gini(finalGolds));
 
+    const finalScoresByUserId: Record<string, number> = Object.fromEntries(
+      players.map((p) => {
+        const me = getPlayerByUserId(state, p.userId);
+        return [p.userId, computeNetWorth(state, me, DEFAULT_NET_WORTH_WEIGHTS).score] as const;
+      }),
+    );
+    const finalScores = players.map((p) => finalScoresByUserId[p.userId] ?? 0);
+    giniScoreByRun.push(gini(finalScores));
+
     const maxGold = Math.max(...finalGolds);
     const winners = players.filter((p) => getPlayerByUserId(state, p.userId).economy.gold === maxGold);
     for (const winner of winners) {
@@ -835,16 +991,84 @@ export function runPlaytest(
       agg.wins += 1;
     }
 
+    const maxScore = Math.max(...finalScores);
+    const scoreWinners = players.filter((p) => {
+      const score = finalScoresByUserId[p.userId] ?? 0;
+      return Math.abs(score - maxScore) < 1e-9;
+    });
+    for (const winner of scoreWinners) {
+      const agg = ensureAgg(aggs, winner.agent.id, config.rounds);
+      agg.winsScore += 1;
+    }
+
     for (const profile of players) {
       const me = getPlayerByUserId(state, profile.userId);
       const agg = ensureAgg(aggs, profile.agent.id, config.rounds);
       agg.samples += 1;
       agg.finalGold.push(me.economy.gold);
+      agg.finalScoreGoldEq.push(finalScoresByUserId[profile.userId] ?? 0);
       const officesGoldPerRound = me.holdings.offices.reduce(
         (sum, o) => sum + officesIncomePerRound(o.tier, o.yieldMode, state.rules).gold,
         0,
       );
       agg.finalOfficesGoldPerRound.push(officesGoldPerRound);
+      agg.cityAcquisitionGoldSpent.push(cityAcquisitionGoldSpentByUserId[profile.userId] ?? 0);
+      agg.cityAcquisitionCount.push(cityAcquisitionCountByUserId[profile.userId] ?? 0);
+      agg.finalHoldingsDomains.push(me.holdings.domains.length);
+      agg.finalHoldingsCities.push(me.holdings.cityProperties.length);
+
+      let smallLeased = 0;
+      let smallProduction = 0;
+      let mediumLeased = 0;
+      let mediumProduction = 0;
+      let largeLeased = 0;
+      let largeProduction = 0;
+      let cityIncomeGold = 0;
+      let cityIncomeInfluence = 0;
+      let cityIncomeLabor = 0;
+      let cityUpkeepGold = 0;
+      for (const c of me.holdings.cityProperties) {
+        if (c.tier === 'small') {
+          if (c.mode === 'production') smallProduction += 1;
+          else smallLeased += 1;
+        } else if (c.tier === 'medium') {
+          if (c.mode === 'production') mediumProduction += 1;
+          else mediumLeased += 1;
+        } else {
+          if (c.mode === 'production') largeProduction += 1;
+          else largeLeased += 1;
+        }
+
+        // Upkeep is charged for production regardless of unrest; income pools stop if tenants are in unrest.
+        cityUpkeepGold += cityGoldUpkeep(c.tier, c.mode);
+        if (c.tenants.inUnrest) continue;
+        cityIncomeGold += cityGoldPerRound(c.tier, c.mode);
+        cityIncomeInfluence += cityInfluencePerRound(c.tier, c.mode);
+        cityIncomeLabor += cityLaborPerRound(c.tier, c.mode);
+      }
+
+      agg.finalHoldingsCitiesByTierMode.smallLeased.push(smallLeased);
+      agg.finalHoldingsCitiesByTierMode.smallProduction.push(smallProduction);
+      agg.finalHoldingsCitiesByTierMode.mediumLeased.push(mediumLeased);
+      agg.finalHoldingsCitiesByTierMode.mediumProduction.push(mediumProduction);
+      agg.finalHoldingsCitiesByTierMode.largeLeased.push(largeLeased);
+      agg.finalHoldingsCitiesByTierMode.largeProduction.push(largeProduction);
+      agg.finalCityIncomeGoldPerRound.push(cityIncomeGold);
+      agg.finalCityIncomeInfluencePerRound.push(cityIncomeInfluence);
+      agg.finalCityIncomeLaborPerRound.push(cityIncomeLabor);
+      agg.finalCityProductionUpkeepGoldPerRound.push(cityUpkeepGold);
+
+      agg.finalHoldingsOffices.push(me.holdings.offices.length);
+      agg.finalHoldingsOrganizations.push(me.holdings.organizations.length);
+      agg.finalHoldingsTradeEnterprises.push(me.holdings.tradeEnterprises.length);
+      agg.finalHoldingsTradeEnterprisesDamaged.push(me.holdings.tradeEnterprises.filter((t) => t.damage).length);
+      agg.finalHoldingsWorkshops.push(me.holdings.workshops.length);
+      agg.finalHoldingsStorages.push(me.holdings.storages.length);
+      agg.finalHoldingsTenants.push(
+        me.holdings.domains.reduce((sum, d) => sum + d.tenants.levels, 0) +
+          me.holdings.cityProperties.reduce((sum, c) => sum + c.tenants.levels, 0),
+      );
+      agg.finalHoldingsFollowers.push(me.holdings.organizations.reduce((sum, o) => sum + o.followers.levels, 0));
       agg.firstOfficeRound.push(firstOfficeRoundByUserId[profile.userId] ?? 0);
       agg.firstDomainUpgradeRound.push(firstDomainUpgradeRoundByUserId[profile.userId] ?? 0);
       agg.firstStorageBuiltRound.push(firstStorageBuiltRoundByUserId[profile.userId] ?? 0);
@@ -855,14 +1079,49 @@ export function runPlaytest(
     Object.entries(aggs).map(([agentId, agg]) => {
       const totalActionSlots = agg.samples * config.rounds * 2;
       const idleRate = totalActionSlots > 0 ? agg.idleActions / totalActionSlots : 0;
+      const totalCitySpend = agg.cityAcquisitionGoldSpent.reduce((sum, v) => sum + v, 0);
+      const totalCityCount = agg.cityAcquisitionCount.reduce((sum, v) => sum + v, 0);
+      const cityCostPer = totalCityCount > 0 ? totalCitySpend / totalCityCount : 0;
       return [
         agentId,
         {
           samples: agg.samples,
           wins: agg.wins,
           winRate: agg.samples > 0 ? agg.wins / agg.samples : 0,
+          winsScore: agg.winsScore,
+          winRateScore: agg.samples > 0 ? agg.winsScore / agg.samples : 0,
           finalGold: summary(agg.finalGold),
+          finalScoreGoldEq: summary(agg.finalScoreGoldEq),
           finalOfficesGoldPerRound: { mean: mean(agg.finalOfficesGoldPerRound), p50: median(agg.finalOfficesGoldPerRound) },
+          cityAcquisition: {
+            count: summary(agg.cityAcquisitionCount),
+            goldSpent: summary(agg.cityAcquisitionGoldSpent),
+            costPerCity: cityCostPer,
+          },
+          finalHoldings: {
+            domains: summary(agg.finalHoldingsDomains),
+            cities: summary(agg.finalHoldingsCities),
+            citiesByTierMode: {
+              smallLeased: summary(agg.finalHoldingsCitiesByTierMode.smallLeased),
+              smallProduction: summary(agg.finalHoldingsCitiesByTierMode.smallProduction),
+              mediumLeased: summary(agg.finalHoldingsCitiesByTierMode.mediumLeased),
+              mediumProduction: summary(agg.finalHoldingsCitiesByTierMode.mediumProduction),
+              largeLeased: summary(agg.finalHoldingsCitiesByTierMode.largeLeased),
+              largeProduction: summary(agg.finalHoldingsCitiesByTierMode.largeProduction),
+            },
+            cityIncomeGoldPerRound: summary(agg.finalCityIncomeGoldPerRound),
+            cityIncomeInfluencePerRound: summary(agg.finalCityIncomeInfluencePerRound),
+            cityIncomeLaborPerRound: summary(agg.finalCityIncomeLaborPerRound),
+            cityProductionUpkeepGoldPerRound: summary(agg.finalCityProductionUpkeepGoldPerRound),
+            offices: summary(agg.finalHoldingsOffices),
+            organizations: summary(agg.finalHoldingsOrganizations),
+            tradeEnterprises: summary(agg.finalHoldingsTradeEnterprises),
+            tradeEnterprisesDamaged: summary(agg.finalHoldingsTradeEnterprisesDamaged),
+            workshops: summary(agg.finalHoldingsWorkshops),
+            storages: summary(agg.finalHoldingsStorages),
+            tenants: summary(agg.finalHoldingsTenants),
+            followers: summary(agg.finalHoldingsFollowers),
+          },
           milestones: {
             firstOfficeRound: neverAwareRoundSummary(agg.firstOfficeRound),
             firstDomainUpgradeRound: neverAwareRoundSummary(agg.firstDomainUpgradeRound),
@@ -873,6 +1132,14 @@ export function runPlaytest(
           sell: {
             samples: agg.sellSamples,
             byResource: agg.sellByResource,
+            viaTradeMarkets: agg.sellViaTradeMarkets,
+            viaLocalMarket: agg.sellViaLocalMarket,
+            cargoIncidents: agg.cargoIncidentSamples,
+            cargoLossGoldTotal: agg.cargoLossGold.reduce((sum, v) => sum + v, 0),
+            cargoLossGoldByKind: agg.cargoLossGoldByKind,
+            cargoLossGold: summary(agg.cargoLossGold),
+            tradeEnterpriseDamagedEvents: agg.tradeEnterpriseDamagedEvents,
+            tradeEnterpriseLostEvents: agg.tradeEnterpriseLostEvents,
             goldPerInvestment: summary(agg.sellGoldPerInvestment),
             marketModifierPerInvestment: summary(agg.sellMarketModifierPerInvestment),
           },
@@ -918,6 +1185,11 @@ export function runPlaytest(
         mean: mean(giniByRun),
         p50: median(giniByRun),
         p90: percentile(giniByRun, 0.9),
+      },
+      giniScoreGoldEq: {
+        mean: mean(giniScoreByRun),
+        p50: median(giniScoreByRun),
+        p90: percentile(giniScoreByRun, 0.9),
       },
       byAgent,
     },

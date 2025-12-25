@@ -252,6 +252,7 @@ function orgIncomeGoldEq(
 function tradeIncomeGoldEq(
   te: PlayerState['holdings']['tradeEnterprises'][number]
 ): number {
+  if (te.damage) return 0;
   const gold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
   const tradeSpecialIn = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
   const produceSpecialOut = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
@@ -451,10 +452,14 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
 
   for (const t of player.holdings.tradeEnterprises) {
     let facilityInfluence = 0;
-    for (const f of t.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'tradeEnterprise');
-    const facilityIncome = facilityInfluence * INFLUENCE_GOLD_EQ;
+    if (!t.damage) {
+      for (const f of t.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'tradeEnterprise');
+    }
+    const facilityIncome = (t.damage ? 0 : facilityInfluence * INFLUENCE_GOLD_EQ);
+    const baseCost = tradeBaseCost(t.tier);
+    const adjustedCost = t.damage ? Math.max(0, baseCost - t.damage.repairCostGold) : baseCost;
     tradeEnterprises +=
-      tradeBaseCost(t.tier) +
+      adjustedCost +
       (tradeIncomeGoldEq(t) + facilityIncome) * ROI_ROUNDS;
     for (const f of t.facilities) facilities += facilityGoldCost(f.key);
   }

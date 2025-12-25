@@ -16,6 +16,9 @@ function topEntries(
 
 export function formatPlaytestMarkdown(report: PlaytestReport): string {
   const lines: string[] = [];
+  const displayNameByAgentId = Object.fromEntries(
+    report.scenario.players.map((p) => [p.agentId, p.displayName]),
+  );
 
   lines.push(`# Playtest Report — ${report.scenario.name}`);
   lines.push('');
@@ -29,28 +32,45 @@ export function formatPlaytestMarkdown(report: PlaytestReport): string {
   lines.push(
     `- Gini (Final-Gold): mean=${fmt(report.outcomes.giniGold.mean, 3)} p50=${fmt(report.outcomes.giniGold.p50, 3)} p90=${fmt(report.outcomes.giniGold.p90, 3)}`,
   );
+  lines.push(
+    `- Gini (Final-Score GoldEq): mean=${fmt(report.outcomes.giniScoreGoldEq.mean, 3)} p50=${fmt(report.outcomes.giniScoreGoldEq.p50, 3)} p90=${fmt(report.outcomes.giniScoreGoldEq.p90, 3)}`,
+  );
 
   const agents = Object.entries(report.outcomes.byAgent);
-  const byWinRate = [...agents].sort((a, b) => b[1].winRate - a[1].winRate);
+  const byWinRate = [...agents].sort((a, b) => b[1].winRateScore - a[1].winRateScore);
   const top = byWinRate[0];
   const second = byWinRate[1];
   if (top) {
     const topName = top[0];
-    const topWin = top[1].winRate;
-    const secondWin = second?.[1].winRate ?? 0;
+    const topWin = top[1].winRateScore;
+    const secondWin = second?.[1].winRateScore ?? 0;
     const gap = topWin - secondWin;
     lines.push(
-      `- Dominanzindikator: top=${topName} (winRate=${fmt(topWin, 3)}) gap=${fmt(gap, 3)}`,
+      `- Dominanzindikator: top=${displayNameByAgentId[topName] ?? topName} (winRate=${fmt(topWin, 3)}) gap=${fmt(gap, 3)}`,
     );
   }
   lines.push('');
 
   lines.push('## Outcomes (pro Strategie)');
-  lines.push('| Agent | winRate | FinalGold mean | p10 | p50 | p90 | Sell Gold/Inv mean | Sell Market/Inv mean | Conv Gold/Run mean |');
-  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+  lines.push(
+    '| Strategie | winRate (GoldEq) | FinalScore mean | p10 | p50 | p90 | FinalGold mean | Sell Gold/Inv mean | CargoLoss total | TE dmg/lost |'
+  );
+  lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
   for (const [agentId, a] of byWinRate) {
     lines.push(
-      `| ${agentId} | ${fmt(a.winRate, 3)} | ${fmt(a.finalGold.mean)} | ${fmt(a.finalGold.p10)} | ${fmt(a.finalGold.p50)} | ${fmt(a.finalGold.p90)} | ${fmt(a.sell.goldPerInvestment.mean)} | ${fmt(a.sell.marketModifierPerInvestment.mean)} | ${fmt(a.conversion.goldFromConversionMean)} |`,
+      `| ${displayNameByAgentId[agentId] ?? agentId} | ${fmt(a.winRateScore, 3)} | ${fmt(a.finalScoreGoldEq.mean)} | ${fmt(a.finalScoreGoldEq.p10)} | ${fmt(a.finalScoreGoldEq.p50)} | ${fmt(a.finalScoreGoldEq.p90)} | ${fmt(a.finalGold.mean)} | ${fmt(a.sell.goldPerInvestment.mean)} | ${fmt(a.sell.cargoLossGoldTotal)} | ${a.sell.tradeEnterpriseDamagedEvents}/${a.sell.tradeEnterpriseLostEvents} |`,
+    );
+  }
+  lines.push('');
+
+  lines.push('## Stadtbesitz (final, mean)');
+  lines.push('- Mode: `verpachtet` = Gold+Einfluss+AK, `Eigenproduktion` = AK (mit Gold-Unterhalt), öffnet Werkstatt/Lager im Stadtbesitz.');
+  for (const [agentId, a] of byWinRate) {
+    const c = a.finalHoldings.citiesByTierMode;
+    const leased = `S=${fmt(c.smallLeased.mean, 1)} M=${fmt(c.mediumLeased.mean, 1)} L=${fmt(c.largeLeased.mean, 1)}`;
+    const prod = `S=${fmt(c.smallProduction.mean, 1)} M=${fmt(c.mediumProduction.mean, 1)} L=${fmt(c.largeProduction.mean, 1)}`;
+    lines.push(
+      `- ${displayNameByAgentId[agentId] ?? agentId}: leased(${leased}) prod(${prod}) | Kauf: ${fmt(a.cityAcquisition.goldSpent.mean, 1)}g (n=${fmt(a.cityAcquisition.count.mean, 1)}, ~${fmt(a.cityAcquisition.costPerCity, 1)}g/Stk) | Ertrag/R: ${fmt(a.finalHoldings.cityIncomeGoldPerRound.mean, 1)}g +${fmt(a.finalHoldings.cityIncomeInfluencePerRound.mean, 1)} Inf +${fmt(a.finalHoldings.cityIncomeLaborPerRound.mean, 1)} AK | Unterhalt/R (prod): ${fmt(a.finalHoldings.cityProductionUpkeepGoldPerRound.mean, 1)}g`,
     );
   }
   lines.push('');
@@ -61,7 +81,9 @@ export function formatPlaytestMarkdown(report: PlaytestReport): string {
       .map(([key, v]) => ({ key, count: v.count }))
       .sort((x, y) => y.count - x.count)
       .slice(0, 8);
-    lines.push(`- ${agentId}: ${actions.map((x) => `${x.key}=${x.count}`).join(', ')}`);
+    lines.push(
+      `- ${displayNameByAgentId[agentId] ?? agentId}: ${actions.map((x) => `${x.key}=${x.count}`).join(', ')}`,
+    );
   }
   lines.push('');
 
@@ -96,8 +118,8 @@ export function formatPlaytestMarkdown(report: PlaytestReport): string {
 
   lines.push('## Bewertung (heuristisch)');
   if (top && second) {
-    const topWin = top[1].winRate;
-    const gap = topWin - second[1].winRate;
+    const topWin = top[1].winRateScore;
+    const gap = topWin - second[1].winRateScore;
     if (topWin >= 0.6 && gap >= 0.2) {
       lines.push(
         `- Sehr starke Dominanz von \`${top[0]}\` (winRate=${fmt(topWin, 3)}, gap=${fmt(gap, 3)}). Balancing-Änderung wahrscheinlich nötig.`,

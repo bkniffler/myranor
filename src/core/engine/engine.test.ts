@@ -31,8 +31,7 @@ describe('engine smoke', () => {
 
     const aliceAfterIncome = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterIncome.economy.gold).toBe(6);
-    expect(aliceAfterIncome.economy.inventory.raw['raw.wood']).toBe(2);
-    expect(aliceAfterIncome.economy.inventory.raw['raw.grainVeg']).toBe(2);
+    expect(aliceAfterIncome.economy.inventory.raw['raw.grainVeg']).toBe(8);
 
     // Player performs one action
     state = reduceEvents(

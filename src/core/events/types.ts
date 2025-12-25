@@ -234,6 +234,19 @@ export type PlayerMoneySoldEvent = {
   >;
   marketUsed: { instanceId: string; label: string };
   marketDeltaGold: number;
+  cargoIncident?: {
+    kind: 'storm' | 'pirates' | 'conflict';
+    tradeEnterpriseId: string;
+    triggerRoll: DiceRoll;
+    defense?: {
+      dc: number;
+      roll: DiceRoll;
+      rollModifier: number;
+      rollTotal: number;
+      defended: boolean;
+    };
+    lossGold: number;
+  };
   goldGained: number;
   actionCost: number;
   actionKey: string;
@@ -527,6 +540,23 @@ export type PlayerStorageDamagedEvent = {
   reason: string;
 };
 
+export type PlayerTradeEnterpriseDamagedEvent = {
+  type: 'PlayerTradeEnterpriseDamaged';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  tradeEnterpriseId: string;
+  repairCostGold: number;
+  reason: string;
+};
+
+export type PlayerTradeEnterpriseLostEvent = {
+  type: 'PlayerTradeEnterpriseLost';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  tradeEnterpriseId: string;
+  reason: string;
+};
+
 export type PlayerFollowersAdjustedEvent = {
   type: 'PlayerFollowersAdjusted';
   visibility: { scope: 'private'; playerId: PlayerId };
@@ -624,6 +654,8 @@ export type GameEvent =
   | PlayerFacilityDamagedEvent
   | PlayerWorkshopDamagedEvent
   | PlayerStorageDamagedEvent
+  | PlayerTradeEnterpriseDamagedEvent
+  | PlayerTradeEnterpriseLostEvent
   | PlayerFollowersAdjustedEvent
   | PlayerDomainSpecializationSetEvent
   | PlayerStarterDomainUpgradedEvent

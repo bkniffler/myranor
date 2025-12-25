@@ -981,7 +981,7 @@ export function applyEvent(
               ...player.holdings,
               tradeEnterprises: [
                 ...player.holdings.tradeEnterprises,
-                { id: event.tradeEnterpriseId, tier: event.tier, mode: 'produce', facilities: [] },
+                { id: event.tradeEnterpriseId, tier: event.tier, mode: 'produce', facilities: [], damage: undefined },
               ],
             },
             turn: nextTurn,
@@ -1561,6 +1561,49 @@ export function applyEvent(
         },
       };
     }
+    case 'PlayerTradeEnterpriseDamaged': {
+      const player = state.players[event.playerId];
+      if (!player) return state;
+      const damage = {
+        damagedAtRound: state.round,
+        repairCostGold: Math.max(0, Math.trunc(event.repairCostGold)),
+        reason: event.reason,
+      };
+      return {
+        ...state,
+        players: {
+          ...state.players,
+          [event.playerId]: {
+            ...player,
+            holdings: {
+              ...player.holdings,
+              tradeEnterprises: player.holdings.tradeEnterprises.map((t) =>
+                t.id === event.tradeEnterpriseId ? { ...t, damage } : t,
+              ),
+            },
+          },
+        },
+      };
+    }
+    case 'PlayerTradeEnterpriseLost': {
+      const player = state.players[event.playerId];
+      if (!player) return state;
+      return {
+        ...state,
+        players: {
+          ...state.players,
+          [event.playerId]: {
+            ...player,
+            holdings: {
+              ...player.holdings,
+              tradeEnterprises: player.holdings.tradeEnterprises.filter(
+                (t) => t.id !== event.tradeEnterpriseId,
+              ),
+            },
+          },
+        },
+      };
+    }
     case 'PlayerFollowersAdjusted': {
       const player = state.players[event.playerId];
       if (!player) return state;
@@ -1945,6 +1988,87 @@ function marketUsedForPlayerOrThrow(
   return { instanceId: inst.id, label: inst.label };
 }
 
+function tradeEnterpriseIdFromMarketInstanceId(
+  playerId: PlayerId,
+  marketInstanceId: string,
+): string | null {
+  const prefix = `trade-${playerId}-`;
+  if (!marketInstanceId.startsWith(prefix)) return null;
+  const rest = marketInstanceId.slice(prefix.length);
+  const idx = rest.lastIndexOf('-');
+  if (idx <= 0) return null;
+  return rest.slice(0, idx);
+}
+
+function cargoIncidentForTradeMarket(options: {
+  state: CampaignState;
+  playerId: PlayerId;
+  player: PlayerState;
+  marketInstanceId: string;
+  investments: number;
+  grossGold: number;
+  rng: Rng;
+}): NonNullable<Extract<GameEvent, { type: 'PlayerMoneySold' }>['cargoIncident']> | null {
+  const tradeEnterpriseId = tradeEnterpriseIdFromMarketInstanceId(options.playerId, options.marketInstanceId);
+  if (!tradeEnterpriseId) return null;
+
+  const active = options.state.globalEvents.filter(
+    (e) => options.state.round >= e.startsAtRound && options.state.round <= e.endsAtRound,
+  );
+
+  const stormActive = active.some((e) => e.tableRollTotal === 15);
+  const piratesActive = active.some(
+    (e) => e.tableRollTotal === 16 && (e.meta as any)?.raidersOrPirates === 'pirates',
+  );
+  const conflictActive = active.some((e) => e.tableRollTotal === 26);
+
+  let kind: 'storm' | 'pirates' | 'conflict' | null = null;
+  let triggerThresholdD20 = 0;
+  let lossGoldPerInvestment = 0;
+  let defenseDc: number | null = null;
+
+  // Priorität: Piraten > Konflikt > Sturm (kein doppeltes Bestrafen im selben Verkauf).
+  if (piratesActive) {
+    kind = 'pirates';
+    triggerThresholdD20 = 4;
+    lossGoldPerInvestment = 3;
+  } else if (conflictActive) {
+    kind = 'conflict';
+    triggerThresholdD20 = 5;
+    lossGoldPerInvestment = 2;
+    defenseDc = 15 + 2;
+  } else if (stormActive) {
+    kind = 'storm';
+    triggerThresholdD20 = 3;
+    lossGoldPerInvestment = 2;
+  } else {
+    return null;
+  }
+
+  const triggerRoll = rollD20(options.rng);
+  if (triggerRoll.total > triggerThresholdD20) return null;
+
+  const incident: NonNullable<Extract<GameEvent, { type: 'PlayerMoneySold' }>['cargoIncident']> = {
+    kind,
+    tradeEnterpriseId,
+    triggerRoll,
+    lossGold: 0,
+  };
+
+  if (defenseDc != null) {
+    const rollModifier = defenseRollModifier(options.player);
+    const roll = rollD20(options.rng);
+    const rollTotal = roll.total + rollModifier;
+    const defended = rollTotal >= defenseDc;
+    incident.defense = { dc: defenseDc, roll, rollModifier, rollTotal, defended };
+    if (defended) return incident;
+  }
+
+  const wantLoss = options.investments * lossGoldPerInvestment;
+  incident.lossGold = Math.max(0, Math.min(Math.trunc(options.grossGold), wantLoss));
+  return incident;
+}
+
 function marketModifierPerInvestment(
   state: CampaignState,
   marketInstanceId: string,
@@ -2047,7 +2171,9 @@ export function decide(
         ];
         const playersSorted = (Object.values(workingState.players) as PlayerState[]).slice().sort((a, b) => a.id.localeCompare(b.id));
         for (const p of playersSorted) {
-          const enterprises = [...p.holdings.tradeEnterprises].sort((a, b) => a.id.localeCompare(b.id));
+          const enterprises = [...p.holdings.tradeEnterprises]
+            .filter((t) => !t.damage)
+            .sort((a, b) => a.id.localeCompare(b.id));
           for (const te of enterprises) {
             const markets = postTierRank(te.tier);
             for (let i = 1; i <= markets; i += 1) {
@@ -2854,6 +2980,15 @@ export function decide(
             return { amountRequested: need, stolen: taken };
           };
 
+          const stealSpecial = (amount: number): { amountRequested: number; stolen: MaterialStock } => {
+            const need = Math.max(0, Math.trunc(amount));
+            if (!need) return { amountRequested: 0, stolen: {} };
+            const availableSpecial = subtractStock(addStock(player.economy.inventory.special, producedSpecial), upkeepSpecial);
+            const { taken } = takeFromStock(availableSpecial, need, stealOrder);
+            upkeepSpecial = addStock(upkeepSpecial, taken);
+            return { amountRequested: need, stolen: taken };
+          };
+
           const incidentDefenseMod = defenseRollModifier(player);
           const incidentDefenseDcBonus = activeEvents.some((e) => e.tableRollTotal === 26) ? 2 : 0;
 
@@ -2879,6 +3014,116 @@ export function decide(
                   type: 'PublicLogEntryAdded',
                   visibility: { scope: 'public' },
                   message: `${player.displayName}: Räuberüberfall auf Domäne (${domain.id}) – Verteidigung ${defenseRoll.total}+${incidentDefenseMod}=${defenseTotal} < DC ${defenseDc} → ${sumStock(stolen.stolen)} RM verloren.`,
+                });
+              }
+            }
+          }
+
+          // Event 16 (Piraten): Verlust/Beschädigung von Handelsschiffen (v1: Handelsunternehmungen) (5 Runden).
+          if (raidersOrPirates === 'pirates') {
+            const ships = player.holdings.tradeEnterprises.filter((t) => !t.damage);
+            if (ships.length > 0) {
+              const roll = rollD20(ctx.rng);
+              if (roll.total <= 10) {
+                const pickIndex = ctx.rng.nextIntInclusive(0, ships.length - 1);
+                const ship = ships[pickIndex];
+                if (ship) {
+                  if (roll.total <= 5) {
+                    push({
+                      type: 'PlayerTradeEnterpriseLost',
+                      visibility: { scope: 'private', playerId: player.id },
+                      playerId: player.id,
+                      tradeEnterpriseId: ship.id,
+                      reason: 'Piraterie: Schiff verloren',
+                    });
+                    if (canEmitPublicLogs(ctx)) {
+                      push({
+                        type: 'PublicLogEntryAdded',
+                        visibility: { scope: 'public' },
+                        message: `${player.displayName}: Piraterie – Handelsunternehmung (${ship.id}) ging verloren (w20=${roll.total}).`,
+                      });
+                    }
+                  } else {
+                    const repair = rollDice('1d6', ctx.rng);
+                    push({
+                      type: 'PlayerTradeEnterpriseDamaged',
+                      visibility: { scope: 'private', playerId: player.id },
+                      playerId: player.id,
+                      tradeEnterpriseId: ship.id,
+                      repairCostGold: repair.total,
+                      reason: 'Piraterie: Schiff beschädigt',
+                    });
+                    if (canEmitPublicLogs(ctx)) {
+                      push({
+                        type: 'PublicLogEntryAdded',
+                        visibility: { scope: 'public' },
+                        message: `${player.displayName}: Piraterie – Handelsunternehmung (${ship.id}) beschädigt (w20=${roll.total}), Reparatur≈${repair.total}G.`,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // Event 26: Konflikt mit Nachbarn – erhöhte Gefahr für Handelsschiffe/Handelsunternehmungen (5 Runden).
+          if (activeEvents.some((e) => e.tableRollTotal === 26)) {
+            const ships = player.holdings.tradeEnterprises.filter((t) => !t.damage);
+            for (const ship of ships) {
+              const trigger = rollD20(ctx.rng);
+              if (trigger.total > 5) continue;
+
+              const defenseDc = 15 + incidentDefenseDcBonus;
+              const defenseRoll = rollD20(ctx.rng);
+              const defenseTotal = defenseRoll.total + incidentDefenseMod;
+              const defended = defenseTotal >= defenseDc;
+              if (defended) continue;
+
+              const severity = rollD20(ctx.rng);
+              if (severity.total <= 3) {
+                push({
+                  type: 'PlayerTradeEnterpriseLost',
+                  visibility: { scope: 'private', playerId: player.id },
+                  playerId: player.id,
+                  tradeEnterpriseId: ship.id,
+                  reason: 'Konflikt: Schiff verloren',
+                });
+                if (canEmitPublicLogs(ctx)) {
+                  push({
+                    type: 'PublicLogEntryAdded',
+                    visibility: { scope: 'public' },
+                    message: `${player.displayName}: Konflikt – Handelsunternehmung (${ship.id}) ging verloren (Abwehr ${defenseRoll.total}+${incidentDefenseMod}=${defenseTotal} < DC ${defenseDc}; w20=${severity.total}).`,
+                  });
+                }
+                continue;
+              }
+              if (severity.total <= 8) {
+                const repair = rollDice('1d6', ctx.rng);
+                push({
+                  type: 'PlayerTradeEnterpriseDamaged',
+                  visibility: { scope: 'private', playerId: player.id },
+                  playerId: player.id,
+                  tradeEnterpriseId: ship.id,
+                  repairCostGold: repair.total,
+                  reason: 'Konflikt: Schiff beschädigt',
+                });
+                if (canEmitPublicLogs(ctx)) {
+                  push({
+                    type: 'PublicLogEntryAdded',
+                    visibility: { scope: 'public' },
+                    message: `${player.displayName}: Konflikt – Handelsunternehmung (${ship.id}) beschädigt (Abwehr ${defenseRoll.total}+${incidentDefenseMod}=${defenseTotal} < DC ${defenseDc}; Reparatur≈${repair.total}G).`,
+                  });
+                }
+                continue;
+              }
+
+              const lossRoll = rollDice('1d4', ctx.rng);
+              const stolen = stealSpecial(lossRoll.total * postTierRank(ship.tier));
+              if (canEmitPublicLogs(ctx)) {
+                push({
+                  type: 'PublicLogEntryAdded',
+                  visibility: { scope: 'public' },
+                  message: `${player.displayName}: Konflikt – Übergriff auf Handelsunternehmung (${ship.id}) (Abwehr ${defenseRoll.total}+${incidentDefenseMod}=${defenseTotal} < DC ${defenseDc}) → ${sumStock(stolen.stolen)} SM verloren.`,
                 });
               }
             }
@@ -2966,6 +3211,7 @@ export function decide(
               (activeEvents.some((e) => e.tableRollTotal === 16) ? 3 : 0) +
               (activeEvents.some((e) => e.tableRollTotal === 22) ? 3 : 0);
             for (const te of player.holdings.tradeEnterprises) {
+              if (te.damage) continue;
               if (te.tier === 'small') {
                 upkeepGold += 2;
               } else if (te.tier === 'medium') {
@@ -3019,15 +3265,20 @@ export function decide(
           }
 
           // Handelsunternehmungen-Ertrag (kommt "in der nächsten Runde" → wir verbuchen ihn im Runden-Start / Maintenance).
-          const tradeYieldHalved = activeEvents.some(
-            (e) => e.tableRollTotal === 10 || e.tableRollTotal === 17 || e.tableRollTotal === 26,
-          );
-          const tradeYieldBonusActive = activeEvents.some((e) => e.tableRollTotal === 33);
-          for (const te of player.holdings.tradeEnterprises) {
-            const produceCount = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
-            const tradeInput = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
-            const tradeGold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
-            const tierRank = postTierRank(te.tier);
+            const tradeYieldHalved = activeEvents.some(
+              (e) =>
+                e.tableRollTotal === 10 ||
+                e.tableRollTotal === 15 ||
+                e.tableRollTotal === 17 ||
+                e.tableRollTotal === 26,
+            );
+            const tradeYieldBonusActive = activeEvents.some((e) => e.tableRollTotal === 33);
+            for (const te of player.holdings.tradeEnterprises) {
+              if (te.damage) continue;
+              const produceCount = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
+              const tradeInput = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
+              const tradeGold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
+              const tierRank = postTierRank(te.tier);
 
             if (te.mode === 'produce') {
               let out = produceCount;
@@ -3076,7 +3327,8 @@ export function decide(
               }
 
               let out = tradeGold + bestMarketDelta + globalEventDelta;
-              if (tradeYieldBonusActive) out += 2 * tierRank;
+              // Event 33: "Warenüberschuss" — teils Gold-, teils SM-Bonus. In v1: Trade erhält nur +1 Gold pro Stufe (statt +2).
+              if (tradeYieldBonusActive) out += 1 * tierRank;
               if (tradeYieldHalved) out = Math.floor(out / 2);
               producedGold += out;
             }
@@ -3157,11 +3409,13 @@ export function decide(
               maintainedStorageIds,
               maintainedOfficeIds: player.holdings.offices.map((o) => o.id),
               maintainedOrganizationIds: player.holdings.organizations.map((o) => o.id),
-              maintainedTradeEnterpriseIds: player.holdings.tradeEnterprises.map((t) => t.id),
-              maintainedTroops:
-                upkeepActive &&
-                (player.holdings.troops.bodyguardLevels > 0 ||
-                  player.holdings.troops.militiaLevels > 0 ||
+                  maintainedTradeEnterpriseIds: player.holdings.tradeEnterprises
+                    .filter((t) => !t.damage)
+                    .map((t) => t.id),
+                  maintainedTroops:
+                    upkeepActive &&
+                    (player.holdings.troops.bodyguardLevels > 0 ||
+                      player.holdings.troops.militiaLevels > 0 ||
                   player.holdings.troops.mercenaryLevels > 0 ||
                   player.holdings.troops.thugLevels > 0),
             },
@@ -3190,7 +3444,7 @@ export function decide(
 
           // Workshop conversion: consume up to capacity for each workshop's input, produce configured Sondermaterial.
           const rawConsumedByType: MaterialStock = {};
-          let rawAfterWorkshop: MaterialStock = { ...rawBefore };
+          const rawAfterWorkshop: MaterialStock = { ...rawBefore };
           const specialProducedByType: MaterialStock = {};
 
           const workshops = player.turn.upkeep.maintainedWorkshopIds
@@ -3541,9 +3795,9 @@ export function decide(
       else if (tier === 'poor') goldScheduled = investments; // lose 1 per investment, get 1 back
       else goldScheduled = 0;
 
-      // Event 31: Alle 2 Investitionen +X Gold (auch für Geldverleih)
+      // Event 31: Wirtschaftsaufschwung (v1-Nerf): Bonusgold nur je 3 Investitionen (statt je 2).
       if (tier !== 'fail') {
-        goldScheduled += Math.floor(investments / 2) * moneyMods.bonusGoldPerTwoInvestments;
+        goldScheduled += Math.floor(investments / 3) * moneyMods.bonusGoldPerTwoInvestments;
       }
 
       // Event 13: Erträge aus Geldverleih halbiert
@@ -3715,8 +3969,19 @@ export function decide(
             return Math.max(0, conversionGold - investments);
         }
       })();
-      const bonusGold = tier === 'fail' ? 0 : Math.floor(investments / 2) * moneyMods.bonusGoldPerTwoInvestments;
-      const goldGained = Math.max(0, baseGold + bonusGold + marketDeltaGold);
+      // Event 31: Wirtschaftsaufschwung (v1-Nerf): Bonusgold nur je 3 Investitionen (statt je 2).
+      const bonusGold = tier === 'fail' ? 0 : Math.floor(investments / 3) * moneyMods.bonusGoldPerTwoInvestments;
+      const goldGainedGross = Math.max(0, baseGold + bonusGold + marketDeltaGold);
+      const cargoIncident = cargoIncidentForTradeMarket({
+        state,
+        playerId,
+        player,
+        marketInstanceId: marketUsed.instanceId,
+        investments,
+        grossGold: goldGainedGross,
+        rng: ctx.rng,
+      });
+      const goldGained = Math.max(0, goldGainedGross - (cargoIncident?.lossGold ?? 0));
 
       return [
         {
@@ -3731,6 +3996,7 @@ export function decide(
           sold: sold as any,
           marketUsed,
           marketDeltaGold,
+          cargoIncident: cargoIncident ?? undefined,
           goldGained,
           actionCost,
           actionKey,
@@ -3883,8 +4149,19 @@ export function decide(
             return Math.max(0, conversionGold - sellInvestments);
         }
       })();
-      const bonusGold = sellTier === 'fail' ? 0 : Math.floor(sellInvestments / 2) * moneyMods.bonusGoldPerTwoInvestments;
-      const goldGained = Math.max(0, baseGold + bonusGold + marketDeltaGold);
+      // Event 31: Wirtschaftsaufschwung (v1-Nerf): Bonusgold nur je 3 Investitionen (statt je 2).
+      const bonusGold = sellTier === 'fail' ? 0 : Math.floor(sellInvestments / 3) * moneyMods.bonusGoldPerTwoInvestments;
+      const goldGainedGross = Math.max(0, baseGold + bonusGold + marketDeltaGold);
+      const cargoIncident = cargoIncidentForTradeMarket({
+        state,
+        playerId,
+        player,
+        marketInstanceId: marketUsed.instanceId,
+        investments: sellInvestments,
+        grossGold: goldGainedGross,
+        rng: ctx.rng,
+      });
+      const goldGained = Math.max(0, goldGainedGross - (cargoIncident?.lossGold ?? 0));
 
       const bought: Array<
         | { kind: 'labor'; count: number }
@@ -4012,6 +4289,7 @@ export function decide(
           sold: sold as any,
           marketUsed,
           marketDeltaGold,
+          cargoIncident: cargoIncident ?? undefined,
           goldGained,
           actionCost: actionCostSell,
           actionKey: actionKeySell,

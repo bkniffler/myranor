@@ -96,8 +96,15 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 
 ## Posten-Ertraege (Maintenance)
 - Domaenen: RM-Ertrag pro Tier (starter 8, small 12, medium 20, large 36) + AK Ertrag nach Tier (2/2/4/8).
-- Stadtbesitz (verpachtet): Gold + Einfluss + AK nach Tier, keine Werkstatt Kapazitäten.
-- Stadtbesitz (produktion): AK nach Tier, Erweitertes Cap für Werstätten, kein Gold/Einfluss.
+- Stadtbesitz (verpachtet): Gold + Einfluss + AK nach Tier, keine Werkstatt/Lager im Stadtbesitz erlaubt.
+  - small: +2 Gold, +1 Einfluss, +1 AK
+  - medium: +5 Gold, +2 Einfluss, +2 AK
+  - large: +12 Gold, +4 Einfluss, +4 AK
+- Stadtbesitz (Eigenproduktion): AK nach Tier, kein Gold/Einfluss.
+  - small: +2 AK (Unterhalt: 2 Gold / Runde ab Runde 2)
+  - medium: +3 AK (Unterhalt: 4 Gold / Runde ab Runde 2)
+  - large: +6 AK (Unterhalt: 8 Gold / Runde ab Runde 2)
+  - Öffnet Produktions-Caps für Werkstätten/Lager im Stadtbesitz (siehe unten).
 - Aemter: pro Runde Einfluss **oder** Gold **oder** Split 50/50
   - small: 2 Einfluss / 2 Gold
   - medium: 8 Einfluss / 10 Gold
@@ -115,6 +122,16 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
   - Mode `trade`: konsumiert pro Runde Sondermaterial (guenstigstes) (small=1, medium=2, large=4) und erzeugt Gold:
     - Basisgold: small=4, medium=10, large=24
     - plus Trade-Markt-Modifikatoren (beste eigene Handelsmarktinstanz) + Event-Delta (kann negativ sein).
+  - Beschädigt: `damage` gesetzt → **inaktiv** (kein Unterhalt, kein Ertrag, keine Handelsmärkte, keine Einrichtungs-Einflüsse).
+  - Ereignis-Risiken (v1):
+    - Event 15 (Stürme): Ertrag halbiert (5 Runden) und zusätzlich "Frachtverlust"-Risiko beim Verkauf über Handelsmärkte.
+    - Event 16 (Piraterie): bei Piraten-Variante kann Handelsunternehmung verloren/beschädigt werden; zusätzlich "Frachtverlust" beim Verkauf über Handelsmärkte.
+    - Event 26 (Konflikt): Ertrag halbiert (5 Runden); Angriffe können Handelsunternehmungen verlieren/beschädigen oder SM rauben; zusätzlich "Frachtverlust" beim Verkauf über Handelsmärkte (mit Abwehrwurf).
+  - Frachtverlust (nur Handelsmärkte, `MoneySell`/`MoneySellBuy`) — v1-Implementierung:
+    - Priorität: Piraten > Konflikt > Sturm (kein doppeltes Bestrafen im selben Verkauf).
+    - Trigger (w20): Sturm <= 3, Piraten <= 4, Konflikt <= 5.
+    - Abwehr (nur Konflikt): w20 + Verteidigungsmod (aus Truppen) gegen DC 17 (15+2).
+    - Verlust: `min(grossGold, investments * lossGoldPerInvestment)` mit lossGoldPerInvestment: Sturm=2, Piraten=3, Konflikt=2.
 - Paechter/Anhaenger: +1 Gold/Stufe +1 AK/Stufe; Domaenen zusaetzlich +1 RM/Stufe (einfaches RM aus Picks).
 - Viele Posten geben auch Sonderaktionen oder DC Erleichterungen nach Tier (Angegeben unter Vorteilen)
 - Einrichtungen an Aemtern/Orgs/Werkstaetten/Handelsunternehmungen geben Einfluss pro Runde:
@@ -125,6 +142,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Domaenen, Stadtbesitz (produktion), Organisationen, Handelsunternehmungen, Truppen.
 - Werkstaetten/Lager muessen unterhalten werden (sonst inaktiv).
 - Unterhalt fuer Domaenen/Stadtbesitz/Organisationen/Handel/Truppen wird als Kosten abgezogen, diese Posten bleiben aktiv (Gold kann negativ werden).
+- Stadtbesitz (Eigenproduktion): small=2 Gold, medium=4 Gold, large=8 Gold.
 - Handelsunternehmungen-Unterhalt (v1):
   - small: 2 Gold
   - medium: 4 Gold + 1 AK
@@ -144,6 +162,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 
 ### 2) Geldgewinn
 - Geldverleih: DC 14, Auszahlung naechste Runde, Cap 2/4/6/10 je Trade-Tier.
+- Event 31 (Wirtschaftsaufschwung) — v1-Nerf: Bonusgold nur je **3** Investitionen (statt je 2).
 - Verkauf:
   - 6 RM oder 1 SM oder 1 perm. AK = 1 Investment.
   - Cap: 2 + (2 * TradeTierSum) + (DomainTierSum ohne Starter).
@@ -172,6 +191,7 @@ Stand: Engine `rulesVersion = v1` (Soll-Stand)
 - Domaenen/Stadtbesitz/Aemter/Organisationen:
   - DC je Posten + Tiermod (small +0, medium +4, large +8).
   - Kosten werden bei Erfolg mit Roll-Multiplikator skaliert (veryGood/good/poor).
+  - Stadtbesitz Grundkosten: small=15 Gold, medium=25 Gold, large=50 Gold (Event 30 kann fuer 1 Runde halbieren).
   - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt.
 - Handelsunternehmungen:
   - DC 10, Kosten (v1-Interpretation) 20/40/80 Gold.

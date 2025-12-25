@@ -384,6 +384,7 @@ export function baseInfluencePerRound(holdings: PlayerHoldings): number {
     return sum + total;
   }, 0);
   const tradeFacilities = holdings.tradeEnterprises.reduce((sum, t) => {
+    if (t.damage) return sum;
     let total = 0;
     for (const f of t.facilities) total += facilityInfluencePerRound(f.key, 'tradeEnterprise');
     return sum + total;

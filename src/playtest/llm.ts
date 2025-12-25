@@ -189,6 +189,7 @@ type MaterialLedger = {
 type PlayerLedger = {
   goldGained: LedgerTotals;
   goldSpent: LedgerTotals;
+  goldLost: LedgerTotals;
   influenceGained: LedgerTotals;
   influenceSpent: LedgerTotals;
   laborSpent: LedgerTotals;
@@ -239,6 +240,7 @@ function emptyLedger(): PlayerLedger {
   return {
     goldGained: emptyLedgerTotals(),
     goldSpent: emptyLedgerTotals(),
+    goldLost: emptyLedgerTotals(),
     influenceGained: emptyLedgerTotals(),
     influenceSpent: emptyLedgerTotals(),
     laborSpent: emptyLedgerTotals(),
@@ -398,6 +400,13 @@ function applyEventsToLedger(
       case 'PlayerMoneySold': {
         const e = event as Extract<GameEvent, { type: 'PlayerMoneySold' }>;
         addLedgerAmount(ledger.goldGained, 'money.sell', e.goldGained);
+        if (e.cargoIncident?.lossGold) {
+          addLedgerAmount(
+            ledger.goldLost,
+            `cargo.${e.cargoIncident.kind}`,
+            e.cargoIncident.lossGold
+          );
+        }
         let rawSold = 0;
         let specialSold = 0;
         for (const item of e.sold) {
@@ -1196,12 +1205,13 @@ function formatMarkdown(report: LlmPlayReport): string {
       p.displayName,
       fmtTotalsValue(p.ledger.goldGained),
       fmtTotalsValue(p.ledger.goldSpent),
+      fmtTotalsValue(p.ledger.goldLost),
       fmtTotalsValue(p.ledger.influenceGained),
       fmtTotalsValue(p.ledger.influenceSpent),
       fmtTotalsValue(p.ledger.laborSpent),
     ]);
     pushTable(
-      ['Strategie', 'Gold +', 'Gold -', 'Einfluss +', 'Einfluss -', 'AK -'],
+      ['Strategie', 'Gold +', 'Gold -', 'Gold lost', 'Einfluss +', 'Einfluss -', 'AK -'],
       rows
     );
   }
@@ -1344,7 +1354,7 @@ function formatMarkdown(report: LlmPlayReport): string {
       lines.push(
         `- Gold: +${fmtTotals(r.ledger.goldGained)} / -${fmtTotals(
           r.ledger.goldSpent
-        )}`
+        )} / lost=${fmtTotals(r.ledger.goldLost)}`
       );
       lines.push(
         `- Einfluss: +${fmtTotals(r.ledger.influenceGained)} / -${fmtTotals(
