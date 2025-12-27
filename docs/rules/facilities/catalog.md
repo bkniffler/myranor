@@ -5,7 +5,7 @@ Status: canonical (v1 implemented)
 Quelle: Engine v1 (`src/core/engine/engine.ts`, `src/core/rules/v1.ts`)
 Siehe auch:
 - Caps/Slots: `docs/rules/rules-v1.md`
-- Backlog/Spezifikation (vNext): `docs/rules/facilities/spec-draft.md`
+- Soll (detaillierte Einrichtungen & Spezialisierungen): `docs/rules/soll/facilities.md`
 
 ## Key-Schema (v1)
 
@@ -67,4 +67,4 @@ Effekt:
 ### Sonstige Keys
 
 - Alle anderen `general.*`/`special.*` Keys sind in v1 „nur“ Träger für Kosten/Slots/Einfluss.
-- Wenn ein Key zusätzliche Mechanik bekommen soll: zuerst in `docs/rules/facilities/spec-draft.md` spezifizieren, dann in `docs/rules/rules-v1.md` + Code umsetzen.
+- Wenn ein Key zusätzliche Mechanik bekommen soll: zuerst in `docs/rules/soll/facilities.md` spezifizieren, dann in `docs/rules/rules-v1.md` + Code umsetzen.

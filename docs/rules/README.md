@@ -16,11 +16,14 @@
 
 ## Dateien (Index)
 
+- Soll-Regeln (Source of Truth): `docs/rules/soll/aufbausystem.md`
+- Einrichtungen & Spezialisierungen (Soll): `docs/rules/soll/facilities.md`
 - Kernregeln (v1): `docs/rules/rules-v1.md`
 - Scoring / GoldEq: `docs/rules/scoring.md`
 - Balancing (Erkenntnisse & Tweaks): `docs/rules/balancing.md`
 - Strategie-Cards (LLM/Playtests): `docs/rules/strategies.md`
 - LLM-Kontext (Kurzfassung, abgeleitet): `docs/llm/game-info.md`
+- Change Documents (Soll-Änderungen): `docs/rules/soll/changes/README.md`
 
 ### Tabellen & Kataloge
 
@@ -28,7 +31,6 @@
 - Markt: `docs/rules/tables/market.md`
 - Materialien: `docs/rules/tables/materials.md`
 - Facilities-Katalog: `docs/rules/facilities/catalog.md`
-- Facilities (Draft/Backlog): `docs/rules/facilities/spec-draft.md`
 
 ## Format-Konventionen
 
