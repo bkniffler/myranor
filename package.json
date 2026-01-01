@@ -18,6 +18,8 @@
     "llm-play": "bun --env-file .env src/playtest/llm.ts",
     "llm-play-20": "bun run llm-play --rounds 20 --seed 42 --scenario core-v1-all5 --out llm-run.json --pretty",
     "llm-play:strategies": "bun run llm-play --rounds 20 --seed 42 --scenario core-v1-strategies --out reports/llm-core-v1-strategies.json --md-out reports/llm-core-v1-strategies.md --pretty",
+    "llm-batch": "bun src/playtest/llmBatch.ts",
+    "llm-batch:analyze": "bun src/playtest/analyzeLlmBatch.ts",
     "test": "bun test",
     "lint": "biome lint --vcs-use-ignore-file true --vcs-enabled true --diagnostic-level=error",
     "lint:fix": "biome check --write --unsafe --skip-errors ."

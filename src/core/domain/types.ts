@@ -231,7 +231,8 @@ export type LongTermProjectState = {
     | { kind: 'office'; id: string }
     | { kind: 'tradeEnterprise'; id: string }
     | { kind: 'workshop'; id: string }
-    | { kind: 'troops' };
+    | { kind: 'troops' }
+    | { kind: 'personal' };
   startedAtRound: number;
   totalRounds: number;
   remainingRounds: number;
@@ -318,6 +319,7 @@ export type PlayerHoldings = {
   offices: OfficeState[];
   tradeEnterprises: TradeEnterpriseState[];
   troops: TroopsState;
+  personalFacilities: FacilityInstance[];
   longTermProjects: LongTermProjectState[];
   specialists: SpecialistState[];
 };

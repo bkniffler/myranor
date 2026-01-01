@@ -20,7 +20,7 @@ Enthalten:
 
 Nicht (vollständig) enthalten:
 - Der vollständige Soll-Facilities-/Spezialisierungs-Katalog (v1 hat viele Platzhalter/vereinfachte Effekte; siehe `docs/rules/facilities/catalog.md`).
-- Privatbastionen (WIP im Soll).
+- Privatbastionen (Soll ist WIP; v1 hat nur ein v1-light Modell für persönliche Einrichtungen, siehe unten).
 
 ## Rundenablauf (v1)
 
@@ -90,7 +90,7 @@ Start-Ressourcen:
 - Checks: `3/3/3`
 
 Start-Holdings:
-- Domäne: `domain-starter` (`tier=starter`, `rawPicks=[raw.grain, raw.honey]`)
+- Domäne: `domain-starter` (`tier=starter`, `rawPicks=[raw.grain]`)
 - Stadtbesitz: `city-starter` (`tier=small`, `tenure=owned`, `mode=leased`)
 - Werkstatt: `workshop-starter` (`tier=small`, Domäne, `raw.grain → special.pulpellen`)
 - Lager: `storage-starter` (`tier=small`, Domäne)
@@ -101,6 +101,18 @@ Start-Holdings:
 
 Hinweis (Slots/Caps):
 - `workshop-starter` und `storage-starter` zählen **nicht** gegen Domänen-Slots/Caps (Startpaket-Ausnahme).
+
+## Privatbastionen / Persönliche Einrichtungen (v1-light)
+
+Privatbastionen sind im Soll noch WIP; v1 bildet deshalb nur ein **leichtes** Modell ab:
+
+- Storage: `holdings.personalFacilities`
+- Bau: `BuildFacility` mit `location.kind=personal`
+  - Facility-Key muss `general.<tier>.personal.*` oder `special.<tier>.personal.*` sein.
+- Slots: max. `6` persönliche Einrichtungen pro Spieler.
+- Effekte:
+  - geben Einfluss/Runde wie andere Facilities (siehe `docs/rules/facilities/catalog.md`)
+  - erhöhen das Fachkräfte-Cap um `+1` pro persönlicher Einrichtung
 
 ## Ressourcenmodell (v1)
 

@@ -44,6 +44,7 @@ type CliArgs = {
   mdOut: string | null;
   json: boolean;
   pretty: boolean;
+  quiet: boolean;
   listScenarios: boolean;
   help: boolean;
 };
@@ -853,6 +854,7 @@ function usage(): string {
     '  --md-out <file>     Report als Markdown schreiben',
     '  --json              Report als JSON nach stdout',
     '  --pretty            JSON pretty-print (Indent=2)',
+    '  --quiet             Kein stdout (nur --out/--md-out schreiben)',
     '  --list-scenarios    Szenarien auflisten',
     '  --help              Hilfe anzeigen',
     '',
@@ -883,6 +885,7 @@ function parseArgs(argv: string[]): CliArgs {
     mdOut: null,
     json: false,
     pretty: false,
+    quiet: false,
     listScenarios: false,
     help: false,
   };
@@ -923,6 +926,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case '--pretty':
         args.pretty = true;
+        break;
+      case '--quiet':
+        args.quiet = true;
         break;
       case '--list-scenarios':
         args.listScenarios = true;
@@ -1904,6 +1910,8 @@ async function main() {
   if (args.mdOut) {
     await Bun.write(args.mdOut, formatMarkdown(report));
   }
+
+  if (args.quiet) return;
 
   if (args.json) {
     console.log(JSON.stringify(report, null, args.pretty ? 2 : 0));

@@ -31,11 +31,10 @@ export const DEFAULT_CAMPAIGN_RULES: CampaignRules = {
 
 export const DEFAULT_STARTER_DOMAIN_RAW_PICKS = [
   'raw.grain',
-  'raw.honey',
 ] as const;
 
 export const DEFAULT_DOMAIN_RAW_PICKS_BY_TIER = {
-  starter: ['raw.grain', 'raw.honey'],
+  starter: ['raw.grain'],
   small: ['raw.grain', 'raw.vegetables', 'raw.buildStone'],
   medium: [
     'raw.grain',
@@ -163,6 +162,7 @@ export function startingPlayerHoldings(): PlayerHoldings {
     ],
     tradeEnterprises: [],
     troops,
+    personalFacilities: [],
     longTermProjects: [],
     specialists: [],
   };
@@ -367,13 +367,19 @@ export function storageCapacity(
 
 export function facilityInfluencePerRound(
   facilityKey: string,
-  locationKind: 'office' | 'tradeEnterprise' | 'workshop' | 'organization'
+  locationKind:
+    | 'office'
+    | 'tradeEnterprise'
+    | 'workshop'
+    | 'organization'
+    | 'personal'
 ): number {
   if (
     locationKind !== 'office' &&
     locationKind !== 'tradeEnterprise' &&
     locationKind !== 'workshop' &&
-    locationKind !== 'organization'
+    locationKind !== 'organization' &&
+    locationKind !== 'personal'
   )
     return 0;
   const [category, size] = facilityKey.split('.', 2);
@@ -479,6 +485,9 @@ export function baseInfluencePerRound(holdings: PlayerHoldings): number {
       total += facilityInfluencePerRound(f.key, 'workshop');
     return sum + total;
   }, 0);
+  const personalFacilities = holdings.personalFacilities.reduce((sum, f) => {
+    return sum + facilityInfluencePerRound(f.key, 'personal');
+  }, 0);
   const specialistBonus = holdings.specialists.reduce((sum, s) => {
     if (Math.trunc(s.loyalty) <= 0) return sum;
     return sum + (s.influencePerRoundBonus ?? 0);
@@ -523,7 +532,8 @@ export function baseInfluencePerRound(holdings: PlayerHoldings): number {
       officeFacilities +
       tradeFacilities +
       orgFacilities +
-      workshopFacilities
+      workshopFacilities +
+      personalFacilities
   );
 }
 

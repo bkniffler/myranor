@@ -1119,7 +1119,7 @@ function buildFacilityCandidates(
     }
     if (
       me.economy.gold >= buffered(10, bufferFactor) &&
-      (me.economy.inventory.raw['raw.grainVeg'] ?? 0) >= 2
+      (me.economy.inventory.raw['raw.grain'] ?? 0) >= 2
     ) {
       candidates.push({
         id: `facility.domain.spec.agriculture.${specDomain.id}`,
@@ -1129,11 +1129,11 @@ function buildFacilityCandidates(
           campaignId: '',
           domainId: specDomain.id,
           kind: 'agriculture',
-          picks: { costRawId: 'raw.grainVeg' },
+          picks: { costRawId: 'raw.grain' },
         },
         actionKey: null,
         possibleNow: true,
-        summary: `Domäne ${specDomain.id} spezialisieren: Landwirtschaft (10 Gold, 2 RM raw.grainVeg).`,
+        summary: `Domäne ${specDomain.id} spezialisieren: Landwirtschaft (10 Gold, 2 RM raw.grain).`,
       });
     }
     if (

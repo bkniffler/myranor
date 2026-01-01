@@ -486,7 +486,7 @@ function domainSpecializationGoldEq(
     const spec = domain.specialization;
     if (!spec) continue;
     if (spec.kind === 'agriculture') {
-      const rawId = spec.picks?.costRawId ?? 'raw.grainVeg';
+      const rawId = spec.picks?.costRawId ?? 'raw.grain';
       value += 10 + rawStockGoldEq(state, { [rawId]: 2 });
     } else if (spec.kind === 'animalHusbandry') {
       value += 15 + rawStockGoldEq(state, { 'raw.pigsSheep': 4 });

@@ -14,7 +14,7 @@ Jeder Spieler startet mit:
 
 1) **Ausbaubedürftige ländliche Domäne** (Startdomäne)  
    - Ertrag pro Runde: **2 AK**, **8 RM**  
-   - Produktion: **2 RM‑Arten** (1× billig, 1× einfach); **keine** RM‑Art mit Bonus‑Gold beim Verkauf (`saleBonusGold`)  
+   - Produktion: **1 RM‑Art** (billig); **keine** RM‑Art mit Bonus‑Gold beim Verkauf (`saleBonusGold`)  
    - Ausbau (freie Aktion „Einrichtungen errichten/ausbauen“): **8 Gold** + **4 AK** → wird zu einer **kleinen Domäne**
 2) **2 permanente Arbeitskraft** (Arbeitsdienste der Untertanen)
 3) **1 kleine Werkstatt** als (Sonder‑)Einrichtung der Startdomäne (nimmt **keinen** Domänen‑Einrichtungs‑Slot)
@@ -22,4 +22,3 @@ Jeder Spieler startet mit:
 5) **1 kleiner städtischer Besitz**, Startmodus: **verpachtet**
 6) **1 kleines Amt**, Startmodus: **Einflussgewinn**
 7) **4 Gold**
-

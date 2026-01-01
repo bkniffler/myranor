@@ -12,6 +12,7 @@ import type {
   CampaignState,
   CityPropertyTier,
   DomainTier,
+  FacilityInstance,
   MaterialKind,
   MaterialStock,
   PlayerChecks,
@@ -530,9 +531,9 @@ function normalizeDomainRawPicks(
     switch (tier) {
       case 'starter':
         return {
-          total: 2,
+          total: 1,
           cheap: 1,
-          basic: 1,
+          basic: 0,
           expensiveMin: 0,
           expensiveMax: 0,
           maxBonusGold: 0,
@@ -2024,6 +2025,7 @@ export function applyEvent(
       let tradeEnterprises = player.holdings.tradeEnterprises;
       let workshops = player.holdings.workshops;
       let troops = player.holdings.troops;
+      let personalFacilities = player.holdings.personalFacilities;
       const facility = {
         id: event.facilityInstanceId,
         key: event.facilityKey,
@@ -2065,6 +2067,8 @@ export function applyEvent(
           ...troops,
           facilities: [...troops.facilities, facility],
         };
+      } else if (event.location.kind === 'personal') {
+        personalFacilities = [...personalFacilities, facility];
       }
 
       const nextHoldings: PlayerHoldings = {
@@ -2076,6 +2080,7 @@ export function applyEvent(
         tradeEnterprises,
         workshops,
         troops,
+        personalFacilities,
       };
       return {
         ...state,
@@ -2217,6 +2222,7 @@ export function applyEvent(
       let tradeEnterprises = player.holdings.tradeEnterprises;
       let workshops = player.holdings.workshops;
       let troops = player.holdings.troops;
+      let personalFacilities = player.holdings.personalFacilities;
 
       if (event.location.kind === 'domain') {
         const id = event.location.id;
@@ -2250,6 +2256,8 @@ export function applyEvent(
         );
       } else if (event.location.kind === 'troops') {
         troops = { ...troops, facilities: [...troops.facilities, facility] };
+      } else if (event.location.kind === 'personal') {
+        personalFacilities = [...personalFacilities, facility];
       }
 
       return {
@@ -2267,6 +2275,7 @@ export function applyEvent(
               tradeEnterprises,
               workshops,
               troops,
+              personalFacilities,
               longTermProjects: player.holdings.longTermProjects.filter(
                 (p) => p.id !== event.projectId
               ),
@@ -2285,9 +2294,7 @@ export function applyEvent(
         reason: event.reason,
       };
 
-      const patchFacilities = (
-        facilities: Array<{ id: string; damage?: unknown }>
-      ) =>
+      const patchFacilities = (facilities: FacilityInstance[]) =>
         facilities.map((f) =>
           f.id === event.facilityInstanceId ? { ...f, damage } : f
         );
@@ -2304,7 +2311,7 @@ export function applyEvent(
                 ...player.holdings,
                 domains: player.holdings.domains.map((d) =>
                   d.id === domainId
-                    ? { ...d, facilities: patchFacilities(d.facilities) as any }
+                    ? { ...d, facilities: patchFacilities(d.facilities) }
                     : d
                 ),
               },
@@ -2324,7 +2331,7 @@ export function applyEvent(
                 ...player.holdings,
                 cityProperties: player.holdings.cityProperties.map((c) =>
                   c.id === cityPropertyId
-                    ? { ...c, facilities: patchFacilities(c.facilities) as any }
+                    ? { ...c, facilities: patchFacilities(c.facilities) }
                     : c
                 ),
               },
@@ -2344,7 +2351,7 @@ export function applyEvent(
                 ...player.holdings,
                 organizations: player.holdings.organizations.map((o) =>
                   o.id === organizationId
-                    ? { ...o, facilities: patchFacilities(o.facilities) as any }
+                    ? { ...o, facilities: patchFacilities(o.facilities) }
                     : o
                 ),
               },
@@ -2364,7 +2371,7 @@ export function applyEvent(
                 ...player.holdings,
                 offices: player.holdings.offices.map((o) =>
                   o.id === officeId
-                    ? { ...o, facilities: patchFacilities(o.facilities) as any }
+                    ? { ...o, facilities: patchFacilities(o.facilities) }
                     : o
                 ),
               },
@@ -2384,7 +2391,7 @@ export function applyEvent(
                 ...player.holdings,
                 tradeEnterprises: player.holdings.tradeEnterprises.map((t) =>
                   t.id === tradeEnterpriseId
-                    ? { ...t, facilities: patchFacilities(t.facilities) as any }
+                    ? { ...t, facilities: patchFacilities(t.facilities) }
                     : t
                 ),
               },
@@ -2404,7 +2411,7 @@ export function applyEvent(
                 ...player.holdings,
                 workshops: player.holdings.workshops.map((w) =>
                   w.id === workshopId
-                    ? { ...w, facilities: patchFacilities(w.facilities) as any }
+                    ? { ...w, facilities: patchFacilities(w.facilities) }
                     : w
                 ),
               },
@@ -2425,8 +2432,25 @@ export function applyEvent(
                   ...player.holdings.troops,
                   facilities: patchFacilities(
                     player.holdings.troops.facilities
-                  ) as any,
+                  ),
                 },
+              },
+            },
+          },
+        };
+      }
+      if (event.location.kind === 'personal') {
+        return {
+          ...state,
+          players: {
+            ...state.players,
+            [event.playerId]: {
+              ...player,
+              holdings: {
+                ...player.holdings,
+                personalFacilities: patchFacilities(
+                  player.holdings.personalFacilities
+                ),
               },
             },
           },
@@ -3229,7 +3253,9 @@ function generateFacilityInstanceId(
 ): string {
   const n = existingFacilities.length + 1;
   const loc =
-    location.kind === 'troops' ? 'troops' : (location.id ?? 'unknown');
+    location.kind === 'troops' || location.kind === 'personal'
+      ? location.kind
+      : (location.id ?? 'unknown');
   return `${location.kind}-${loc}-facility-${n}`;
 }
 
@@ -5791,6 +5817,8 @@ export function decide(
                   (x) => x.id === id
                 );
                 existingFacilities = w?.facilities ?? [];
+              } else if (target.location.kind === 'personal') {
+                existingFacilities = player.holdings.personalFacilities;
               } else if (target.location.kind === 'troops') {
                 existingFacilities = player.holdings.troops.facilities;
               }
@@ -9245,6 +9273,15 @@ export function decide(
             ).length;
           existingFacilities = player.holdings.troops.facilities;
           break;
+        case 'personal':
+          usedSlots =
+            player.holdings.personalFacilities.length +
+            player.holdings.longTermProjects.filter(
+              (p) => p.kind === 'facility' && p.location.kind === 'personal'
+            ).length;
+          existingFacilities = player.holdings.personalFacilities;
+          maxSlots = 6;
+          break;
         default:
           existingFacilities = undefined;
       }
@@ -9264,7 +9301,14 @@ export function decide(
           'Unbekannte Einrichtung (erwartet: general.<tier>.* oder special.<tier>.*).'
         );
       }
-      const { category } = parsedKey;
+      const { category, rest } = parsedKey;
+
+      if (location.kind === 'personal' && !rest.startsWith('personal.')) {
+        throw new GameRuleError(
+          'RULE',
+          'Persönliche Einrichtungen müssen mit general.<tier>.personal.* oder special.<tier>.personal.* benannt sein.'
+        );
+      }
 
       const cost = facilityBuildCostV1(command.facilityKey);
       if (!cost)
@@ -9633,10 +9677,12 @@ export function decide(
         return count;
       };
       const specialistCap = 2 + countMediumLargePosts();
-      if (player.holdings.specialists.length >= specialistCap) {
+      const specialistCapWithPersonal =
+        specialistCap + player.holdings.personalFacilities.length;
+      if (player.holdings.specialists.length >= specialistCapWithPersonal) {
         throw new GameRuleError(
           'RULE',
-          `Zu viele Fachkräfte (max. ${specialistCap}).`
+          `Zu viele Fachkräfte (max. ${specialistCapWithPersonal}).`
         );
       }
 

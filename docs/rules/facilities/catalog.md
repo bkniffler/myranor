@@ -16,7 +16,7 @@ Spezifisch/besonders:
 
 Dabei gilt:
 - `tier`: `small | medium | large`
-- `scope`: grobe Zielkategorie, z.B. `domain | city | office | organization | trade | workshop | troops`
+- `scope`: grobe Zielkategorie, z.B. `domain | city | office | organization | trade | workshop | troops | personal`
 - `slug`: stabiler Bezeichner (camelCase), z.B. `marketStalls`, `soupKitchens`, `ruthlessCollectors`
 
 Legacy/kompatibel (ältere v1-Keys; noch unterstützt):
@@ -58,6 +58,7 @@ Gilt nur für `location.kind`:
 - `organization` (Unterwelt/Spion/Kult/Collegien)
 - `tradeEnterprise` (Handelsunternehmungen)
 - `workshop` (Werkstätten)
+- `personal` (persönliche Einrichtungen / Privatbastionen v1-light)
 
 Wert:
 - `general.small.*`: +1
@@ -68,6 +69,12 @@ Wert:
 - `special.large.*`: +4
 
 Für andere Orte (Domäne/Stadtbesitz/etc.) geben `general.*`/`special.*` in v1 **keinen** direkten Einfluss-Ertrag.
+
+### Persönliche Einrichtungen (v1-light)
+
+- Standort: `location.kind=personal`
+- Naming: `general.<tier>.personal.*` / `special.<tier>.personal.*`
+- Effekt zusätzlich zu „Einfluss/Runde“: jede persönliche Einrichtung erhöht das Fachkräfte-Cap um `+1`.
 
 ### Veredelung (`special.*.refine`)
 

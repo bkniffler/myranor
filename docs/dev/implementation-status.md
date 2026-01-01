@@ -19,7 +19,7 @@ Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engi
 - ✅ Fachkräfte v1: Anwerben-Check + Tabellen + Trait-Effekte (v1-Interpretation)
 - ✅ Produktions-Caps v1: Werkstätten/Lager sind separat an Domänen-/Stadtbesitz-Größe gebunden (City: keine Facility-Slots, nur Produktions-Caps)
 - 🟡 Langzeitvorhaben (Bauzeit) v1: `BuildFacility` kann Projekte starten; Fortschritt kostet AK/ZK im Maintenance, Abschluss erzeugt Facility (v1: u.a. `general.medium.city.insulae`)
-- ❌ Privatbastionen (Soll: WIP)
+- 🟡 Privatbastionen (v1-light): `location.kind=personal` + eigener Slot-Pool (max 6) für „persönliche Einrichtungen“; jede persönliche Einrichtung erhöht das Fachkräfte-Cap um `+1` und gibt (wie andere Facilities) Einfluss/Runde.
 - ❌ „Das Erste Lager“ (Nomisma/Nahrung/Tiere/Oktrale etc. als eigenes System) – nicht als eigener Ressourcenblock modelliert
 
 ## Canonical Docs (v1)
@@ -46,7 +46,7 @@ Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engi
 
 - ✅ Startgold: `4`
 - ✅ Startchecks: `influence=3`, `money=3`, `materials=3`
-- ✅ Starter-Domäne (`tier=starter`): Ertrag `2 AK` + `8 RM` (typed auf `rawPicks`)
+- ✅ Starter-Domäne (`tier=starter`): Ertrag `2 AK` + `8 RM` (Default: `rawPicks=[raw.grain]`)
 - ✅ 2 permanente Arbeitskraft (`holdings.permanentLabor = 2`)
 - ✅ Start-Werkstatt (`workshop-starter`) auf Starter-Domäne (zählt nicht gegen Domänen-Slots)
 - ✅ Start-Lager (`storage-starter`) auf Starter-Domäne (zählt nicht gegen Domänen-Slots)

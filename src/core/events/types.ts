@@ -514,7 +514,8 @@ export type PlayerFacilityBuiltEvent = {
     | { kind: 'office'; id: string }
     | { kind: 'tradeEnterprise'; id: string }
     | { kind: 'workshop'; id: string }
-    | { kind: 'troops' };
+    | { kind: 'troops' }
+    | { kind: 'personal' };
   facilityInstanceId: string;
   facilityKey: string;
   goldSpent: number;
@@ -584,7 +585,8 @@ export type PlayerFacilityDamagedEvent = {
     | { kind: 'office'; id: string }
     | { kind: 'tradeEnterprise'; id: string }
     | { kind: 'workshop'; id: string }
-    | { kind: 'troops' };
+    | { kind: 'troops' }
+    | { kind: 'personal' };
   facilityInstanceId: string;
   repairCostGold: number;
   reason: string;

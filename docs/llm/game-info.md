@@ -57,12 +57,13 @@ Phasen: `maintenance → actions → conversion → reset`
 - Checks: `influence=3`, `money=3`, `materials=3`
 - Gold: `4`
 - Holdings:
-  - Starter-Domäne (`tier=starter`, `rawPicks=[raw.grain, raw.honey]`)
+  - Starter-Domäne (`tier=starter`, `rawPicks=[raw.grain]`)
   - Stadtbesitz klein (`tier=small`, `mode=leased`, `tenure=owned`)
   - Start-Werkstatt klein auf Domäne (`raw.grain → special.pulpellen`)
   - Start-Lager klein auf Domäne
   - Start-Amt klein (`yieldMode=influence`)
   - `permanentLabor=2`
+  - Persönliche Einrichtungen: `0` (v1-light: `BuildFacility` mit `location.kind=personal`, Key `general.<tier>.personal.*` / `special.<tier>.personal.*`; max 6; erhöht Fachkräfte-Cap um `+1` je Facility)
 
 ## Politik (KW/AS/N + Information, v1)
 
