@@ -38,4 +38,3 @@ export function gini(values: number[]): number {
   }
   return (2 * cum) / (n * total) - (n + 1) / n;
 }
-

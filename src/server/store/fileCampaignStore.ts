@@ -2,8 +2,8 @@ import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import type { CampaignState } from '../../core';
-import type { CampaignSnapshot, StoredEvent } from './types';
 import { ensureDir } from '../util/fs';
+import type { CampaignSnapshot, StoredEvent } from './types';
 
 export class FileCampaignStore {
   constructor(private readonly rootDir: string) {}
@@ -20,7 +20,9 @@ export class FileCampaignStore {
     return join(this.campaignDir(campaignId), 'snapshot.json');
   }
 
-  async readSnapshot(campaignId: string): Promise<CampaignSnapshot<CampaignState> | null> {
+  async readSnapshot(
+    campaignId: string
+  ): Promise<CampaignSnapshot<CampaignState> | null> {
     const path = this.snapshotPath(campaignId);
     try {
       const raw = await readFile(path, 'utf8');
@@ -32,7 +34,7 @@ export class FileCampaignStore {
 
   async writeSnapshot(
     campaignId: string,
-    snapshot: CampaignSnapshot<CampaignState>,
+    snapshot: CampaignSnapshot<CampaignState>
   ): Promise<void> {
     const path = this.snapshotPath(campaignId);
     await ensureDir(dirname(path));
@@ -61,7 +63,7 @@ export class FileCampaignStore {
     const expectedFirstSeq = lastSeq + 1;
     if (events[0].seq !== expectedFirstSeq) {
       throw new Error(
-        `Seq mismatch: expected first=${expectedFirstSeq}, got=${events[0].seq}`,
+        `Seq mismatch: expected first=${expectedFirstSeq}, got=${events[0].seq}`
       );
     }
 

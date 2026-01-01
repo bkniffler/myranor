@@ -15,4 +15,3 @@ export type CampaignSnapshot<TState> = {
   seq: number;
   state: TState;
 };
-

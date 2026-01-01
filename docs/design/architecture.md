@@ -28,7 +28,7 @@ Dieses Dokument hält die technischen Entscheidungen für den Neustart fest (Eng
 Enthält alles, was für alle sichtbar ist und den globalen Ablauf bestimmt:
 - Runde/Phase (Unterhalt → Aktionen → Umwandlung → Reset)
 - Marktstatus (Rohmaterial-/Sondermaterial-Nachfragewürfe)
-- Globale Ereignisse (Ereignistabellen, Abschnitte alle 5 Runden etc.)
+- Globale Ereignisse (Ereignistabellen, Abschnitte 4 Runden; Start ab Runde 2)
 - Öffentliche Effekte/Resultate von Spieleraktionen
 
 ### Spieler (pro User)

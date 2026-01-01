@@ -11,11 +11,27 @@ describe('engine smoke', () => {
     const gm = { actor: { role: 'gm' as const, userId: 'gm-1' }, rng };
     const p1 = { actor: { role: 'player' as const, userId: 'user-1' }, rng };
 
-    let state = reduceEvents(null, decide(null, { type: 'CreateCampaign', campaignId: 'c-1', name: 'Test' }, gm));
+    let state = reduceEvents(
+      null,
+      decide(
+        null,
+        { type: 'CreateCampaign', campaignId: 'c-1', name: 'Test' },
+        gm
+      )
+    );
 
     state = reduceEvents(
       state,
-      decide(state, { type: 'JoinCampaign', campaignId: 'c-1', playerId: 'p-1', displayName: 'Alice' }, p1),
+      decide(
+        state,
+        {
+          type: 'JoinCampaign',
+          campaignId: 'c-1',
+          playerId: 'p-1',
+          displayName: 'Alice',
+        },
+        p1
+      )
     );
 
     expect(state?.phase).toBe('maintenance');
@@ -26,12 +42,17 @@ describe('engine smoke', () => {
     expect(alice.turn.laborAvailable).toBe(5);
 
     // GM opens actions and applies income
-    state = reduceEvents(state, decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm));
+    state = reduceEvents(
+      state,
+      decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm)
+    );
     expect(state?.phase).toBe('actions');
 
-    const aliceAfterIncome = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
+    const aliceAfterIncome =
+      state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterIncome.economy.gold).toBe(6);
-    expect(aliceAfterIncome.economy.inventory.raw['raw.grainVeg']).toBe(8);
+    expect(aliceAfterIncome.economy.inventory.raw['raw.grain']).toBe(4);
+    expect(aliceAfterIncome.economy.inventory.raw['raw.honey']).toBe(4);
 
     // Player performs one action
     state = reduceEvents(
@@ -44,39 +65,58 @@ describe('engine smoke', () => {
           mode: 'domainAdministration',
           investments: 2,
         },
-        p1,
-      ),
+        p1
+      )
     );
     expect(state?.phase).toBe('actions');
 
-    const aliceAfterAction = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
+    const aliceAfterAction =
+      state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterAction.turn.actionsUsed).toBe(1);
     expect(aliceAfterAction.turn.laborAvailable).toBe(3);
-    const rawAfterAction = Object.values(aliceAfterAction.economy.inventory.raw).reduce((sum, v) => sum + v, 0);
+    const rawAfterAction = Object.values(
+      aliceAfterAction.economy.inventory.raw
+    ).reduce((sum, v) => sum + v, 0);
     expect(rawAfterAction).toBeGreaterThan(4);
 
     // Conversion (auto conversion runs when entering "conversion")
-    state = reduceEvents(state, decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm));
+    state = reduceEvents(
+      state,
+      decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm)
+    );
     expect(state?.phase).toBe('conversion');
 
-    const aliceAfterConversion = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
-    const rawAfterConversion = Object.values(aliceAfterConversion.economy.inventory.raw).reduce((sum, v) => sum + v, 0);
-    const specialAfterConversion = Object.values(aliceAfterConversion.economy.inventory.special).reduce((sum, v) => sum + v, 0);
-    expect(rawAfterConversion).toBe(0);
-    expect(specialAfterConversion).toBe(0);
+    const aliceAfterConversion =
+      state!.players[state!.playerIdByUserId[asUserId('user-1')]];
+    const rawAfterConversion = Object.values(
+      aliceAfterConversion.economy.inventory.raw
+    ).reduce((sum, v) => sum + v, 0);
+    const specialAfterConversion = Object.values(
+      aliceAfterConversion.economy.inventory.special
+    ).reduce((sum, v) => sum + v, 0);
+    // Starter-Spieler hat ein Lager → bis zu Cap werden RM/SM gehalten, Rest wird auto-umgewandelt.
+    expect(rawAfterConversion).toBeLessThanOrEqual(15);
+    expect(specialAfterConversion).toBeLessThanOrEqual(5);
     expect(aliceAfterConversion.economy.gold).toBeGreaterThanOrEqual(6);
 
     // Reset
-    state = reduceEvents(state, decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm));
+    state = reduceEvents(
+      state,
+      decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm)
+    );
     expect(state?.phase).toBe('reset');
 
-    const aliceAfterReset = state!.players[state!.playerIdByUserId[asUserId('user-1')]];
+    const aliceAfterReset =
+      state!.players[state!.playerIdByUserId[asUserId('user-1')]];
     expect(aliceAfterReset.turn.actionsUsed).toBe(0);
     expect(aliceAfterReset.turn.laborAvailable).toBe(5);
-    expect(aliceAfterReset.turn.influenceAvailable).toBe(1);
+    expect(aliceAfterReset.turn.influenceAvailable).toBe(5);
 
     // Next round maintenance
-    state = reduceEvents(state, decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm));
+    state = reduceEvents(
+      state,
+      decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm)
+    );
     expect(state?.phase).toBe('maintenance');
     expect(state?.round).toBe(2);
   });
@@ -86,10 +126,26 @@ describe('engine smoke', () => {
     const gm = { actor: { role: 'gm' as const, userId: 'gm-1' }, rng };
     const p1 = { actor: { role: 'player' as const, userId: 'user-1' }, rng };
 
-    let state = reduceEvents(null, decide(null, { type: 'CreateCampaign', campaignId: 'c-1', name: 'Test' }, gm));
+    let state = reduceEvents(
+      null,
+      decide(
+        null,
+        { type: 'CreateCampaign', campaignId: 'c-1', name: 'Test' },
+        gm
+      )
+    );
     state = reduceEvents(
       state,
-      decide(state, { type: 'JoinCampaign', campaignId: 'c-1', playerId: 'p-1', displayName: 'Alice' }, p1),
+      decide(
+        state,
+        {
+          type: 'JoinCampaign',
+          campaignId: 'c-1',
+          playerId: 'p-1',
+          displayName: 'Alice',
+        },
+        p1
+      )
     );
 
     expect(() =>
@@ -101,8 +157,77 @@ describe('engine smoke', () => {
           mode: 'domainAdministration',
           investments: 1,
         },
-        p1,
-      ),
+        p1
+      )
     ).toThrow(GameRuleError);
+  });
+
+  test('Neider-Gegenreaktion requires explicit loss choice', () => {
+    const rng = createSeededRng(42);
+    const gm = { actor: { role: 'gm' as const, userId: 'gm-1' }, rng };
+    const p1 = { actor: { role: 'player' as const, userId: 'user-1' }, rng };
+
+    let state = reduceEvents(
+      null,
+      decide(
+        null,
+        { type: 'CreateCampaign', campaignId: 'c-1', name: 'Test' },
+        gm
+      )
+    );
+    state = reduceEvents(
+      state,
+      decide(
+        state,
+        {
+          type: 'JoinCampaign',
+          campaignId: 'c-1',
+          playerId: 'p-1',
+          displayName: 'Alice',
+        },
+        p1
+      )
+    );
+
+    const playerId = state!.playerIdByUserId[asUserId('user-1')];
+    state = reduceEvents(state, [
+      {
+        type: 'PlayerPoliticsAdjusted',
+        visibility: { scope: 'private', playerId },
+        playerId,
+        nDelta: 3,
+        reason: 'test',
+      },
+    ]);
+
+    expect(() =>
+      decide(state, { type: 'AdvancePhase', campaignId: 'c-1' }, gm)
+    ).toThrow(GameRuleError);
+
+    state = reduceEvents(
+      state,
+      decide(
+        state,
+        {
+          type: 'SetCounterReactionLossChoice',
+          campaignId: 'c-1',
+          choice: 'gold',
+        },
+        p1
+      )
+    );
+
+    const events = decide(
+      state,
+      { type: 'AdvancePhase', campaignId: 'c-1' },
+      gm
+    );
+    const reaction = events.find(
+      (e) => e.type === 'PlayerCounterReactionResolved'
+    );
+    expect(reaction?.type).toBe('PlayerCounterReactionResolved');
+    if (reaction && reaction.type === 'PlayerCounterReactionResolved') {
+      expect(reaction.loss.kind).toBe('gold');
+    }
   });
 });

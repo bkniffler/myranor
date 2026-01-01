@@ -1,5 +1,6 @@
 import type {
   CityPropertyMode,
+  CityPropertyTenure,
   CityPropertyTier,
   DomainSpecializationKind,
   DomainSpecializationPicks,
@@ -9,11 +10,11 @@ import type {
   OrganizationKind,
   PlayerChecks,
   PostTier,
-  StorageTier,
   SpecialistKind,
   SpecialistTier,
-  TradeEnterpriseTier,
+  StorageTier,
   TradeEnterpriseMode,
+  TradeEnterpriseTier,
   WorkshopTier,
 } from '../domain/types';
 
@@ -63,15 +64,24 @@ export type MoneyBuyCommand = {
   type: 'MoneyBuy';
   campaignId: string;
   marketInstanceId?: string;
-  items: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
+  items: Array<
+    | { kind: MaterialKind; materialId: string; count: number }
+    | { kind: 'labor'; count: number }
+  >;
 };
 
 export type MoneySellBuyCommand = {
   type: 'MoneySellBuy';
   campaignId: string;
   marketInstanceId?: string;
-  sellItems: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
-  buyItems: Array<{ kind: MaterialKind; materialId: string; count: number } | { kind: 'labor'; count: number }>;
+  sellItems: Array<
+    | { kind: MaterialKind; materialId: string; count: number }
+    | { kind: 'labor'; count: number }
+  >;
+  buyItems: Array<
+    | { kind: MaterialKind; materialId: string; count: number }
+    | { kind: 'labor'; count: number }
+  >;
 };
 
 export type GainMaterialsCommand = {
@@ -93,6 +103,7 @@ export type AcquireCityPropertyCommand = {
   type: 'AcquireCityProperty';
   campaignId: string;
   tier: CityPropertyTier;
+  tenure?: CityPropertyTenure;
 };
 
 export type SetCityPropertyModeCommand = {
@@ -214,6 +225,51 @@ export type HireSpecialistCommand = {
   tier: SpecialistTier;
 };
 
+export type PoliticalStepsCommand =
+  | {
+      type: 'PoliticalSteps';
+      campaignId: string;
+      kind: 'damageDefend';
+      size: PostTier;
+      investments: number;
+      investmentPayment: 'combat' | 'influence';
+      infoSpent?: number;
+    }
+  | {
+      type: 'PoliticalSteps';
+      campaignId: string;
+      kind: 'manipulate';
+      size: PostTier;
+      investments: number;
+      investmentPayment: 'goldFirst' | 'influenceFirst';
+      infoSpent?: number;
+    }
+  | {
+      type: 'PoliticalSteps';
+      campaignId: string;
+      kind: 'loyaltySecure';
+      size: PostTier;
+      targets: Array<{
+        kind: 'domain' | 'cityProperty' | 'organization';
+        id: string;
+      }>;
+      investmentPayment: 'goldFirst' | 'influenceFirst';
+      infoSpent?: number;
+    }
+  | {
+      type: 'PoliticalSteps';
+      campaignId: string;
+      kind: 'convertInformation';
+      to: 'gold' | 'influence';
+      amount: number;
+    };
+
+export type SetCounterReactionLossChoiceCommand = {
+  type: 'SetCounterReactionLossChoice';
+  campaignId: string;
+  choice: 'gold' | 'influence';
+};
+
 export type AddPrivateNoteCommand = {
   type: 'AddPrivateNote';
   campaignId: string;
@@ -248,4 +304,6 @@ export type GameCommand =
   | AcquireTenantsCommand
   | RecruitTroopsCommand
   | HireSpecialistCommand
+  | PoliticalStepsCommand
+  | SetCounterReactionLossChoiceCommand
   | AddPrivateNoteCommand;

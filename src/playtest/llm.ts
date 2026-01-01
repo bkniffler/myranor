@@ -20,19 +20,19 @@ import {
   planFacilityWithLlm,
   toGameCommand,
 } from './llmAgent';
+import {
+  FULL_NET_WORTH_WEIGHTS,
+  type NetWorthBreakdown,
+  computeNetWorth,
+} from './plannerScore';
 import { getScenario, listScenarioNames } from './scenarios';
-import type { StrategyCard } from './types';
 import {
   bonusInfluenceSlots,
   bonusMaterialsSlots,
   bonusMoneySlots,
   hasAnyActionCapacity,
 } from './turnRules';
-import {
-  computeNetWorth,
-  FULL_NET_WORTH_WEIGHTS,
-  type NetWorthBreakdown,
-} from './plannerScore';
+import type { StrategyCard } from './types';
 
 type CliArgs = {
   rounds: number;
@@ -183,7 +183,12 @@ type MaterialLedger = {
   rawLost: LedgerTotals;
   specialLost: LedgerTotals;
   rawConsumedByWorkshop: LedgerTotals;
+  rawProducedByWorkshop: LedgerTotals;
   specialProducedByWorkshop: LedgerTotals;
+  rawConsumedByFacilities: LedgerTotals;
+  specialConsumedByFacilities: LedgerTotals;
+  rawProducedByFacilities: LedgerTotals;
+  specialProducedByFacilities: LedgerTotals;
 };
 
 type PlayerLedger = {
@@ -232,7 +237,12 @@ function emptyMaterialLedger(): MaterialLedger {
     rawLost: emptyLedgerTotals(),
     specialLost: emptyLedgerTotals(),
     rawConsumedByWorkshop: emptyLedgerTotals(),
+    rawProducedByWorkshop: emptyLedgerTotals(),
     specialProducedByWorkshop: emptyLedgerTotals(),
+    rawConsumedByFacilities: emptyLedgerTotals(),
+    specialConsumedByFacilities: emptyLedgerTotals(),
+    rawProducedByFacilities: emptyLedgerTotals(),
+    specialProducedByFacilities: emptyLedgerTotals(),
   };
 }
 
@@ -300,11 +310,7 @@ function applyEventsToLedger(
           'eventTaxes',
           e.eventTaxesPaid.gold + e.eventTaxesPaid.oneTimeOfficeTaxGold
         );
-        addLedgerAmount(
-          ledger.influenceGained,
-          'income',
-          e.produced.influence
-        );
+        addLedgerAmount(ledger.influenceGained, 'income', e.produced.influence);
         addStockTotals(ledger.materials.rawSpent, 'upkeep', e.upkeepPaid.raw);
         addStockTotals(
           ledger.materials.specialSpent,
@@ -372,14 +378,42 @@ function applyEventsToLedger(
           e.workshop.rawConsumed
         );
         addStockTotals(
+          ledger.materials.rawProducedByWorkshop,
+          'workshop',
+          e.workshop.rawProduced
+        );
+        addStockTotals(
           ledger.materials.specialProducedByWorkshop,
           'workshop',
           e.workshop.specialProduced
         );
+        addStockTotals(
+          ledger.materials.rawConsumedByFacilities,
+          'facility',
+          e.facilities.rawConsumed
+        );
+        addStockTotals(
+          ledger.materials.specialConsumedByFacilities,
+          'facility',
+          e.facilities.specialConsumed
+        );
+        addStockTotals(
+          ledger.materials.rawProducedByFacilities,
+          'facility',
+          e.facilities.rawProduced
+        );
+        addStockTotals(
+          ledger.materials.specialProducedByFacilities,
+          'facility',
+          e.facilities.specialProduced
+        );
         break;
       }
       case 'PlayerInfluenceGained': {
-        const e = event as Extract<GameEvent, { type: 'PlayerInfluenceGained' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerInfluenceGained' }
+        >;
         addLedgerAmount(
           ledger.goldSpent,
           `gain.influence.${e.kind}`,
@@ -439,12 +473,11 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerMaterialsGained': {
-        const e = event as Extract<GameEvent, { type: 'PlayerMaterialsGained' }>;
-        addLedgerAmount(
-          ledger.laborSpent,
-          `materials.${e.mode}`,
-          e.laborSpent
-        );
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerMaterialsGained' }
+        >;
+        addLedgerAmount(ledger.laborSpent, `materials.${e.mode}`, e.laborSpent);
         addStockTotals(
           ledger.materials.rawGained,
           `action.${e.mode}`,
@@ -486,11 +519,7 @@ function applyEventsToLedger(
           { type: 'PlayerOrganizationAcquired' }
         >;
         addLedgerAmount(ledger.goldSpent, 'acquire.org', e.goldSpent);
-        addLedgerAmount(
-          ledger.influenceSpent,
-          'acquire.org',
-          e.influenceSpent
-        );
+        addLedgerAmount(ledger.influenceSpent, 'acquire.org', e.influenceSpent);
         break;
       }
       case 'PlayerTradeEnterpriseAcquired': {
@@ -502,7 +531,10 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerTenantsAcquired': {
-        const e = event as Extract<GameEvent, { type: 'PlayerTenantsAcquired' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerTenantsAcquired' }
+        >;
         addLedgerAmount(ledger.goldSpent, 'acquire.tenants', e.goldSpent);
         addLedgerAmount(
           ledger.influenceSpent,
@@ -512,18 +544,17 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerTroopsRecruited': {
-        const e = event as Extract<GameEvent, { type: 'PlayerTroopsRecruited' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerTroopsRecruited' }
+        >;
         addLedgerAmount(ledger.goldSpent, 'recruit.troops', e.goldSpent);
         addLedgerAmount(
           ledger.influenceSpent,
           'recruit.troops',
           e.influenceSpent
         );
-        addStockTotals(
-          ledger.materials.rawSpent,
-          'recruit.troops',
-          e.rawSpent
-        );
+        addStockTotals(ledger.materials.rawSpent, 'recruit.troops', e.rawSpent);
         addStockTotals(
           ledger.materials.specialSpent,
           'recruit.troops',
@@ -537,7 +568,10 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerWorkshopUpgraded': {
-        const e = event as Extract<GameEvent, { type: 'PlayerWorkshopUpgraded' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerWorkshopUpgraded' }
+        >;
         addLedgerAmount(ledger.goldSpent, 'upgrade.workshop', e.goldSpent);
         break;
       }
@@ -547,7 +581,10 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerStorageUpgraded': {
-        const e = event as Extract<GameEvent, { type: 'PlayerStorageUpgraded' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerStorageUpgraded' }
+        >;
         addLedgerAmount(ledger.goldSpent, 'upgrade.storage', e.goldSpent);
         break;
       }
@@ -560,11 +597,7 @@ function applyEventsToLedger(
           e.influenceSpent
         );
         addLedgerAmount(ledger.laborSpent, 'build.facility', e.laborSpent);
-        addStockTotals(
-          ledger.materials.rawSpent,
-          'build.facility',
-          e.rawSpent
-        );
+        addStockTotals(ledger.materials.rawSpent, 'build.facility', e.rawSpent);
         addStockTotals(
           ledger.materials.specialSpent,
           'build.facility',
@@ -595,7 +628,10 @@ function applyEventsToLedger(
         break;
       }
       case 'PlayerSpecialistHired': {
-        const e = event as Extract<GameEvent, { type: 'PlayerSpecialistHired' }>;
+        const e = event as Extract<
+          GameEvent,
+          { type: 'PlayerSpecialistHired' }
+        >;
         addLedgerAmount(ledger.goldSpent, 'hire.specialist', e.goldSpent);
         break;
       }
@@ -741,8 +777,7 @@ function summarizeStrategy(options: {
       if (influenceTotal >= 6)
         good.push(`Einfluss aufgebaut: ${Math.round(influenceTotal)}`);
       else weak.push(`Einfluss niedrig: ${Math.round(influenceTotal)}`);
-      if (cities > 0)
-        good.push(`Staedtischer Besitz vorhanden: ${cities}`);
+      if (cities > 0) good.push(`Staedtischer Besitz vorhanden: ${cities}`);
       else weak.push('Kein Stadtbesitz fuer Einfluss/Gold.');
       break;
     case 'trade':
@@ -760,8 +795,7 @@ function summarizeStrategy(options: {
     case 'city':
       if (cities > 0) good.push(`Staedtischer Besitz: ${cities}`);
       else weak.push('Kein Stadtbesitz aufgebaut.');
-      if (underworld)
-        good.push(`Unterwelt-Organisation: ${underworld.tier}`);
+      if (underworld) good.push(`Unterwelt-Organisation: ${underworld.tier}`);
       else weak.push('Keine Unterwelt-Organisation.');
       if (stats.acquireOrg > 0 && orgs > 0)
         good.push(`Organisationen aufgebaut: ${orgs}`);
@@ -769,13 +803,10 @@ function summarizeStrategy(options: {
     case 'workshop':
       if (workshops > 0) good.push(`Werkstaetten: ${workshops}`);
       else weak.push('Keine Werkstaetten gebaut.');
-      if (hasProductionCity)
-        good.push('Produktion im Stadtbesitz aktiv.');
+      if (hasProductionCity) good.push('Produktion im Stadtbesitz aktiv.');
       else weak.push('Kein Stadtbesitz in Produktion.');
       if (stats.gainMaterialsWorkshop > 0)
-        good.push(
-          `Werkstattaufsicht genutzt: ${stats.gainMaterialsWorkshop}x`
-        );
+        good.push(`Werkstattaufsicht genutzt: ${stats.gainMaterialsWorkshop}x`);
       else weak.push('Werkstattaufsicht nicht genutzt.');
       break;
     case 'domain':
@@ -965,7 +996,10 @@ function countFacilitySlotsUsedAtDomain(
       w.id !== 'workshop-starter'
   ).length;
   const storageSlots = holdings.storages.filter(
-    (s) => s.location.kind === 'domain' && s.location.id === domainId
+    (s) =>
+      s.location.kind === 'domain' &&
+      s.location.id === domainId &&
+      s.id !== 'storage-starter'
   ).length;
   const specSlots = domain.specialization?.facilities?.length ?? 0;
   return domain.facilities.length + specSlots + workshopSlots + storageSlots;
@@ -977,14 +1011,10 @@ function countFacilitySlotsUsedAtCity(
 ): number {
   const city = holdings.cityProperties.find((c) => c.id === cityId);
   if (!city) return 0;
-  const workshopSlots = holdings.workshops.filter(
-    (w) => w.location.kind === 'cityProperty' && w.location.id === cityId
-  ).length;
-  const storageSlots = holdings.storages.filter(
-    (s) => s.location.kind === 'cityProperty' && s.location.id === cityId
-  ).length;
   const specSlots = city.specialization?.facilities?.length ?? 0;
-  return city.facilities.length + specSlots + workshopSlots + storageSlots;
+  // Soll: Werkstätten/Lager im Stadtbesitz (Eigenproduktion) belegen keine Einrichtungsplätze;
+  // sie sind separat über Produktions-Caps gecapped.
+  return city.facilities.length + specSlots;
 }
 
 function snapshotPlayer(me: PlayerState): RoundSnapshot {
@@ -1020,7 +1050,9 @@ function snapshotHoldings(me: PlayerState): HoldingsSnapshot {
     me.holdings.domains.map((d) => `${d.id}:${d.tier}`).join(', ') || '-';
   const workshops =
     me.holdings.workshops
-      .map((w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`)
+      .map(
+        (w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`
+      )
       .join(', ') || '-';
   const storages =
     me.holdings.storages.map((s) => `${s.id}:${s.tier}`).join(', ') || '-';
@@ -1070,8 +1102,11 @@ function diffSnapshot(start: RoundSnapshot, end: RoundSnapshot): RoundSnapshot {
 }
 
 function formatRoundSummary(summary: RoundSummary): string {
-  const actions = summary.actions.length > 0 ? summary.actions.join(', ') : 'keine';
-  const facility = summary.facility ? `facility=${summary.facility}` : 'facility=none';
+  const actions =
+    summary.actions.length > 0 ? summary.actions.join(', ') : 'keine';
+  const facility = summary.facility
+    ? `facility=${summary.facility}`
+    : 'facility=none';
   const s = summary.start;
   const e = summary.end;
   const h = summary.holdingsEnd.summary;
@@ -1095,7 +1130,6 @@ function formatDecisionLabel(label: string, note: string | null): string {
   if (!note) return label;
   return `${label} (Grund: ${note})`;
 }
-
 
 function extractOutcome(
   events: GameEvent[]
@@ -1131,10 +1165,7 @@ function formatMarkdown(report: LlmPlayReport): string {
   const lines: string[] = [];
   const fmt = (value: number) =>
     Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
-  const fmtTotals = (
-    totals: LedgerTotals,
-    limit = 6
-  ) => {
+  const fmtTotals = (totals: LedgerTotals, limit = 6) => {
     const entries = Object.entries(totals.byType)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, limit)
@@ -1211,7 +1242,15 @@ function formatMarkdown(report: LlmPlayReport): string {
       fmtTotalsValue(p.ledger.laborSpent),
     ]);
     pushTable(
-      ['Strategie', 'Gold +', 'Gold -', 'Gold lost', 'Einfluss +', 'Einfluss -', 'AK -'],
+      [
+        'Strategie',
+        'Gold +',
+        'Gold -',
+        'Gold lost',
+        'Einfluss +',
+        'Einfluss -',
+        'AK -',
+      ],
       rows
     );
   }
@@ -1290,8 +1329,7 @@ function formatMarkdown(report: LlmPlayReport): string {
   );
   for (const p of report.final.byPlayer) {
     const stats = actionStatsForPlayer(report.steps, p.playerId);
-    const strategyTitle =
-      strategyByPlayerId.get(p.playerId) ?? p.displayName;
+    const strategyTitle = strategyByPlayerId.get(p.playerId) ?? p.displayName;
     const key = strategyKeyFor(strategyTitle, p.displayName);
     const summary = summarizeStrategy({ player: p, stats, key });
     lines.push(`### ${p.displayName}`);
@@ -1347,9 +1385,7 @@ function formatMarkdown(report: LlmPlayReport): string {
         )} | SM +${fmtIncomeOnly(m.specialGained)}`
       );
       lines.push(
-        `- Pool: Einfluss ${fmt(r.start.influence)} | AK ${fmt(
-          r.start.labor
-        )}`
+        `- Pool: Einfluss ${fmt(r.start.influence)} | AK ${fmt(r.start.labor)}`
       );
       lines.push(
         `- Gold: +${fmtTotals(r.ledger.goldGained)} / -${fmtTotals(
@@ -1367,15 +1403,21 @@ function formatMarkdown(report: LlmPlayReport): string {
           m.rawSpent
         )} | sold=${fmtTotals(m.rawSold)} | wk=${fmtTotals(
           m.rawConsumedByWorkshop
-        )} | auto=${fmtTotals(m.rawConvertedToGold)} | stored=${fmtTotals(
-          m.rawStored
-        )} | lost=${fmtTotals(m.rawLost)}`
+        )} | wkProd=${fmtTotals(m.rawProducedByWorkshop)} | facIn=${fmtTotals(
+          m.rawConsumedByFacilities
+        )} | facOut=${fmtTotals(m.rawProducedByFacilities)} | auto=${fmtTotals(
+          m.rawConvertedToGold
+        )} | stored=${fmtTotals(m.rawStored)} | lost=${fmtTotals(m.rawLost)}`
       );
       lines.push(
         `- SM: +${fmtTotals(m.specialGained)} | spent=${fmtTotals(
           m.specialSpent
-        )} | prod=${fmtTotals(
+        )} | wkProd=${fmtTotals(
           m.specialProducedByWorkshop
+        )} | facIn=${fmtTotals(
+          m.specialConsumedByFacilities
+        )} | facOut=${fmtTotals(
+          m.specialProducedByFacilities
         )} | sold=${fmtTotals(m.specialSold)} | auto=${fmtTotals(
           m.specialConvertedToGold
         )} | stored=${fmtTotals(m.specialStored)} | lost=${fmtTotals(
@@ -1482,6 +1524,36 @@ async function main() {
       applyEventsToLedger(events, ledgerByPlayerId);
       applyEventsToLedger(events, roundLedgerByPlayerId);
     };
+
+    // Neider-Gegenreaktion (Soll): Spielerwahl vor Abwicklung.
+    // In LLM-Playtests nutzen wir eine einfache, strategie-abhängige Heuristik,
+    // damit die Engine nicht still "autopickt".
+    for (const profile of profiles) {
+      if (!state) break;
+      const me = getPlayerByUserId(state, profile.userId);
+      const n = Math.max(0, Math.trunc(me.politics.n));
+      const threshold = n >= 9 ? 9 : n >= 6 ? 6 : n >= 3 ? 3 : null;
+      if (!threshold) continue;
+
+      const baseLoss = threshold === 3 ? 4 : threshold === 6 ? 8 : 12;
+      const title = profile.strategyCard?.title ?? profile.displayName;
+      const influenceHeavy =
+        title === 'Amtsfokus' || title === 'Stadt & Unterwelt';
+      const choice: 'gold' | 'influence' =
+        influenceHeavy || me.turn.influenceAvailable < baseLoss
+          ? 'gold'
+          : 'influence';
+
+      const res = execute(
+        state,
+        { type: 'SetCounterReactionLossChoice', campaignId, choice },
+        { role: 'player', userId: profile.userId },
+        rng
+      );
+      state = res.state;
+      applyRoundEvents(res.events);
+      if (res.error) throw res.error;
+    }
 
     // maintenance -> actions
     {
@@ -1614,7 +1686,9 @@ async function main() {
         const actionNote = normalizeNote(actionPlan.note);
         if (!actionPlan.action) {
           if (actionNote) {
-            roundActionLog.push(formatDecisionLabel('keine Aktion', actionNote));
+            roundActionLog.push(
+              formatDecisionLabel('keine Aktion', actionNote)
+            );
           }
           break;
         }
@@ -1686,7 +1760,9 @@ async function main() {
       const holdingsStart = roundStartHoldings.get(profile.userId);
       if (!start) continue;
       const end = snapshotPlayer(getPlayerByUserId(state, profile.userId));
-      const holdingsEnd = snapshotHoldings(getPlayerByUserId(state, profile.userId));
+      const holdingsEnd = snapshotHoldings(
+        getPlayerByUserId(state, profile.userId)
+      );
       const log = roundActionLogs.get(profile.userId);
       profile.roundSummaries.push({
         round,
@@ -1695,7 +1771,9 @@ async function main() {
         start,
         end,
         delta: diffSnapshot(start, end),
-        holdingsStart: holdingsStart ?? snapshotHoldings(getPlayerByUserId(state, profile.userId)),
+        holdingsStart:
+          holdingsStart ??
+          snapshotHoldings(getPlayerByUserId(state, profile.userId)),
         holdingsEnd,
       });
       if (profile.roundSummaries.length > 3) {
@@ -1707,7 +1785,9 @@ async function main() {
         displayName: profile.displayName,
         start,
         end,
-        holdingsStart: holdingsStart ?? snapshotHoldings(getPlayerByUserId(state, profile.userId)),
+        holdingsStart:
+          holdingsStart ??
+          snapshotHoldings(getPlayerByUserId(state, profile.userId)),
         holdingsEnd,
         actions: log?.actions ?? [],
         facility: log?.facility ?? null,

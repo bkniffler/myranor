@@ -8,4 +8,3 @@ export * from './engine/errors';
 export * from './events/types';
 export * from './util/dice';
 export * from './util/rng';
-

@@ -10,14 +10,17 @@ function run(
   state: ReturnType<typeof reduceEvents>,
   command: Parameters<typeof decide>[1],
   actor: Actor,
-  rngSeeded: ReturnType<typeof createSeededRng>,
+  rngSeeded: ReturnType<typeof createSeededRng>
 ) {
   const events = decide(state, command as any, { actor, rng: rngSeeded });
   const nextState = reduceEvents(state, events);
   return { events, state: nextState };
 }
 
-function getPlayer(state: NonNullable<ReturnType<typeof reduceEvents>>, userId: string) {
+function getPlayer(
+  state: NonNullable<ReturnType<typeof reduceEvents>>,
+  userId: string
+) {
   const playerId = state.playerIdByUserId[asUserId(userId)];
   return state.players[playerId];
 }
@@ -26,7 +29,7 @@ function printRoundSummary(
   round: number,
   phase: string,
   alice: ReturnType<typeof getPlayer>,
-  bob: ReturnType<typeof getPlayer>,
+  bob: ReturnType<typeof getPlayer>
 ) {
   console.log(`\n=== Runde ${round} (${phase}) ===`);
   const aliceRaw = sumStock(alice.economy.inventory.raw);
@@ -34,10 +37,10 @@ function printRoundSummary(
   const bobRaw = sumStock(bob.economy.inventory.raw);
   const bobSpecial = sumStock(bob.economy.inventory.special);
   console.log(
-    `Alice: gold=${alice.economy.gold}, rm=${aliceRaw}, sm=${aliceSpecial}, ak=${alice.turn.laborAvailable}, inf=${alice.turn.influenceAvailable}, actionsUsed=${alice.turn.actionsUsed}`,
+    `Alice: gold=${alice.economy.gold}, rm=${aliceRaw}, sm=${aliceSpecial}, ak=${alice.turn.laborAvailable}, inf=${alice.turn.influenceAvailable}, actionsUsed=${alice.turn.actionsUsed}`
   );
   console.log(
-    `Bob:   gold=${bob.economy.gold}, rm=${bobRaw}, sm=${bobSpecial}, ak=${bob.turn.laborAvailable}, inf=${bob.turn.influenceAvailable}, actionsUsed=${bob.turn.actionsUsed}`,
+    `Bob:   gold=${bob.economy.gold}, rm=${bobRaw}, sm=${bobSpecial}, ak=${bob.turn.laborAvailable}, inf=${bob.turn.influenceAvailable}, actionsUsed=${bob.turn.actionsUsed}`
   );
 }
 
@@ -64,7 +67,7 @@ function main() {
       state,
       { type: 'CreateCampaign', campaignId: 'campaign-1', name: 'Playtest' },
       gm,
-      rng,
+      rng
     );
     capturePublicLog(result.events);
     state = result.state;
@@ -81,7 +84,7 @@ function main() {
         displayName: 'Alice',
       },
       aliceUser,
-      rng,
+      rng
     );
     capturePublicLog(result.events);
     state = result.state;
@@ -96,7 +99,7 @@ function main() {
         displayName: 'Bob',
       },
       bobUser,
-      rng,
+      rng
     );
     capturePublicLog(result.events);
     state = result.state;
@@ -113,7 +116,12 @@ function main() {
 
     // maintenance -> actions (income)
     {
-      const result = run(state, { type: 'AdvancePhase', campaignId: 'campaign-1' }, gm, rng);
+      const result = run(
+        state,
+        { type: 'AdvancePhase', campaignId: 'campaign-1' },
+        gm,
+        rng
+      );
       capturePublicLog(result.events);
       state = result.state;
     }
@@ -122,9 +130,14 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'domainAdministration', investments: 3 },
+        {
+          type: 'GainMaterials',
+          campaignId: 'campaign-1',
+          mode: 'domainAdministration',
+          investments: 3,
+        },
         aliceUser,
-        rng,
+        rng
       );
       capturePublicLog(result.events);
       state = result.state;
@@ -132,9 +145,14 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'workshopOversight', investments: 2 },
+        {
+          type: 'GainMaterials',
+          campaignId: 'campaign-1',
+          mode: 'workshopOversight',
+          investments: 2,
+        },
         aliceUser,
-        rng,
+        rng
       );
       capturePublicLog(result.events);
       state = result.state;
@@ -142,9 +160,14 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'domainAdministration', investments: 3 },
+        {
+          type: 'GainMaterials',
+          campaignId: 'campaign-1',
+          mode: 'domainAdministration',
+          investments: 3,
+        },
         bobUser,
-        rng,
+        rng
       );
       capturePublicLog(result.events);
       state = result.state;
@@ -152,9 +175,14 @@ function main() {
     {
       const result = run(
         state,
-        { type: 'GainMaterials', campaignId: 'campaign-1', mode: 'workshopOversight', investments: 2 },
+        {
+          type: 'GainMaterials',
+          campaignId: 'campaign-1',
+          mode: 'workshopOversight',
+          investments: 2,
+        },
         bobUser,
-        rng,
+        rng
       );
       capturePublicLog(result.events);
       state = result.state;
@@ -168,21 +196,36 @@ function main() {
 
     // actions -> conversion
     {
-      const result = run(state, { type: 'AdvancePhase', campaignId: 'campaign-1' }, gm, rng);
+      const result = run(
+        state,
+        { type: 'AdvancePhase', campaignId: 'campaign-1' },
+        gm,
+        rng
+      );
       capturePublicLog(result.events);
       state = result.state;
     }
 
     // conversion -> reset
     {
-      const result = run(state, { type: 'AdvancePhase', campaignId: 'campaign-1' }, gm, rng);
+      const result = run(
+        state,
+        { type: 'AdvancePhase', campaignId: 'campaign-1' },
+        gm,
+        rng
+      );
       capturePublicLog(result.events);
       state = result.state;
     }
 
     // reset -> maintenance (next round)
     {
-      const result = run(state, { type: 'AdvancePhase', campaignId: 'campaign-1' }, gm, rng);
+      const result = run(
+        state,
+        { type: 'AdvancePhase', campaignId: 'campaign-1' },
+        gm,
+        rng
+      );
       capturePublicLog(result.events);
       state = result.state;
     }

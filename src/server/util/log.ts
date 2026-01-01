@@ -7,4 +7,3 @@ export function logError(data: Record<string, unknown>): void {
   // eslint-disable-next-line no-console
   console.error(JSON.stringify({ level: 'error', ...data }));
 }
-

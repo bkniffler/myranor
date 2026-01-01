@@ -144,6 +144,7 @@ export type DomainState = {
 };
 
 export type CityPropertyMode = 'leased' | 'production';
+export type CityPropertyTenure = 'owned' | 'pacht';
 
 export type CitySpecializationKind =
   | 'foodProduction'
@@ -162,6 +163,7 @@ export type CitySpecializationState = {
 export type CityPropertyState = {
   id: string;
   tier: CityPropertyTier;
+  tenure: CityPropertyTenure;
   mode: CityPropertyMode;
   facilities: FacilityInstance[];
   specialization?: CitySpecializationState;
@@ -218,6 +220,25 @@ export type TroopsState = {
   facilities: FacilityInstance[];
 };
 
+export type LongTermProjectState = {
+  id: string;
+  kind: 'facility';
+  facilityKey: string;
+  location:
+    | { kind: 'domain'; id: string }
+    | { kind: 'cityProperty'; id: string }
+    | { kind: 'organization'; id: string }
+    | { kind: 'office'; id: string }
+    | { kind: 'tradeEnterprise'; id: string }
+    | { kind: 'workshop'; id: string }
+    | { kind: 'troops' };
+  startedAtRound: number;
+  totalRounds: number;
+  remainingRounds: number;
+  laborPerRound: number;
+  magicPowerPerRound: number;
+};
+
 export type SpecialistKind =
   | 'tactician'
   | 'wizard'
@@ -238,14 +259,22 @@ export type SpecialistTrait = {
   name: string;
   positive: string;
   negative: string;
-  // Interpretable, in-engine effects are in rules code.
+  // Recruitment-table modifiers (v1): allow per-specialist "trait instances" to carry meta.
+  // Positive/negative effects are interpreted in rules code.
+  positiveOnly?: boolean;
+  positiveMultiplier?: number;
+  negativeMultiplier?: number;
 };
 
 export type SpecialistState = {
   id: string;
   kind: SpecialistKind;
+  secondaryKind?: SpecialistKind;
   tier: SpecialistTier;
   loyalty: number;
+  influencePerRoundBonus?: number;
+  baseEffectBonus?: number;
+  autoPromoteAtRound?: number;
   traits: SpecialistTrait[];
   assignedTo?: { kind: string; id: string };
 };
@@ -254,8 +283,10 @@ export type MaterialStock = Record<string, number>;
 
 export type PlayerEconomy = {
   gold: number;
+  information: number;
   pending: {
     gold: number;
+    labor: number;
     raw: MaterialStock;
     special: MaterialStock;
     magicPower: number;
@@ -265,6 +296,15 @@ export type PlayerEconomy = {
     special: MaterialStock;
     magicPower: number;
   };
+};
+
+export type PlayerPolitics = {
+  // Konsequenzenwert
+  kw: number;
+  // Ansehen
+  as: number;
+  // Neider
+  n: number;
 };
 
 export type PlayerHoldings = {
@@ -278,15 +318,18 @@ export type PlayerHoldings = {
   offices: OfficeState[];
   tradeEnterprises: TradeEnterpriseState[];
   troops: TroopsState;
+  longTermProjects: LongTermProjectState[];
   specialists: SpecialistState[];
 };
 
 export type PlayerTurn = {
   laborAvailable: number;
   influenceAvailable: number;
+  counterReactionLossChoice?: 'gold' | 'influence';
   actionsUsed: number;
   actionKeysUsed: string[];
   facilityActionUsed: boolean;
+  usedPoliticalSteps: boolean;
   upkeep: {
     maintainedWorkshopIds: string[];
     maintainedStorageIds: string[];
@@ -297,14 +340,21 @@ export type PlayerTurn = {
   };
 };
 
+export type PlayerEventIncidents = {
+  sectionStartsAtRound: number;
+  countsByKey: Record<string, number>;
+};
+
 export type PlayerState = {
   id: PlayerId;
   userId: UserId;
   displayName: string;
   checks: PlayerChecks;
   holdings: PlayerHoldings;
+  politics: PlayerPolitics;
   economy: PlayerEconomy;
   turn: PlayerTurn;
+  eventIncidents?: PlayerEventIncidents;
   privateNotes: string[];
 };
 

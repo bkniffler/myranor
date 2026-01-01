@@ -2,24 +2,27 @@ import { type LanguageModel, Output, generateText } from 'ai';
 import { z } from 'zod';
 
 import {
-  asUserId,
-  createSeededRng,
-  decide,
-  reduceEvents,
   type ActorContext,
   type CampaignState,
   type GameCommand,
   type PlayerState,
+  asUserId,
+  createSeededRng,
+  decide,
+  reduceEvents,
 } from '../core';
-import { facilityInfluencePerRound, workshopFacilitySlotsMax } from '../core/rules/v1';
-import { getMaterialOrThrow, MATERIALS_V1 } from '../core/rules/materials_v1';
+import { MATERIALS_V1, getMaterialOrThrow } from '../core/rules/materials_v1';
+import {
+  facilityInfluencePerRound,
+  workshopFacilitySlotsMax,
+} from '../core/rules/v1';
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { llmEnv } from '../llm/env';
 import {
-  computeNetWorth,
   FULL_NET_WORTH_WEIGHTS,
   type NetWorthWeights,
+  computeNetWorth,
 } from './plannerScore';
 import {
   bonusMaterialsSlots,
@@ -98,10 +101,7 @@ function sumStock(stock: Record<string, number>): number {
   return sum;
 }
 
-function formatStockSummary(
-  stock: Record<string, number>,
-  limit = 6
-): string {
+function formatStockSummary(stock: Record<string, number>, limit = 6): string {
   const entries = Object.entries(stock)
     .filter(([, count]) => (count ?? 0) > 0)
     .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0) || a[0].localeCompare(b[0]))
@@ -129,7 +129,10 @@ function hashStringToSeed(input: string): number {
   return hash >>> 0;
 }
 
-function patchCampaignId(command: GameCommand, campaignId: string): GameCommand {
+function patchCampaignId(
+  command: GameCommand,
+  campaignId: string
+): GameCommand {
   return { ...command, campaignId } as GameCommand;
 }
 
@@ -158,6 +161,34 @@ function tryExecute(
   }
 }
 
+function trySetCounterReactionChoices(
+  state: CampaignState,
+  rng: ReturnType<typeof createSeededRng>
+): CampaignState | null {
+  if (state.phase !== 'maintenance') return state;
+  let s: CampaignState | null = state;
+  const players = Object.values(state.players)
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id));
+  for (const p of players) {
+    if (!s) return null;
+    const n = Math.max(0, Math.trunc(p.politics.n));
+    const threshold = n >= 9 ? 9 : n >= 6 ? 6 : n >= 3 ? 3 : null;
+    if (!threshold) continue;
+    const baseLoss = threshold === 3 ? 4 : threshold === 6 ? 8 : 12;
+    const choice: 'gold' | 'influence' =
+      p.turn.influenceAvailable >= baseLoss ? 'influence' : 'gold';
+    const actor: ActorContext = { role: 'player', userId: p.userId };
+    s = tryExecute(
+      s,
+      { type: 'SetCounterReactionLossChoice', campaignId: '', choice },
+      actor,
+      rng
+    );
+  }
+  return s;
+}
+
 function tryAdvanceToNextRoundActions(
   state: CampaignState,
   rng: ReturnType<typeof createSeededRng>
@@ -169,6 +200,8 @@ function tryAdvanceToNextRoundActions(
   if (!s) return null;
   s = tryExecute(s, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
   if (!s) return null;
+  s = trySetCounterReactionChoices(s, rng);
+  if (!s) return null;
   s = tryExecute(s, { type: 'AdvancePhase', campaignId: '' }, gm, rng);
   if (!s) return null;
   return s;
@@ -179,15 +212,25 @@ function weightsForStrategy(strategyCard?: StrategyCard): NetWorthWeights {
   return { ...FULL_NET_WORTH_WEIGHTS };
 }
 
-function evaluateTerminalOnce(state: CampaignState, ctx: McContext, tag: string): number | null {
-  const rng = createSeededRng(hashStringToSeed(`${ctx.seedSalt}|terminal|${tag}`));
+function evaluateTerminalOnce(
+  state: CampaignState,
+  ctx: McContext,
+  tag: string
+): number | null {
+  const rng = createSeededRng(
+    hashStringToSeed(`${ctx.seedSalt}|terminal|${tag}`)
+  );
   const next = tryAdvanceToNextRoundActions(state, rng);
   if (!next) return null;
   const me = getPlayerByUserId(next, ctx.userId);
   return computeNetWorth(next, me, ctx.weights).score;
 }
 
-function pickBestFollowUpScore(state: CampaignState, ctx: McContext, tag: string): number | null {
+function pickBestFollowUpScore(
+  state: CampaignState,
+  ctx: McContext,
+  tag: string
+): number | null {
   if (ctx.depth <= 1) return null;
   const me = getPlayerByUserId(state, ctx.userId);
   const actionCandidates = buildActionCandidates({
@@ -200,10 +243,7 @@ function pickBestFollowUpScore(state: CampaignState, ctx: McContext, tag: string
     me,
     actionCandidates,
     state.rules.actionsPerRound
-  ).slice(
-    0,
-    Math.max(1, ctx.maxActionCandidates)
-  );
+  ).slice(0, Math.max(1, ctx.maxActionCandidates));
   if (allowed.length === 0) return null;
   const actor: ActorContext = { role: 'player', userId: ctx.userId };
   let best: number | null = null;
@@ -231,7 +271,9 @@ function scoreCandidateWithMc(
     const rng = createSeededRng(
       hashStringToSeed(`${ctx.seedSalt}|cand|${candidate.id}|${i}`)
     );
-    const next = candidate.command ? tryExecute(state, candidate.command, actor, rng) : state;
+    const next = candidate.command
+      ? tryExecute(state, candidate.command, actor, rng)
+      : state;
     if (!next) continue;
     const tag = `${candidate.id}|${i}`;
     const followUp = pickBestFollowUpScore(next, ctx, tag);
@@ -258,7 +300,9 @@ function scoreCandidatesWithMc(
     const score = scoreCandidateWithMc(state, candidate, ctx);
     if (score) scored.push(score);
   }
-  scored.sort((a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id));
+  scored.sort(
+    (a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id)
+  );
   return scored;
 }
 
@@ -281,7 +325,11 @@ function scoreCandidatesFallback(
       : state;
     if (!next) continue;
 
-    const terminal = evaluateTerminalOnce(next, ctx, `fallback|${tag}|${candidate.id}`);
+    const terminal = evaluateTerminalOnce(
+      next,
+      ctx,
+      `fallback|${tag}|${candidate.id}`
+    );
     const score =
       terminal ??
       (() => {
@@ -297,7 +345,9 @@ function scoreCandidatesFallback(
     scored.push({ candidate, mean: score, p10: score, p90: score, samples: 1 });
   }
 
-  scored.sort((a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id));
+  scored.sort(
+    (a, b) => b.mean - a.mean || a.candidate.id.localeCompare(b.candidate.id)
+  );
   return scored;
 }
 
@@ -310,12 +360,14 @@ function postTierRank(tier: 'small' | 'medium' | 'large'): number {
   return tier === 'small' ? 1 : tier === 'medium' ? 2 : 3;
 }
 
-function domainTierRank(tier: 'starter' | 'small' | 'medium' | 'large'): number {
+function domainTierRank(
+  tier: 'starter' | 'small' | 'medium' | 'large'
+): number {
   return tier === 'starter' ? 0 : postTierRank(tier);
 }
 
 const COST_BUFFER = 1.1;
-const ROLL_COST_MULTIPLIER_WORST = 1.1;
+const ROLL_COST_MULTIPLIER_WORST = 1.2;
 
 function buffered(cost: number, bufferFactor: number): number {
   return Math.ceil(cost * bufferFactor);
@@ -497,8 +549,12 @@ function officeRequirements(me: PlayerState): OfficeRequirement[] {
     { tier: 'small', payment: 'influenceFirst', gold: 4, influence: 8 },
   ];
 
-  const smallCount = me.holdings.offices.filter((o) => o.tier === 'small').length;
-  const mediumCount = me.holdings.offices.filter((o) => o.tier === 'medium').length;
+  const smallCount = me.holdings.offices.filter(
+    (o) => o.tier === 'small'
+  ).length;
+  const mediumCount = me.holdings.offices.filter(
+    (o) => o.tier === 'medium'
+  ).length;
 
   if (smallCount >= 2) {
     out.push(
@@ -606,10 +662,12 @@ function sellInvestmentCap(me: PlayerState): number {
     0
   );
   const capFromDomains = me.holdings.domains.reduce(
+    // Starter-Domäne zählt nicht als "Stufe" für Investment-Caps (Soll: nur Klein/Mittel/Groß).
     (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
     0
   );
-  return 2 + capFromTrade + capFromDomains;
+  // Soll: Basis 4 Investitionen, +2 pro Handelsunternehmungs-Stufe, +1 pro Domänen-Stufe.
+  return 4 + capFromTrade + capFromDomains;
 }
 
 function buyInvestmentCap(me: PlayerState): number {
@@ -618,17 +676,24 @@ function buyInvestmentCap(me: PlayerState): number {
     0
   );
   const capFromDomains = me.holdings.domains.reduce(
+    // Starter-Domäne zählt nicht als "Stufe" für Investment-Caps (Soll: nur Klein/Mittel/Groß).
     (sum, d) => sum + (d.tier === 'starter' ? 0 : postTierRank(d.tier)),
     0
   );
-  return 3 + capFromTrade + capFromDomains;
+  // Soll: Basis 4 Investitionen, +2 pro Handelsunternehmungs-Stufe, +1 pro Domänen-Stufe.
+  return 4 + capFromTrade + capFromDomains;
 }
 
-function tierUnits(tier: 'small' | 'medium' | 'large'): number {
-  return tier === 'small' ? 1 : tier === 'medium' ? 2 : 4;
-}
+type CityProductionCounts = {
+  small: number;
+  medium: number;
+  large: number;
+  total: number;
+};
 
-function domainFacilitySlotsMax(tier: 'starter' | 'small' | 'medium' | 'large'): number {
+function domainFacilitySlotsMax(
+  tier: 'starter' | 'small' | 'medium' | 'large'
+): number {
   if (tier === 'starter') return 0;
   return 2 * postTierRank(tier);
 }
@@ -637,8 +702,33 @@ function cityFacilitySlotsMax(tier: 'small' | 'medium' | 'large'): number {
   return tier === 'small' ? 2 : tier === 'medium' ? 3 : 4;
 }
 
-function productionCapacityUnitsMaxForCity(tier: 'small' | 'medium' | 'large'): number {
-  return 2 * tierUnits(tier);
+function cityProductionCaps(tier: 'small' | 'medium' | 'large'): {
+  small: number;
+  medium: number;
+  large: number;
+} {
+  // Soll (docs/rules/soll/facilities.md):
+  // - small: 2× small ODER 1× medium
+  // - medium: 1× small + 1× medium
+  // - large: 1× large + 1× medium
+  if (tier === 'small') return { small: 2, medium: 1, large: 0 };
+  if (tier === 'medium') return { small: 1, medium: 1, large: 0 };
+  return { small: 0, medium: 1, large: 1 };
+}
+
+function isCityProductionComboAllowed(
+  tier: 'small' | 'medium' | 'large',
+  counts: CityProductionCounts
+): boolean {
+  const caps = cityProductionCaps(tier);
+  if (counts.small < 0 || counts.medium < 0 || counts.large < 0) return false;
+  if (counts.small > caps.small) return false;
+  if (counts.medium > caps.medium) return false;
+  if (counts.large > caps.large) return false;
+  if (tier === 'small') {
+    if (counts.small > 0 && counts.medium > 0) return false;
+  }
+  return true;
 }
 
 function domainProductionCaps(tier: 'starter' | 'small' | 'medium' | 'large'): {
@@ -664,7 +754,8 @@ function countDomainProductionByTier(
     if (w.location.kind !== 'domain') continue;
     if (w.location.id !== domainId) continue;
     if (w.id === 'workshop-starter') continue;
-    if (options.excludeWorkshopId && w.id === options.excludeWorkshopId) continue;
+    if (options.excludeWorkshopId && w.id === options.excludeWorkshopId)
+      continue;
     if (w.tier === 'small') small += 1;
     else if (w.tier === 'medium') medium += 1;
     else large += 1;
@@ -693,7 +784,10 @@ function countFacilitySlotsUsedAtDomain(
       w.id !== 'workshop-starter'
   ).length;
   const storageSlots = holdings.storages.filter(
-    (s) => s.location.kind === 'domain' && s.location.id === domainId
+    (s) =>
+      s.location.kind === 'domain' &&
+      s.location.id === domainId &&
+      s.id !== 'storage-starter'
   ).length;
   const specSlots = domain.specialization?.facilities?.length ?? 0;
   return domain.facilities.length + specSlots + workshopSlots + storageSlots;
@@ -705,27 +799,34 @@ function countFacilitySlotsUsedAtCity(
 ): number {
   const city = holdings.cityProperties.find((c) => c.id === cityId);
   if (!city) return 0;
-  const workshopSlots = holdings.workshops.filter(
-    (w) => w.location.kind === 'cityProperty' && w.location.id === cityId
-  ).length;
-  const storageSlots = holdings.storages.filter(
-    (s) => s.location.kind === 'cityProperty' && s.location.id === cityId
-  ).length;
   const specSlots = city.specialization?.facilities?.length ?? 0;
-  return city.facilities.length + specSlots + workshopSlots + storageSlots;
+  // Soll: Werkstätten/Lager im Stadtbesitz (Eigenproduktion) belegen keine Einrichtungsplätze;
+  // sie sind separat über Produktionskapazität (Units) gecapped.
+  return city.facilities.length + specSlots;
 }
 
-function countProductionUnitsUsedAtCity(
+function countCityProductionByTier(
   holdings: PlayerState['holdings'],
   cityId: string
-): number {
-  const workshopUnits = holdings.workshops
-    .filter((w) => w.location.kind === 'cityProperty' && w.location.id === cityId)
-    .reduce((sum, w) => sum + tierUnits(w.tier), 0);
-  const storageUnits = holdings.storages
-    .filter((s) => s.location.kind === 'cityProperty' && s.location.id === cityId)
-    .reduce((sum, s) => sum + tierUnits(s.tier), 0);
-  return workshopUnits + storageUnits;
+): CityProductionCounts {
+  let small = 0;
+  let medium = 0;
+  let large = 0;
+  for (const w of holdings.workshops) {
+    if (w.location.kind !== 'cityProperty') continue;
+    if (w.location.id !== cityId) continue;
+    if (w.tier === 'small') small += 1;
+    else if (w.tier === 'medium') medium += 1;
+    else large += 1;
+  }
+  for (const s of holdings.storages) {
+    if (s.location.kind !== 'cityProperty') continue;
+    if (s.location.id !== cityId) continue;
+    if (s.tier === 'small') small += 1;
+    else if (s.tier === 'medium') medium += 1;
+    else large += 1;
+  }
+  return { small, medium, large, total: small + medium + large };
 }
 
 function hasWorkshopSpecialist(
@@ -753,7 +854,7 @@ function buildFacilityCandidates(
 
   const starter = me.holdings.domains.find((d) => d.tier === 'starter');
   if (starter) {
-    const possibleNow = me.economy.gold >= 10 && me.turn.laborAvailable >= 4;
+    const possibleNow = me.economy.gold >= 8 && me.turn.laborAvailable >= 4;
     candidates.push({
       id: 'facility.domain.upgradeStarter',
       kind: 'facility',
@@ -764,18 +865,25 @@ function buildFacilityCandidates(
       },
       actionKey: null,
       possibleNow,
-      summary: 'Starter-Domäne ausbauen (10 Gold, 4 AK).',
+      summary: 'Starter-Domäne ausbauen (8 Gold, 4 AK).',
     });
   }
 
   const leasedCity = citiesByTier.find((c) => c.mode === 'leased');
   const minGoldForCityProduction = buffered(8, bufferFactor);
   const canBuildProductionInCity = leasedCity
-    ? countFacilitySlotsUsedAtCity(me.holdings, leasedCity.id) + 1 <=
-        cityFacilitySlotsMax(leasedCity.tier) &&
-      countProductionUnitsUsedAtCity(me.holdings, leasedCity.id) +
-        tierUnits('small') <=
-        productionCapacityUnitsMaxForCity(leasedCity.tier)
+    ? (() => {
+        const prod = countCityProductionByTier(me.holdings, leasedCity.id);
+        const wouldFit = (tier: 'small' | 'medium' | 'large') => {
+          const next: CityProductionCounts = { ...prod };
+          if (tier === 'small') next.small += 1;
+          else if (tier === 'medium') next.medium += 1;
+          else next.large += 1;
+          next.total = next.small + next.medium + next.large;
+          return isCityProductionComboAllowed(leasedCity.tier, next);
+        };
+        return wouldFit('small') || wouldFit('medium') || wouldFit('large');
+      })()
     : false;
   if (
     leasedCity &&
@@ -849,6 +957,36 @@ function buildFacilityCandidates(
     });
   }
 
+  // Spezifische Facility (v1 subset): Gasse der Kunsthandwerker
+  const hasArtisan =
+    me.holdings.specialists.some((s) => s.kind === 'artisan') ||
+    me.holdings.specialists.some((s) => s.kind === 'workshop');
+  const hasSpecialTools =
+    (me.economy.inventory.special['special.specialTools'] ?? 0) >= 2;
+  if (hasSpecialTools) {
+    // Prefer the best available city property (any mode).
+    const targetCity = citiesByTier.find((c) => {
+      const used = countFacilitySlotsUsedAtCity(me.holdings, c.id);
+      const max = cityFacilitySlotsMax(c.tier);
+      return used + 1 <= max;
+    });
+    if (targetCity) {
+      candidates.push({
+        id: `facility.city.${targetCity.id}.artisanAlley`,
+        kind: 'facility',
+        command: {
+          type: 'BuildFacility',
+          campaignId: '',
+          location: { kind: 'cityProperty', id: targetCity.id },
+          facilityKey: 'special.medium.artisanAlley',
+        },
+        actionKey: null,
+        possibleNow: hasSpecialTools,
+        summary: `Gasse der Kunsthandwerker bauen (2x special.specialTools; Konversion zu hochwertigen SM, Kapazitaet=1+floor(Paechter/4) pro Runde${hasArtisan ? '' : '; Hinweis: braucht Kunsthandwerker-Fachkraft'}).`,
+      });
+    }
+  }
+
   const facilitySizes = [
     { size: 'small', general: 8, special: 10 },
     { size: 'medium', general: 12, special: 20 },
@@ -912,7 +1050,8 @@ function buildFacilityCandidates(
 
   for (const office of me.holdings.offices) {
     const used =
-      office.facilities.length + (office.specialization?.facilities.length ?? 0);
+      office.facilities.length +
+      (office.specialization?.facilities.length ?? 0);
     const max = cityFacilitySlotsMax(office.tier);
     pushFacilityBuildOptions(
       { kind: 'office', id: office.id },
@@ -1127,56 +1266,111 @@ function buildFacilityCandidates(
 
   const cityForWorkshop = citiesByTier.find((c) => {
     if (c.mode !== 'production') return false;
-    const usedSlots = countFacilitySlotsUsedAtCity(me.holdings, c.id);
-    const maxSlots = cityFacilitySlotsMax(c.tier);
-    if (usedSlots + 1 > maxSlots) return false;
-    const usedUnits = countProductionUnitsUsedAtCity(me.holdings, c.id);
-    return (
-      usedUnits + tierUnits('small') <= productionCapacityUnitsMaxForCity(c.tier)
-    );
+    const prod = countCityProductionByTier(me.holdings, c.id);
+    const tiers: Array<'small' | 'medium' | 'large'> = [
+      'small',
+      'medium',
+      'large',
+    ];
+    return tiers.some((tier) => {
+      const required =
+        tier === 'large' ? 'experienced' : tier === 'medium' ? 'simple' : null;
+      if (required && !hasWorkshopSpecialist(me, required)) return false;
+      const next: CityProductionCounts = { ...prod };
+      if (tier === 'small') next.small += 1;
+      else if (tier === 'medium') next.medium += 1;
+      else next.large += 1;
+      next.total = next.small + next.medium + next.large;
+      return isCityProductionComboAllowed(c.tier, next);
+    });
   });
   if (cityForWorkshop) {
-    const possibleNow = me.economy.gold >= 8;
-    candidates.push({
-      id: `facility.workshop.buildSmall.city.${cityForWorkshop.id}`,
-      kind: 'facility',
-      command: {
-        type: 'BuildWorkshop',
-        campaignId: '',
-        location: { kind: 'cityProperty', id: cityForWorkshop.id },
-        tier: 'small',
-      },
-      actionKey: null,
-      possibleNow,
-      summary: `Werkstatt (klein) bauen in Stadtbesitz ${cityForWorkshop.id} (8 Gold).`,
-    });
+    const prod = countCityProductionByTier(me.holdings, cityForWorkshop.id);
+    const tiers: Array<'small' | 'medium' | 'large'> = [
+      'small',
+      'medium',
+      'large',
+    ];
+    for (const tier of tiers) {
+      const required =
+        tier === 'large' ? 'experienced' : tier === 'medium' ? 'simple' : null;
+      const hasSpecialist = required
+        ? hasWorkshopSpecialist(me, required)
+        : true;
+      if (!hasSpecialist) continue;
+      const next: CityProductionCounts = { ...prod };
+      if (tier === 'small') next.small += 1;
+      else if (tier === 'medium') next.medium += 1;
+      else next.large += 1;
+      next.total = next.small + next.medium + next.large;
+      if (!isCityProductionComboAllowed(cityForWorkshop.tier, next)) continue;
+
+      const goldCost = tier === 'small' ? 8 : tier === 'medium' ? 16 : 40;
+      const possibleNow = me.economy.gold >= buffered(goldCost, bufferFactor);
+      candidates.push({
+        id: `facility.workshop.build.${tier}.city.${cityForWorkshop.id}`,
+        kind: 'facility',
+        command: {
+          type: 'BuildWorkshop',
+          campaignId: '',
+          location: { kind: 'cityProperty', id: cityForWorkshop.id },
+          tier,
+        },
+        actionKey: null,
+        possibleNow,
+        summary: `Werkstatt (${tier}) bauen in Stadtbesitz ${cityForWorkshop.id} (${goldCost} Gold).`,
+      });
+    }
   }
 
   const cityForStorage = citiesByTier.find((c) => {
     if (c.mode !== 'production') return false;
-    const usedSlots = countFacilitySlotsUsedAtCity(me.holdings, c.id);
-    const maxSlots = cityFacilitySlotsMax(c.tier);
-    if (usedSlots + 1 > maxSlots) return false;
-    const usedUnits = countProductionUnitsUsedAtCity(me.holdings, c.id);
-    return (
-      usedUnits + tierUnits('small') <= productionCapacityUnitsMaxForCity(c.tier)
-    );
+    const prod = countCityProductionByTier(me.holdings, c.id);
+    const tiers: Array<'small' | 'medium' | 'large'> = [
+      'small',
+      'medium',
+      'large',
+    ];
+    return tiers.some((tier) => {
+      const next: CityProductionCounts = { ...prod };
+      if (tier === 'small') next.small += 1;
+      else if (tier === 'medium') next.medium += 1;
+      else next.large += 1;
+      next.total = next.small + next.medium + next.large;
+      return isCityProductionComboAllowed(c.tier, next);
+    });
   });
   if (cityForStorage) {
-    const possibleNow = me.economy.gold >= 8;
-    candidates.push({
-      id: `facility.storage.buildSmall.city.${cityForStorage.id}`,
-      kind: 'facility',
-      command: {
-        type: 'BuildStorage',
-        campaignId: '',
-        location: { kind: 'cityProperty', id: cityForStorage.id },
-        tier: 'small',
-      },
-      actionKey: null,
-      possibleNow,
-      summary: `Lager (klein) bauen in Stadtbesitz ${cityForStorage.id} (8 Gold).`,
-    });
+    const prod = countCityProductionByTier(me.holdings, cityForStorage.id);
+    const tiers: Array<'small' | 'medium' | 'large'> = [
+      'small',
+      'medium',
+      'large',
+    ];
+    for (const tier of tiers) {
+      const next: CityProductionCounts = { ...prod };
+      if (tier === 'small') next.small += 1;
+      else if (tier === 'medium') next.medium += 1;
+      else next.large += 1;
+      next.total = next.small + next.medium + next.large;
+      if (!isCityProductionComboAllowed(cityForStorage.tier, next)) continue;
+
+      const goldCost = tier === 'small' ? 8 : tier === 'medium' ? 16 : 40;
+      const possibleNow = me.economy.gold >= buffered(goldCost, bufferFactor);
+      candidates.push({
+        id: `facility.storage.build.${tier}.city.${cityForStorage.id}`,
+        kind: 'facility',
+        command: {
+          type: 'BuildStorage',
+          campaignId: '',
+          location: { kind: 'cityProperty', id: cityForStorage.id },
+          tier,
+        },
+        actionKey: null,
+        possibleNow,
+        summary: `Lager (${tier}) bauen in Stadtbesitz ${cityForStorage.id} (${goldCost} Gold).`,
+      });
+    }
   }
 
   const workshopToUpgrade = me.holdings.workshops.find(
@@ -1193,10 +1387,15 @@ function buildFacilityCandidates(
         (c) => c.id === workshopToUpgrade.location.id
       );
       if (city && city.mode === 'production') {
-        const usedUnits = countProductionUnitsUsedAtCity(me.holdings, city.id);
-        const maxUnits = productionCapacityUnitsMaxForCity(city.tier);
-        const deltaUnits = tierUnits(toTier) - tierUnits(workshopToUpgrade.tier);
-        possibleCityCapacity = usedUnits + deltaUnits <= maxUnits;
+        const prod = countCityProductionByTier(me.holdings, city.id);
+        const next: CityProductionCounts = { ...prod };
+        if (workshopToUpgrade.tier === 'small') next.small -= 1;
+        else if (workshopToUpgrade.tier === 'medium') next.medium -= 1;
+        else next.large -= 1;
+        if (toTier === 'medium') next.medium += 1;
+        else next.large += 1;
+        next.total = next.small + next.medium + next.large;
+        possibleCityCapacity = isCityProductionComboAllowed(city.tier, next);
       } else {
         possibleCityCapacity = false;
       }
@@ -1221,12 +1420,7 @@ function buildFacilityCandidates(
           nextSmall + nextMedium <= caps.total;
       }
     }
-    const goldCost =
-      toTier === 'medium'
-        ? 8
-        : toTier === 'large'
-          ? 24
-          : 0;
+    const goldCost = toTier === 'medium' ? 8 : toTier === 'large' ? 24 : 0;
     const possibleNow =
       hasSpecialist &&
       possibleCityCapacity &&
@@ -1257,10 +1451,15 @@ function buildFacilityCandidates(
         (c) => c.id === storageToUpgrade.location.id
       );
       if (city && city.mode === 'production') {
-        const usedUnits = countProductionUnitsUsedAtCity(me.holdings, city.id);
-        const maxUnits = productionCapacityUnitsMaxForCity(city.tier);
-        const deltaUnits = tierUnits(toTier) - tierUnits(storageToUpgrade.tier);
-        possibleCityCapacity = usedUnits + deltaUnits <= maxUnits;
+        const prod = countCityProductionByTier(me.holdings, city.id);
+        const next: CityProductionCounts = { ...prod };
+        if (storageToUpgrade.tier === 'small') next.small -= 1;
+        else if (storageToUpgrade.tier === 'medium') next.medium -= 1;
+        else next.large -= 1;
+        if (toTier === 'medium') next.medium += 1;
+        else next.large += 1;
+        next.total = next.small + next.medium + next.large;
+        possibleCityCapacity = isCityProductionComboAllowed(city.tier, next);
       } else {
         possibleCityCapacity = false;
       }
@@ -1285,12 +1484,7 @@ function buildFacilityCandidates(
           nextSmall + nextMedium <= caps.total;
       }
     }
-    const goldCost =
-      toTier === 'medium'
-        ? 8
-        : toTier === 'large'
-          ? 24
-          : 0;
+    const goldCost = toTier === 'medium' ? 8 : toTier === 'large' ? 24 : 0;
     const possibleNow =
       possibleCityCapacity &&
       possibleDomainCapacity &&
@@ -1337,7 +1531,9 @@ function formatPlayerState(state: { me: PlayerState; round: number }): string {
     '-';
   const workshops =
     me.holdings.workshops
-      .map((w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`)
+      .map(
+        (w) => `${w.id}:${w.tier} ${w.inputMaterialId}->${w.outputMaterialId}`
+      )
       .join(' | ') || '-';
   const checkBonus = roundCheckBonus(state.round);
   const infCheck = effectiveCheckValue(me.checks.influence, state.round);
@@ -1612,48 +1808,79 @@ function minGoldFromSellItems(
 function estimateBuyCost(
   inst: CampaignMarketLike['instances'][number],
   items: Array<
-    { kind: 'raw' | 'special'; materialId: string; count: number } | { kind: 'labor'; count: number }
+    | { kind: 'raw' | 'special'; materialId: string; count: number }
+    | { kind: 'labor'; count: number }
   >
 ): number {
+  // Konservativ: wir schätzen die maximal nötigen Goldkosten bei "schlecht geschafft".
+  // Engine-Logik (MoneyBuy):
+  // - Raw: 6 RM = 1 Invest; Base = 2 Gold / Invest
+  // - Special: 1 SM = 1 Invest; Base = 3 Gold / Invest
+  // - Labor: 1 AK = 1 Invest; Base = 3 Gold / AK
+  // - Marktmodifier wirkt als Zusatzkosten (gleiche Vorzeichenlogik wie Verkauf; bei Ankauf ist hoher Mod teurer)
+  // - saleBonusGold zählt beim Ankauf als Zusatzkosten pro 4 Einheiten
+  // - "schlecht geschafft": +1 Gold pro Investition
+  let investments = 0;
   let baseCost = 0;
-  let deltaCost = 0;
+  let marketDelta = 0;
+  let materialDelta = 0;
   for (const item of items) {
     const count = Math.trunc(item.count);
     if (count <= 0) continue;
     if (item.kind === 'labor') {
-      baseCost += count * 8;
+      investments += count;
+      baseCost += count * 3;
       continue;
     }
     const mat = getMaterialOrThrow(item.materialId);
     if (item.kind === 'raw') {
-      const inv = Math.floor(count / 5);
-      baseCost += inv * 3;
+      const inv = Math.floor(count / 6);
+      investments += inv;
+      baseCost += inv * 2;
       const mod = Math.trunc(inst.raw.modifiersByGroup[mat.marketGroup] ?? 0);
-      deltaCost += inv * -mod;
+      marketDelta += inv * mod;
+      materialDelta += Math.floor(count / 4) * (mat.saleBonusGold ?? 0);
       continue;
     }
     const inv = count;
+    investments += inv;
     baseCost += inv * 3;
     const mod = Math.trunc(inst.special.modifiersByGroup[mat.marketGroup] ?? 0);
-    deltaCost += inv * -mod;
+    marketDelta += inv * mod;
+    materialDelta += Math.floor(count / 4) * (mat.saleBonusGold ?? 0);
   }
-  return baseCost + deltaCost;
+  const poorPenalty = investments; // +1 Gold pro Investition
+  const minTotal = investments; // min. 1 Gold pro Investition
+  return Math.max(
+    minTotal,
+    baseCost + poorPenalty + marketDelta + materialDelta
+  );
 }
 
 function buildBestBuyItems(
   inst: CampaignMarketLike['instances'][number]
-): { items: Array<{ kind: 'raw'; materialId: string; count: number }>; label: string } | null {
+): {
+  items: Array<{ kind: 'raw'; materialId: string; count: number }>;
+  label: string;
+} | null {
   let bestRaw: { id: string; score: number } | null = null;
   for (const material of Object.values(MATERIALS_V1)) {
     if (material.kind !== 'raw') continue;
-    const mod = Math.trunc(inst.raw.modifiersByGroup[material.marketGroup] ?? 0);
-    if (!bestRaw || mod > bestRaw.score || (mod === bestRaw.score && material.id < bestRaw.id)) {
+    // Ankauf: niedriger Markt-Modifier ist günstiger.
+    const mod = Math.trunc(
+      inst.raw.modifiersByGroup[material.marketGroup] ?? 0
+    );
+    if (
+      !bestRaw ||
+      mod < bestRaw.score ||
+      (mod === bestRaw.score && material.id < bestRaw.id)
+    ) {
       bestRaw = { id: material.id, score: mod };
     }
   }
   if (!bestRaw) return null;
   return {
-    items: [{ kind: 'raw', materialId: bestRaw.id, count: 5 }],
+    items: [{ kind: 'raw', materialId: bestRaw.id, count: 6 }],
     label: `${bestRaw.id} (mod≈${bestRaw.score})`,
   };
 }
@@ -1937,15 +2164,18 @@ function buildActionCandidates(options: {
 
   // Amt (klein)
   {
-    const smallCount = me.holdings.offices.filter((o) => o.tier === 'small')
-      .length;
-    const mediumCount = me.holdings.offices.filter((o) => o.tier === 'medium')
-      .length;
-    const largeCount = me.holdings.offices.filter((o) => o.tier === 'large')
-      .length;
+    const smallCount = me.holdings.offices.filter(
+      (o) => o.tier === 'small'
+    ).length;
+    const mediumCount = me.holdings.offices.filter(
+      (o) => o.tier === 'medium'
+    ).length;
+    const largeCount = me.holdings.offices.filter(
+      (o) => o.tier === 'large'
+    ).length;
     const smallCap = 8 + mediumCount * 2 + largeCount * 4;
     const underCap = smallCount < smallCap;
-    const goldFirst = { gold: 8, influence: 2 };
+    const goldFirst = { gold: 10, influence: 4 };
     const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
     const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
     const goldFirstNow =
@@ -1967,15 +2197,18 @@ function buildActionCandidates(options: {
     });
   }
   {
-    const smallCount = me.holdings.offices.filter((o) => o.tier === 'small')
-      .length;
-    const mediumCount = me.holdings.offices.filter((o) => o.tier === 'medium')
-      .length;
-    const largeCount = me.holdings.offices.filter((o) => o.tier === 'large')
-      .length;
+    const smallCount = me.holdings.offices.filter(
+      (o) => o.tier === 'small'
+    ).length;
+    const mediumCount = me.holdings.offices.filter(
+      (o) => o.tier === 'medium'
+    ).length;
+    const largeCount = me.holdings.offices.filter(
+      (o) => o.tier === 'large'
+    ).length;
     const smallCap = 8 + mediumCount * 2 + largeCount * 4;
     const underCap = smallCount < smallCap;
-    const infFirst = { gold: 4, influence: 8 };
+    const infFirst = { gold: 4, influence: 10 };
     const goldMax = worstCaseCost(infFirst.gold, bufferFactor);
     const influenceMax = worstCaseCost(infFirst.influence, bufferFactor);
     const infFirstNow =
@@ -2002,8 +2235,12 @@ function buildActionCandidates(options: {
     const smallCount = me.holdings.offices.filter(
       (o) => o.tier === 'small'
     ).length;
-    if (smallCount >= 2) {
-      const goldFirst = { gold: 18, influence: 8 };
+    const mediumCount = me.holdings.offices.filter(
+      (o) => o.tier === 'medium'
+    ).length;
+    const underCap = mediumCount < 4;
+    if (smallCount >= 2 && underCap) {
+      const goldFirst = { gold: 20, influence: 10 };
       const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
       const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
       const goldFirstNow =
@@ -2022,7 +2259,7 @@ function buildActionCandidates(options: {
         possibleNow: goldFirstNow,
         summary: `Mittleres Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
       });
-      const infFirst = { gold: 10, influence: 18 };
+      const infFirst = { gold: 10, influence: 20 };
       const goldMaxB = worstCaseCost(infFirst.gold, bufferFactor);
       const influenceMaxB = worstCaseCost(infFirst.influence, bufferFactor);
       const infFirstNow =
@@ -2049,8 +2286,12 @@ function buildActionCandidates(options: {
     const mediumCount = me.holdings.offices.filter(
       (o) => o.tier === 'medium'
     ).length;
-    if (mediumCount >= 2) {
-      const goldFirst = { gold: 70, influence: 20 };
+    const largeCount = me.holdings.offices.filter(
+      (o) => o.tier === 'large'
+    ).length;
+    const underCap = largeCount < 4;
+    if (mediumCount >= 2 && underCap) {
+      const goldFirst = { gold: 80, influence: 20 };
       const goldMax = worstCaseCost(goldFirst.gold, bufferFactor);
       const influenceMax = worstCaseCost(goldFirst.influence, bufferFactor);
       const goldFirstNow =
@@ -2069,7 +2310,7 @@ function buildActionCandidates(options: {
         possibleNow: goldFirstNow,
         summary: `Grosses Amt erlangen (Basis: ${goldFirst.gold} Gold, ${goldFirst.influence} Einfluss; Max: ${goldMax} Gold, ${influenceMax} Einfluss).`,
       });
-      const infFirst = { gold: 24, influence: 70 };
+      const infFirst = { gold: 20, influence: 80 };
       const goldMaxB = worstCaseCost(infFirst.gold, bufferFactor);
       const influenceMaxB = worstCaseCost(infFirst.influence, bufferFactor);
       const infFirstNow =
@@ -2099,8 +2340,7 @@ function buildActionCandidates(options: {
     command: { type: 'AcquireTradeEnterprise', campaignId: '', tier: 'small' },
     actionKey: 'acquire.trade',
     possibleNow: me.economy.gold >= tradeSmallMax,
-    summary:
-      `Handelsunternehmung (klein) erwerben (Basis: 20 Gold; Max: ${tradeSmallMax} Gold).`,
+    summary: `Handelsunternehmung (klein) erwerben (Basis: 20 Gold; Max: ${tradeSmallMax} Gold).`,
   });
   const tradeMediumMax = worstCaseCost(40, bufferFactor);
   candidates.push({
@@ -2113,8 +2353,7 @@ function buildActionCandidates(options: {
     },
     actionKey: 'acquire.trade',
     possibleNow: me.economy.gold >= tradeMediumMax,
-    summary:
-      `Handelsunternehmung (mittel) erwerben (Basis: 40 Gold; Max: ${tradeMediumMax} Gold).`,
+    summary: `Handelsunternehmung (mittel) erwerben (Basis: 40 Gold; Max: ${tradeMediumMax} Gold).`,
   });
   const tradeLargeMax = worstCaseCost(80, bufferFactor);
   candidates.push({
@@ -2123,20 +2362,32 @@ function buildActionCandidates(options: {
     command: { type: 'AcquireTradeEnterprise', campaignId: '', tier: 'large' },
     actionKey: 'acquire.trade',
     possibleNow: me.economy.gold >= tradeLargeMax,
-    summary:
-      `Handelsunternehmung (gross) erwerben (Basis: 80 Gold; Max: ${tradeLargeMax} Gold).`,
+    summary: `Handelsunternehmung (gross) erwerben (Basis: 80 Gold; Max: ${tradeLargeMax} Gold).`,
   });
 
   // Stadtbesitz (alle Stufen)
-  const citySmallMax = worstCaseCost(15, bufferFactor);
+  const citySmallMax = worstCaseCost(12, bufferFactor);
   candidates.push({
     id: 'action.cityProperty.small',
     kind: 'action',
     command: { type: 'AcquireCityProperty', campaignId: '', tier: 'small' },
     actionKey: 'acquire.cityProperty',
     possibleNow: me.economy.gold >= citySmallMax,
-    summary:
-      `Stadtbesitz (klein) erwerben (Basis: 15 Gold; Max: ${citySmallMax} Gold).`,
+    summary: `Stadtbesitz (klein) erwerben (Basis: 12 Gold; Max: ${citySmallMax} Gold).`,
+  });
+  const citySmallPachtMax = worstCaseCost(Math.floor(12 / 2), bufferFactor);
+  candidates.push({
+    id: 'action.cityProperty.small.pacht',
+    kind: 'action',
+    command: {
+      type: 'AcquireCityProperty',
+      campaignId: '',
+      tier: 'small',
+      tenure: 'pacht',
+    },
+    actionKey: 'acquire.cityProperty',
+    possibleNow: me.economy.gold >= citySmallPachtMax,
+    summary: `Stadtbesitz (klein) pachten (Basis: 6 Gold; Max: ${citySmallPachtMax} Gold; +1 Gold Pacht/Unterhalt pro Runde).`,
   });
   const cityMediumMax = worstCaseCost(25, bufferFactor);
   candidates.push({
@@ -2147,26 +2398,53 @@ function buildActionCandidates(options: {
     possibleNow: me.economy.gold >= cityMediumMax,
     summary: `Stadtbesitz (mittel) erwerben (Basis: 25 Gold; Max: ${cityMediumMax} Gold).`,
   });
-  const cityLargeMax = worstCaseCost(50, bufferFactor);
+  const cityMediumPachtMax = worstCaseCost(Math.floor(25 / 2), bufferFactor);
+  candidates.push({
+    id: 'action.cityProperty.medium.pacht',
+    kind: 'action',
+    command: {
+      type: 'AcquireCityProperty',
+      campaignId: '',
+      tier: 'medium',
+      tenure: 'pacht',
+    },
+    actionKey: 'acquire.cityProperty',
+    possibleNow: me.economy.gold >= cityMediumPachtMax,
+    summary: `Stadtbesitz (mittel) pachten (Basis: 12 Gold; Max: ${cityMediumPachtMax} Gold; +1 Gold Pacht/Unterhalt pro Runde).`,
+  });
+  const cityLargeMax = worstCaseCost(60, bufferFactor);
   candidates.push({
     id: 'action.cityProperty.large',
     kind: 'action',
     command: { type: 'AcquireCityProperty', campaignId: '', tier: 'large' },
     actionKey: 'acquire.cityProperty',
     possibleNow: me.economy.gold >= cityLargeMax,
-    summary:
-      `Stadtbesitz (gross) erwerben (Basis: 50 Gold; Max: ${cityLargeMax} Gold).`,
+    summary: `Stadtbesitz (gross) erwerben (Basis: 60 Gold; Max: ${cityLargeMax} Gold).`,
+  });
+  const cityLargePachtMax = worstCaseCost(Math.floor(60 / 2), bufferFactor);
+  candidates.push({
+    id: 'action.cityProperty.large.pacht',
+    kind: 'action',
+    command: {
+      type: 'AcquireCityProperty',
+      campaignId: '',
+      tier: 'large',
+      tenure: 'pacht',
+    },
+    actionKey: 'acquire.cityProperty',
+    possibleNow: me.economy.gold >= cityLargePachtMax,
+    summary: `Stadtbesitz (gross) pachten (Basis: 30 Gold; Max: ${cityLargePachtMax} Gold; +1 Gold Pacht/Unterhalt pro Runde).`,
   });
 
   // Domäne (alle Stufen)
-  const domainSmallMax = worstCaseCost(35, bufferFactor);
+  const domainSmallMax = worstCaseCost(30, bufferFactor);
   candidates.push({
     id: 'action.domain.small',
     kind: 'action',
     command: { type: 'AcquireDomain', campaignId: '', tier: 'small' },
     actionKey: 'acquire.domain',
     possibleNow: me.economy.gold >= domainSmallMax,
-    summary: `Domäne (klein) erwerben (Basis: 35 Gold; Max: ${domainSmallMax} Gold).`,
+    summary: `Domäne (klein) erwerben (Basis: 30 Gold; Max: ${domainSmallMax} Gold).`,
   });
   const domainMediumMax = worstCaseCost(80, bufferFactor);
   candidates.push({
@@ -2175,18 +2453,16 @@ function buildActionCandidates(options: {
     command: { type: 'AcquireDomain', campaignId: '', tier: 'medium' },
     actionKey: 'acquire.domain',
     possibleNow: me.economy.gold >= domainMediumMax,
-    summary:
-      `Domäne (mittel) erwerben (Basis: 80 Gold; Max: ${domainMediumMax} Gold).`,
+    summary: `Domäne (mittel) erwerben (Basis: 80 Gold; Max: ${domainMediumMax} Gold).`,
   });
-  const domainLargeMax = worstCaseCost(120, bufferFactor);
+  const domainLargeMax = worstCaseCost(140, bufferFactor);
   candidates.push({
     id: 'action.domain.large',
     kind: 'action',
     command: { type: 'AcquireDomain', campaignId: '', tier: 'large' },
     actionKey: 'acquire.domain',
     possibleNow: me.economy.gold >= domainLargeMax,
-    summary:
-      `Domäne (gross) erwerben (Basis: 120 Gold; Max: ${domainLargeMax} Gold).`,
+    summary: `Domäne (gross) erwerben (Basis: 140 Gold; Max: ${domainLargeMax} Gold).`,
   });
 
   // Organisationen (Unterwelt / Collegien)
@@ -2209,11 +2485,15 @@ function buildActionCandidates(options: {
           : 'large';
       const rank = postTierRank(nextTier);
       const base =
-        kind === 'cult'
-          ? { gold: 10, influence: 6 }
-          : kind.startsWith('collegium')
-            ? { gold: 20, influence: 2 }
-            : { gold: 16, influence: 6 };
+        kind === 'underworld'
+          ? { gold: 12, influence: 4 }
+          : kind === 'spy'
+            ? { gold: 16, influence: 6 }
+            : kind === 'cult'
+              ? { gold: 8, influence: 8 }
+              : kind.startsWith('collegium')
+                ? { gold: 20, influence: 2 }
+                : { gold: 16, influence: 6 };
       const goldBase = base.gold * rank;
       const influenceBase = base.influence * rank;
       const goldNeeded = worstCaseCost(goldBase, bufferFactor);
@@ -2239,7 +2519,10 @@ function buildActionCandidates(options: {
   {
     const pushTenants = (options: {
       idPrefix: string;
-      location: { kind: 'domain' | 'cityProperty' | 'organization'; id: string };
+      location: {
+        kind: 'domain' | 'cityProperty' | 'organization';
+        id: string;
+      };
       current: number;
       max: number;
       goldPerLevel: number;
@@ -2295,7 +2578,8 @@ function buildActionCandidates(options: {
       return d.tenants.levels < cap;
     });
     if (domain) {
-      const cap = domain.tier === 'small' ? 2 : domain.tier === 'medium' ? 4 : 8;
+      const cap =
+        domain.tier === 'small' ? 2 : domain.tier === 'medium' ? 4 : 8;
       pushTenants({
         idPrefix: 'action.tenants.domain',
         location: { kind: 'domain', id: domain.id },
@@ -2318,7 +2602,7 @@ function buildActionCandidates(options: {
       if (org.kind === 'underworld') {
         max = 2 * rank;
         goldPerLevel = 12;
-        influencePerLevel = 10;
+        influencePerLevel = 4;
       } else if (org.kind === 'cult') {
         max = rank === 1 ? 2 : rank === 2 ? 4 : 8;
         goldPerLevel = 8;
@@ -2349,19 +2633,19 @@ function ruleCheatSheet(): string {
     '- Einrichtungen an Aemtern/Orgs/Werkstaetten/Handel geben Einfluss pro Runde (general: +1/+2/+3; special: +2/+3/+4).',
     '- Aemter koennen auf Einfluss, Gold oder Split (50/50) gestellt werden.',
     '- Pro Runde je ActionKey nur 1x (Ausnahme: Einfluss-Bonusaktionen, falls verfügbar).',
-    '- Verkauf kann optional einen Kauf im selben Zug enthalten (belegt money.sell und money.buy).',
-    '- MoneyBuy ermoeglicht reinen Einkauf (5 RM oder 1 SM pro Invest).',
+    '- Verkauf+Kauf kann in 1 Aktion kombiniert werden (MoneySellBuy); Gekauftes kommt erst nächste Runde (pending).',
+    '- MoneyBuy (reiner Einkauf): 1 Invest = 6 RM oder 1 SM oder 1 AK (Kosten: 2/3/3 Gold pro Invest).',
     '- Kleine Aemter haben ein Cap: 8 + 2 pro mittlerem Amt + 4 pro grossem Amt.',
-    '- Domänen haben 4 RM-Picks; Ertrag und Domänenverwaltung werden darauf verteilt.',
-    '- Werkstätten verarbeiten nur ihr inputMaterial und erzeugen ihr outputMaterial.',
+    '- Domänen haben eine Produktionsliste (rawPicks); Ertrag/Domänenverwaltung beziehen sich darauf.',
+    '- Werkstätten wandeln am Rundenende automatisch um (wenn unterhalten): RM->SM (4:1) oder RM->verbessertes RM (1:1), je nach Setup.',
     '- Veredelungs-Einrichtungen werten Werkstatt-Output pro Stufe um 1 Kategorie auf.',
     '- Rohmaterial/Sondermaterial wird am Rundenende auto-konvertiert (RM 4:1, SM 1:2), außer gelagert.',
     '- Verkauf: je 6 RM oder 1 SM = 1 Investment; Marktsystem kann Wert pro Investment verändern.',
-    '- Einkauf: je 5 RM oder 1 SM = 1 Investment; Markt-Modifier wirken invers (hoher Mod = guenstiger).',
+    '- Einkauf: je 6 RM oder 1 SM = 1 Investment; Markt-Modifier wirken invers (hoher Mod = guenstiger).',
     '- Handelsmärkte (TradeEnterprises) sind in Stürmen/Piraterie/Konflikt riskant: beim Verkauf kann Frachtverlust Gold reduzieren.',
     '- Unterwelt-Organisationen liefern Gold und Einfluss (skaliert mit Staedtischem Besitz).',
     '- Fehlschlag bei Erwerb-Posten (Domäne/Stadt/Ämter/Circel/Truppen/Pächter): Aktion verbraucht, Ressourcen bleiben erhalten.',
-    '- Checks: Startwert (Modifikator) = +3; steigt um +1 ab Runde 10/20/30 (effektiv = base + floor(Runde/10)).',
+    '- Checks: Startwert (Modifikator) = +3; steigt um +1 alle 6 Runden (effektiv = base + floor((Runde-1)/6)).',
   ].join('\n');
 }
 
@@ -2426,7 +2710,11 @@ export async function planFacilityWithLlm(options: {
     bufferFactor,
     maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
   };
-  const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
+  const mcRanked = scoreCandidatesWithMc(
+    options.state,
+    mcCandidates,
+    mcContext
+  );
   const mcRankedSafe =
     mcRanked.length > 0
       ? mcRanked
@@ -2715,19 +3003,21 @@ export async function planActionWithLlm(options: {
     if (filtered.length > 0) allowedCandidates = filtered;
   }
 
-  const tempUnlockCandidate =
-    strategyWantsOffices(options.strategyCard, options.systemPreamble)
-      ? findTempInfluenceUnlockCandidate({
-          state: options.state,
-          me: options.me,
-          userId: options.userId,
-          round: options.round,
-          actionSlot: options.actionSlot,
-          actionsPerRound: options.actionsPerRound,
-          actionCandidates,
-          allowedCandidates,
-        })
-      : null;
+  const tempUnlockCandidate = strategyWantsOffices(
+    options.strategyCard,
+    options.systemPreamble
+  )
+    ? findTempInfluenceUnlockCandidate({
+        state: options.state,
+        me: options.me,
+        userId: options.userId,
+        round: options.round,
+        actionSlot: options.actionSlot,
+        actionsPerRound: options.actionsPerRound,
+        actionCandidates,
+        allowedCandidates,
+      })
+    : null;
 
   if (tempUnlockCandidate) {
     allowedCandidates = allowedCandidates.filter((c) => {
@@ -2754,7 +3044,11 @@ export async function planActionWithLlm(options: {
     bufferFactor,
     maxActionCandidates: MC_MAX_ACTION_CANDIDATES,
   };
-  const mcRanked = scoreCandidatesWithMc(options.state, mcCandidates, mcContext);
+  const mcRanked = scoreCandidatesWithMc(
+    options.state,
+    mcCandidates,
+    mcContext
+  );
   const mcRankedSafe =
     mcRanked.length > 0
       ? mcRanked
@@ -2777,13 +3071,14 @@ export async function planActionWithLlm(options: {
       (c) => c.command?.type === 'MoneyLend'
     );
     const bestMoneyLend = moneyLendCandidates.sort((a, b) => {
-      const invA =
-        a.command?.type === 'MoneyLend' ? a.command.investments : 0;
-      const invB =
-        b.command?.type === 'MoneyLend' ? b.command.investments : 0;
+      const invA = a.command?.type === 'MoneyLend' ? a.command.investments : 0;
+      const invB = b.command?.type === 'MoneyLend' ? b.command.investments : 0;
       return invB - invA;
     })[0];
-    if (bestMoneyLend && !mcTop.some((c) => c.candidate.id === bestMoneyLend.id)) {
+    if (
+      bestMoneyLend &&
+      !mcTop.some((c) => c.candidate.id === bestMoneyLend.id)
+    ) {
       const scored = mcRankedSafe.find(
         (c) => c.candidate.id === bestMoneyLend.id
       );
@@ -2840,18 +3135,15 @@ export async function planActionWithLlm(options: {
     );
     const bestInfluence =
       tempInfluenceCandidate ??
-      influenceCandidates
-        .sort((a, b) => {
-          const cmdA = a.command?.type === 'GainInfluence' ? a.command : null;
-          const cmdB = b.command?.type === 'GainInfluence' ? b.command : null;
-          const kindScore = (cmd: typeof cmdA) =>
-            cmd?.kind === 'permanent' ? 2 : 1;
-          const scoreA =
-            kindScore(cmdA) * 100 + (cmdA?.investments ?? 0);
-          const scoreB =
-            kindScore(cmdB) * 100 + (cmdB?.investments ?? 0);
-          return scoreB - scoreA;
-        })[0];
+      influenceCandidates.sort((a, b) => {
+        const cmdA = a.command?.type === 'GainInfluence' ? a.command : null;
+        const cmdB = b.command?.type === 'GainInfluence' ? b.command : null;
+        const kindScore = (cmd: typeof cmdA) =>
+          cmd?.kind === 'permanent' ? 2 : 1;
+        const scoreA = kindScore(cmdA) * 100 + (cmdA?.investments ?? 0);
+        const scoreB = kindScore(cmdB) * 100 + (cmdB?.investments ?? 0);
+        return scoreB - scoreA;
+      })[0];
     if (
       bestInfluence &&
       !mcTop.some((c) => c.candidate.id === bestInfluence.id)
@@ -2881,7 +3173,8 @@ export async function planActionWithLlm(options: {
         c.command.kind === 'underworld'
     );
     const spyCandidate = allowedCandidates.find(
-      (c) => c.command?.type === 'AcquireOrganization' && c.command.kind === 'spy'
+      (c) =>
+        c.command?.type === 'AcquireOrganization' && c.command.kind === 'spy'
     );
     if (
       underworldCandidate &&
@@ -2897,7 +3190,9 @@ export async function planActionWithLlm(options: {
       spyCandidate &&
       !mcTop.some((c) => c.candidate.id === spyCandidate.id)
     ) {
-      const scored = mcRankedSafe.find((c) => c.candidate.id === spyCandidate.id);
+      const scored = mcRankedSafe.find(
+        (c) => c.candidate.id === spyCandidate.id
+      );
       if (scored) mcTop.push(scored);
     }
 
@@ -3026,7 +3321,9 @@ export async function planActionWithLlm(options: {
   );
   for (const scored of mcTop) {
     const c = scored.candidate;
-    promptLines.push(`- ${c.id} [now]: ${c.summary} | ${formatMcScore(scored)}`);
+    promptLines.push(
+      `- ${c.id} [now]: ${c.summary} | ${formatMcScore(scored)}`
+    );
   }
 
   const maxPlanAttempts = 3;
@@ -3136,7 +3433,7 @@ function expectedActionKey(command: AgentCommand): string | null {
         ? 'materials.domain'
         : 'materials.workshop';
     case 'GainInfluence':
-      return 'influence';
+      return command.kind === 'temporary' ? 'influence.temp' : 'influence.perm';
     case 'MoneyLend':
       return 'money.lend';
     case 'MoneySell':

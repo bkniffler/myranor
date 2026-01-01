@@ -13,3 +13,7 @@ Prinzip:
 - Dokument 3 (Einrichtungen & Spezialisierungen): `docs/rules/soll/changes/0003-einrichtungen.md`
 - Dokument 4 (Startbedingungen): `docs/rules/soll/changes/0004-startbedingungen.md`
 - Dokument 5 (Einrichtungen-Katalog / Werkstätten / Lager / Pächter): `docs/rules/soll/changes/0005-facilities.md`
+- Dokument 6 (Anhänger/Pächter: Unterhalt & Kosten): `docs/rules/soll/changes/0006-followers-upkeep.md`
+- Dokument 7 (Facilities: TBD-Auflösungen): `docs/rules/soll/changes/0007-facilities-tbd-aufloesungen.md`
+- Dokument 8 (Errata/Klarstellungen): `docs/rules/soll/changes/0008-errata.md`
+- Dokument 9 (Konsequenzen/Loyalität/Material-Mapping): `docs/rules/soll/changes/0009-konsequenzen-loyalitaet-material.md`

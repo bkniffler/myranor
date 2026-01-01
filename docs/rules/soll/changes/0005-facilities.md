@@ -2,6 +2,8 @@
 
 Status: angenommen (Soll), nicht automatisch in Engine umgesetzt
 
+Hinweis: Die Pächter‑Regel „+1 einfaches RM“ ist überholt; siehe `docs/rules/soll/changes/0008-errata.md` (jetzt `+2` billige RM aus der Domänenproduktion).
+
 ## Einrichtungen & Spezialisierungen (Soll): Werkstätten/Lager, Pächter/Anhänger, Katalog
 
 ## Änderung
@@ -26,11 +28,11 @@ Zusätzlich werden in `docs/rules/soll/aufbausystem.md` die Grundregeln zu Werks
 ### Pächter / Anhänger / Klienten
 
 - Pächter/Anhänger gelten als Sondereinrichtung mit Caps nach Posten/Tier.
-- Pro Stufe (250 Personen): `+1 AK` + `+1 Gold`; auf Domänen zusätzlich `+1 einfaches RM` (domänen-/spezialisierungsabhängig).
-- Loyalität/Unruhen/Abwanderung werden als eigenes Subsystem im Facilities‑Katalog weiter spezifiziert (TBD/Phase 2).
+- Pro Stufe (250 Personen): `+1 AK` + `+1 Gold`;
+  - auf Domänen zusätzlich `+2 billige RM` (aus der bereits gewählten Domänen‑Produktion; falls keine billige RM gewählt wurde: passend zur Spezialisierung).
+- Loyalität/Unruhen/Abwanderung sind im Facilities‑Katalog als v1‑Mechanik spezifiziert; Details können später erweitert werden.
 
 ## Dateien
 
 - Neuer Soll‑Katalog: `docs/rules/soll/facilities.md`
 - Anpassungen/Verweise: `docs/rules/soll/aufbausystem.md`
-

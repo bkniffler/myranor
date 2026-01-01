@@ -6,4 +6,3 @@ export class GameRuleError extends Error {
     this.code = code;
   }
 }
-

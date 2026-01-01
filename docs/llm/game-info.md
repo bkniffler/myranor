@@ -1,199 +1,164 @@
 # LLM-Game-Info (Engine v1, derived)
 
-Diese Datei fasst den aktuellen Stand der Engine-Regeln zusammen, damit ein LLM die Spiel-Logik und Ressourcen besser versteht.
-Sie ist **abgeleitet** aus den canonical Regeln/Listen und sollte nicht als primäre Quelle editiert werden.
+Diese Datei ist eine **Kurzfassung für das LLM** und wird aus dem implementierten Regelstand abgeleitet.
+Primäre Referenz: `docs/rules/rules-v1.md`.
 
-Canonical Rules: `docs/rules/rules-v1.md` (Regeln/Listen).
-Tabellen/Listen: `docs/rules/tables/*`.
+## Ziel / Score
 
-## Ziel
-- Standardziel im LLM-Runner: **Gesamt-Score (GoldEq) maximieren**.
-  - GoldEq umfasst aktuelles Gold, Inventar, Assets und den **aktuellen Einfluss pro Runde**.
-  - **Verdienter Einfluss** wird getrennt ausgewiesen (Auswertung), ist **nicht Teil** des Scores.
-- Das LLM bekommt im Prompt einen kurzen Hinweis zur Score-Logik.
+- Ziel: **Net Worth / Score (GoldEq) maximieren**.
+- Score enthält (gewichtet) u.a.:
+  - `Gold` + `pending.gold`
+  - Inventar als GoldEq (Auto-Conversion Werte)
+  - temporäre Pools (`AK`, `Einfluss`) und permanente Pools (`perm. AK`, `perm. Einfluss`)
+  - Assets (Domänen/Stadtbesitz/Ämter/Orgs/Handel/Werkstätten/Lager/Truppen/Fachkräfte)
 
-## Rundenablauf
-1. **Maintenance** (Ertraege, Unterhalt, Pending Gold einziehen)
-2. **Actions** (Aktionen ausfuehren)
-3. **Conversion** (Material -> Gold, Lagerung)
-4. **Reset** (Turn-Reset)
-5. Zurueck zu **Maintenance**
+## Rundenablauf (v1)
 
-## Aktionen pro Runde
-- Basis: **2 Aktionen** pro Runde.
-- **1 Sonderaktion** fuer Einrichtungen/Ausbau (freie Facility-Action) pro Runde.
-- Pro Runde **nur 1 Aktion pro Action-Key** (z.B. money.sell nur einmal). Ausnahme:
-  - **Bonusaktionen Einfluss** durch grosse Aemter/grossen Kult.
-  - **Bonusaktion Geld** durch grosses Handelscollegium.
-  - **Bonusaktion Material** durch grosses Handwerkscollegium.
+Phasen: `maintenance → actions → conversion → reset`
 
-## Ressourcen (Spielerzustand)
-- **Gold** (aktuelles Gold + pending Gold aus Geldverleih)
-- **Einfluss** (pro Runde verfuegbar, nicht kumulativ) + **Permanenter Einfluss**
-- **Arbeitskraft (AK)** (pro Runde verfuegbar) + **Permanente Arbeitskraft**
-- **Rohmaterial (RM)** und **Sondermaterial (SM)**
-- **Zauberkraft**
-- **Truppen**, **Paecher/Anhaenger**, **Fachkraefte**
+- **maintenance → actions**:
+  - Markt-Roll (nur am Markt-Abschnittsstart)
+  - Event-Roll (nur am Event-Abschnittsstart)
+  - Neider-Gegenreaktion (wenn `N >= 3/6/9`)
+  - Einkommen/Unterhalt werden angewandt
+  - Langzeitvorhaben (Bauzeit) schreiten fort (falls AK/ZK verfügbar)
+- **actions**: bis zu 2 Standardaktionen + ggf. 1 freie Facility-Action
+- **conversion**: Werkstatt-Konversion, Lagerung, Auto-Conversion
+- **reset**: Pools werden neu gesetzt
 
-## Startzustand (Engine v1)
-- Checks: influence=3, money=3, materials=3 (Attributs-Basis; skaliert pro 10 Runden).
-- Gold: 4
+## Aktionen pro Runde (v1)
+
+- Standard: **2 Aktionen**
+- Zusätzlich: **1 freie Facility-Action** („Einrichtungen/Ausbau“)
+- Standardaktionen dürfen nicht zweimal denselben canonical Action-Key nutzen (z.B. nicht zweimal `money.sell`).
+
+## Langzeitvorhaben (Bauzeit, v1 subset)
+
+- Einige Einrichtungen starten als Projekt statt sofort gebaut zu werden (z.B. `general.medium.city.insulae`).
+- Start: `BuildFacility` zahlt die erste Bau-Runde (AK/ZK) sofort und legt ein Projekt an.
+- Fortschritt: im Maintenance wird pro Runde weitergezahlt (AK/ZK); wenn nicht zahlbar, pausiert das Projekt.
+- Abschluss: im Maintenance→actions-Übergang (Facility ist dann in `actions` verfügbar).
+- Event 36 verdoppelt Bau-Arbeitskosten (AK) pro Bau-Runde.
+
+## Checks & Erfolgsstufen (v1)
+
+- Wurf: `1w20 + effectiveCheck`
+- `effectiveCheck = base + floor((round-1)/6)` (R1–6:+0, R7–12:+1, …)
+- Investitions-DC-Mod (Standard): `+4` ab `>=4` Investitionen, `+8` ab `>=8`
+- Erfolgsstufen:
+  - `veryGood`: `>= DC+10`
+  - `good`: `>= DC+5`
+  - `success`: `>= DC`
+  - `poor`: `>= DC-5`
+  - `fail`: `< DC-5`
+
+## Startzustand (v1)
+
+- Checks: `influence=3`, `money=3`, `materials=3`
+- Gold: `4`
 - Holdings:
-  - 1 Starter-Domaene (tier=starter)
-  - Starter-Domaene hat RM-Pick: raw.grainVeg
-  - 1 Stadtbesitz (tier=small, mode=leased)
-  - 1 Werkstatt (tier=small) auf Starter-Domaene (input=raw.grainVeg, output=special.pulpellen)
-  - Permanenter Einfluss: 0, Permanente Arbeitskraft: 2
-  - Keine Lager, Orgs, Aemter, Handelsunternehmungen, Truppen, Fachkraefte
-- Inventar (RM/SM/Zauberkraft) leer
+  - Starter-Domäne (`tier=starter`, `rawPicks=[raw.grain, raw.honey]`)
+  - Stadtbesitz klein (`tier=small`, `mode=leased`, `tenure=owned`)
+  - Start-Werkstatt klein auf Domäne (`raw.grain → special.pulpellen`)
+  - Start-Lager klein auf Domäne
+  - Start-Amt klein (`yieldMode=influence`)
+  - `permanentLabor=2`
 
-## Domaenen: Material-Picks
-- Starter-Domaene: 1 Pick (default `raw.grainVeg`).
-- Andere Domaenen: 4 Picks (default aus `DEFAULT_DOMAIN_RAW_PICKS`).
-- Landwirtschafts-Spezialisierung erfordert **2 billige + 2 einfache** Rohmaterial-Picks.
+## Politik (KW/AS/N + Information, v1)
 
-## Ertraege und Unterhalt (Kurzuebersicht)
-- **Domaenen**
-  - AK/Runde: starter/small=2, medium=4, large=8
-  - RM/Runde: starter=8, small=12, medium=20, large=36 (gleichmaessig auf vorhandene RM-Picks verteilt)
-  - Gold-Unterhalt: starter=0, small=2, medium=4, large=8
-- **Stadtbesitz (leased)**
-  - AK/Runde: small=1, medium=2, large=4
-  - Einfluss/Runde: small=1, medium=2, large=4
-  - Gold/Runde: small=2, medium=5, large=12
-- **Stadtbesitz (production)**
-  - AK/Runde: small=2, medium=3, large=6
-  - Gold/Einfluss: 0
-  - Gold-Unterhalt: small=2, medium=4, large=8
-- **Aemter**
-  - Ertrag (pro Runde, je Amt): small=2/2, medium=8/10, large=16/20
-    - Wahl: Gold **oder** Einfluss **oder** Split 50/50 je nach Yield-Mode
-  - Kleine Aemter Cap: 8 + 2 je mittlerem Amt + 4 je grossem Amt
-- **Organisationen (v1)**
-  - Unterwelt: pro Runde **Gold + Einfluss**, skaliert mit hoechstem Stadtbesitz (Tier-Rang).
-  - Spionage: Einfluss `6 * Stufe` (ab Stufe 2/3 zusaetzlich permanenter Einfluss als Pool +1/+2).
-  - Kult: Einfluss `5 * Stufe` (ab Stufe 2/3 zusaetzlich permanenter Einfluss als Pool +2/+4).
-- **Handelsunternehmungen (v1)**
-  - Unterhalt: small=2 Gold; medium=4 Gold +1 AK; large=6 Gold +2 AK.
-  - Mode `produce`: produziert `special.tools` (small=3, medium=6, large=12).
-  - Mode `trade`: konsumiert Sondermaterial (small=1, medium=2, large=4) und erzeugt Gold (Basis 4/10/24 + Markt/Event).
-  - Beschädigt (`damage`): inaktiv (kein Unterhalt/Ertrag, keine Handelsmärkte, keine Einrichtungs-Einflüsse).
-  - Events 15/16(pirates)/26: Verkauf über Handelsmärkte kann Frachtverlust verursachen (Gold wird reduziert).
-- **Einrichtungen an Aemtern/Orgs/Werkstaetten/Handel**
-  - Einfluss/Runde: general small=+1, medium=+2, large=+3; special small=+2, medium=+3, large=+4
-- **Werkstaetten**
-  - Unterhalt: small=1 AK, medium=2 AK +1 Gold, large=4 AK +2 Gold
-  - Kapazitaet (Umwandlung):
-    - small: 8 RM -> max 2 SM
-    - medium: 12 RM -> max 3 SM
-    - large: 20 RM -> max 5 SM
-  - Jede Werkstatt hat inputMaterialId/outputMaterialId (billig oder einfach)
-- **Lager**
-  - Kapazitaet (mit storageCapacityMultiplier=2):
-    - small: 20 RM / 10 SM
-    - medium: 40 RM / 20 SM
-    - large: 80 RM / 40 SM
-- Unterhalt gilt ab Runde 2. Domaenen/Staedte/Orgs/Handel bleiben aktiv (Gold kann negativ werden), aber **Werkstaetten/Lager nur bei Unterhalt**.
+- Politische Schritte arbeiten mit:
+  - `KW` (Konsequenzenwert), `AS` (Ansehen), `N` (Neider), `Information`
+- Passive Erholung: wenn du in einer Runde **keine** „Politische Schritte“ machst: `KW -1` und `N -1` (min 0).
+- `KW` erhöht den DC von Politischen Schritten stufenweise (`+1/+2/+3/+4` ab `KW>=4/8/12/16`).
+- `AS` modifiziert v.a. Einflussgewinn & Posten gewinnen (`+2/+1/-1/-2` je nach AS-Schwelle).
+- `Information` ist persistent:
+  - kann bei Politischen Schritten als Bonus genutzt werden (`+2` pro Info)
+  - kann umgewandelt werden: `1 Info → 2 Gold` oder `4 Einfluss`
+- Neider-Gegenreaktion (in der Ereignisphase, wenn `N>=3/6/9`):
+  - Verteidigungsprobe DC `10/12/14`
+  - bei Fehlschlag: du verlierst **wahlweise** `-4/-8/-12 Gold` **oder** `-4/-8/-12 Einfluss`
+  - zusätzlich: `AS -1` (N>=3), `KW +2 & AS -1` (N>=6), `KW +4 & AS -2` (N>=9)
 
-## Einrichtungs- und Produktions-Caps (v1)
-- Domaenen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6), Starter=0.
-- Stadtbesitz: Einrichtungsplaetze small=2, medium=3, large=4.
-- Aemter: Einrichtungsplaetze wie Stadtbesitz (2/3/4).
-- Organisationen & Handelsunternehmungen: Einrichtungsplaetze = 2 * Tier-Rang (small=2, medium=4, large=6).
-- Werkstaetten/Lager belegen 1 Einrichtungsplatz.
-- Werkstaetten haben eigene Facility-Slots: small=1, medium=2, large=3.
-- Domänen-Produktionscap (Werkstatt/Lager):
-  - Kleine Domäne: max 1 kleine Produktion.
-  - Mittlere Domäne: max 1 mittlere Produktion.
-  - Große Domäne: max 1 kleine + 1 mittlere Produktion.
-  - Große Werkstaetten/Lager sind auf Domänen nicht erlaubt.
-- Stadtbesitz (Eigenproduktion) Produktionskapazitaet:
-  - Klein: 2 kleine oder 1 mittlere Produktion.
-  - Mittel: 2 mittlere oder 1 große Produktion.
-  - Groß: 2 große Produktionen.
-- Starter-Domaenen muessen ausgebaut werden, bevor zusaetzliche Werkstaetten/Lager gebaut werden koennen.
+## Markt (v1)
 
-## Material-Conversion (Conversion-Phase)
-1. Werkstaetten wandeln **ihr inputMaterial** RM -> output SM um (Kapazitaeten oben, **nur wenn unterhalten**).
-2. Veredelungs-Einrichtungen am Standort werten output SM pro Stufe um 1 Kategorie auf.
-3. Lager speichern RM/SM bis Kapazitaet.
-4. Rest wird **auto-konvertiert**:
-  - RM: Standard 4:1 zu Gold (Ereignisse koennen Divisor aendern, **Bruchteile erlaubt**)
-  - SM: 1:2 zu Gold
-5. Alles Nicht-Gelagerte wird konvertiert; **nichts wird verworfen**.
+- Markt-Abschnitte: **4 Runden** (R1–R4, R5–R8, …)
+- Pro Marktinstanz pro Abschnitt:
+  - 1 Rohmaterial-Roll (2d6)
+  - 1 Sondermaterial-Roll (2d6)
+- Verkauf/Kauf nutzen Markt-Modifikatoren (pro Investment).
+  - **Kauf** nutzt die Markt-Modifikatoren als **Zuschlag auf die Kosten** (gefragte Ware ist teurer; Gold-Boni werden zu Zusatzkosten).
+- Handelsunternehmungen erzeugen zusätzliche private Marktinstanzen (nur für den Besitzer).
 
-## Erfolgswuerfe (allgemein)
-- W20 + Check (influence/money/materials)
-- DC-Investment-Mod: +4 bei Investitionen >= 4, +8 bei Investitionen >= 8
-- Tiers:
-  - veryGood: >= DC + 10
-  - good: >= DC + 5
-  - success: >= DC
-  - poor: >= DC - 5
-  - fail: < DC - 5
-- Check-Skalierung: Effektiver Check = base + floor(Runde/10) (R1-9 +0, R10-19 +1, R20-29 +2, ...).
+## Handelsunternehmungen (v1)
 
-## Aktionen (Engine v1, Zusammenfassung)
-- **Einfluss gewinnen** (temporary oder permanent)
-  - Kosten: temp = 1 Gold/Invest, perm = 2 Gold/Invest
-  - Caps: temp abhaengig von Aemtern/Orgs; perm = 2 + Summe (Aemter+Orgs Tiers)
-- **Geld gewinnen**
-  - **MoneyLend**: 2 Gold/Invest -> Gold naechste Runde (Ertrag nach Erfolgsgrad)
-  - **MoneySell**: Verkauf RM/SM/perm. AK mit Marktfaktoren (6 RM oder 1 SM oder 1 perm. AK = 1 Invest; Cap = 2 + 2*TradeTierSum + DomainTierSum)
-  - **MoneySellBuy**: Verkauf + Einkauf in einer Aktion (belegt money.sell + money.buy)
-  - **MoneyBuy**: Einkauf von Waren (5 RM oder 1 SM oder 1 perm. AK pro Invest; Cap = 3 + 2*TradeTierSum + DomainTierSum)
-  - Event 31 (Wirtschaftsaufschwung) — v1-Nerf: Bonusgold nur je **3** Investitionen (statt je 2).
-- **Material gewinnen**
-  - **Domaenenverwaltung** oder **Werkstattaufsicht** (AK-gebunden)
-- **Permanente Posten**
-  - Domaene, Stadtbesitz, Amt, Organisation, Handelsunternehmung
-- **Paechter/Anhaenger** (Staedtisch, Domaene, Orga)
-- **Truppen rekrutieren** (Bodyguard, Miliz, Soeldner, Schlaeger)
-- **Fachkraft anheuern** (randomisierte Kosten)
-- **Einrichtungen**
-  - Werkstatt/Lager bauen oder upgraden
-  - Allgemeine/Spezielle Einrichtungen an Posten
-  - Veredelung: `special.small.refine` (je Stufe +1 Kategorie fuer Werkstatt-Output am Standort)
-  - Starter-Domaene ausbauen
-  - Domaenen-Spezialisierung
+- Erwerb (v1): `20/40/80` Gold (small/medium/large), DC wie „Posten gewinnen“.
+- Unterhalt: `small: 2G+1AK`, `medium: 5G+2AK`, `large: 6G+4AK`
+- Modes:
+  - `produce`: erzeugt pro Runde `special.simpleTools` (`2/3/6`)
+  - `trade`: investiert `1/2/4` SM → `4/10/24` Gold (Markt/Event wirken mit)
+- Zusätzlich: pro Stufe ein privater Markt (wird alle 4 Runden gerollt wie der Startmarkt).
+- Geldgewinn: `-1 DC` bei passenden Investment-Größen (small/medium/large); höhere Stufen zählen auch für kleinere.
+- Geldverleih-Investment-Cap hängt vom höchsten Tier ab: `2/4/6/10` Investitionen (ohne/klein/mittel/groß).
 
-## Markt
-- Marktinstanzen mit Modifiern pro Roh-/Sondermaterialgruppe.
-- Verkauf nutzt Markt-Modifier + Material-Bonus.
-- Einkauf nutzt die **invertierten** Markt-Modifier (hoher Mod = guenstiger).
-- Events koennen DCs/Modifier beeinflussen.
-- Handelsunternehmungen erzeugen zusaetzliche Marktinstanzen (Anzahl = Tier-Rang), **nur wenn nicht beschädigt**.
+## Ereignisse (v1)
 
-## Events
-- Globale Events (Abschnitte) werden ab Runde 1 gerollt und wirken 5 Runden.
-- Events beeinflussen DCs, Ertraege, Kosten, Unterhalt, Konversion.
-- Beispiele: +DC auf Geldverleih/Verkauf, halbe Amtsgold-Einkuenfte, etc.
+- Event-Abschnitte: **4 Runden**, Start ab Runde 2 (R2–R5, R6–R9, …)
+- Pro Abschnitt 2 Events (2d20, ohne Duplikate)
+- Events beeinflussen DCs, Einkommen, Unterhalt, Marktwerte, Übergriffe/Schäden.
 
-## LLM-Runner: aktuell sichtbare Action-Candidates
-Der LLM-Runner zeigt weiterhin **nicht alle Engine-Aktionen**, aber eine deutlich erweiterte Auswahl:
-- **Facility**
-  - Starter-Domaene ausbauen
-  - Stadtbesitz-Modus auf Produktion setzen
-  - Amt auf Gold-, Einfluss- oder Split-Ertrag umstellen
-  - Handelsunternehmung auf Handel umstellen
-  - Domaenen-Spezialisierung (Forst/Landwirtschaft/Bergbau/Viehzucht, wenn bezahlbar)
-  - Werkstatt bauen (klein, Domaene oder Stadtbesitz/Produktion)
-  - Lager bauen (klein, Domaene oder Stadtbesitz/Produktion)
-  - Werkstatt/Lager upgraden (wenn Voraussetzungen erfuellt)
-- **Actions**
-  - Materialgewinn (Domaene/Werkstatt) 1/mid/max
-  - Einflussgewinn (temporary/permanent) 1/mid/max
-  - Geldverleih (1/mid/max, wenn bezahlbar)
-  - Verkauf (bestes Paket, pro Marktinstanz + Budget)
-  - Verkauf+Kauf (kombiniert, bestes Paket + Kauf mit gleichem Markt)
-  - Kauf (bestes Paket, pro Marktinstanz + Budget)
-  - Amt klein/mittel/gross (goldFirst / influenceFirst, bei Voraussetzungen)
-  - Handelsunternehmung klein/mittel/gross
-  - Stadtbesitz klein/mittel/gross
-  - Domaene klein/mittel/gross
-  - Organisation (underworld/collegiumTrade/collegiumCraft/cult/spy)
-  - Paechter/Anhaenger auf Stadt/Domaene/Orga (1/mid/max)
+## Materialfluss (Conversion, v1)
 
-## Hinweis zur Strategie im LLM
-- Das LLM erhaelt im Prompt **Strategie-Zeile + Strategie-Card** sowie eine kurze **Rolling Summary**.
-- Markt-Snapshot und Inventar-Toplisten werden ebenfalls gezeigt.
+### Werkstätten (automatisch)
+
+Werkstätten wandeln in der Conversion-Phase automatisch um, wenn sie in der Runde unterhalten werden:
+- Wenn `outputMaterialId` ein **SM** ist: `4:1` (RM→SM), bis zur Kapazität (small/medium/large: `8/12/24 RM` → `2/3/6 SM`), medium/large erhalten zusätzlich `+1/+2` SM Bonus.
+- Wenn `outputMaterialId` ein **verbessertes RM** ist: `1:1` (RM→RM), bis zur Kapazität (kein Bonus).
+
+Input ist fix (`inputMaterialId`), Output ist `outputMaterialId` (ggf. durch Refinement aufgewertet, wenn Output ein SM ist).
+
+### Lagerung (automatisch)
+
+Unterhaltene Lager speichern bis Kapazität:
+- small: `15 RM / 5 SM`
+- medium: `25 RM / 10 SM`
+- large: `40 RM / 15 SM`
+
+### Werkstatt/Lager-Caps (v1)
+
+- Domäne: small `1× small`, medium `1× medium`, large `1× small + 1× medium` (keine `large` Werkstätten/Lager auf Domänen)
+- Stadtbesitz nur bei `mode=production` (Werkstätten/Lager belegen **keine** Stadtbesitz-Facility-Slots):
+  - small: `2× small` **oder** `1× medium`
+  - medium: `1× small + 1× medium`
+  - large: `1× large + 1× medium`
+
+### Auto-Conversion (am Rundenende)
+
+- Nicht gelagerte Bestände werden zu Gold:
+  - RM: Standard `4:1` (Bruchteile erlaubt) + `saleBonusGold` pro 4 Stück
+  - SM: `1:2` Gold + `saleBonusGold` pro 4 Stück
+  - übrige AK/Einfluss-Pools werden ebenfalls `4:1` zu Gold umgewandelt
+
+Konsequenz:
+- Ohne Lager ist Market-Timing schwer (RM/SM verschwinden am Rundenende).
+
+## Wichtige Entscheidungen (v1)
+
+- Lager lohnen sich, wenn du RM/SM über Runden halten willst (Market-Timing, Werkstatt-Input sammeln, Nahrung sichern).
+- Werkstätten lohnen sich, wenn du genug RM des richtigen Typs hast **und** den Unterhalt tragen kannst.
+- Stadtbesitz auf `production` umstellen lohnt sich vor allem, wenn du danach wirklich Werkstatt/Lager im Stadtbesitz bauen willst (sonst verlierst du Gold+Einfluss aus `leased`).
+
+## LLM-Runner: Candidate-Typen (High-Level)
+
+- Facility:
+  - Starter-Domäne ausbauen
+  - Stadtbesitz auf Produktion umstellen (nur wenn Werkstatt/Lager danach bau-aktuell möglich)
+  - Amt auf `gold` oder `split` umstellen
+  - Handelsunternehmung auf `trade` umstellen
+  - Werkstatt/Lager bauen/upgraden (Caps beachten; Stadt nur bei `production`)
+  - generische Einrichtungen (`general.*`/`special.*`) an Amt/Orga/Handel/Werkstatt
+- Actions:
+  - Einflussgewinn (temp/permanent)
+  - Geldgewinn (Lend / Sell / Buy / Sell+Buy)
+  - Materialgewinn (Domäne/Werkstatt)
+  - Posten kaufen (Domäne/Stadt/Amt/Org/Handel)
+  - Pächter/Anhänger anwerben, Truppen rekrutieren, Fachkraft anheuern

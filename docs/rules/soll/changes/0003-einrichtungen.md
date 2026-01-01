@@ -2,6 +2,8 @@
 
 Status: angenommen (Soll), nicht automatisch in Engine umgesetzt
 
+Hinweis: Die Aussage zu **Mehrfach‑Spezialisierungen** („große Posten können mehrere ermöglichen“) ist überholt; siehe `docs/rules/soll/changes/0008-errata.md`.
+
 ## Einrichtungen (Soll): Grundregeln, Caps, Werkstätten/Lager, Spezialisierungen
 
 ## Änderung
@@ -23,7 +25,7 @@ In `docs/rules/soll/aufbausystem.md` wird eine neue Sektion **„Einrichtungen (
 - **Pächter/Klienten/Anhänger**: gelten als Zusatz‑Einrichtungen mit eigenen Caps (je Posten).
 - **Spezialisierungen**:
   - via freier Einrichtungsaktion,
-  - grundsätzlich 1 pro Posten; große Posten können mehrere ermöglichen (TBD),
+  - grundsätzlich **1 pro Posten/Werkstatt** (siehe Errata),
   - erweitern/ändern Materialarten und schalten besondere Einrichtungen frei,
   - **Ämter** sind immer spezialisiert; Spezialisierung wird beim Erwerb gewählt.
 

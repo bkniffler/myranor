@@ -1,6 +1,6 @@
 export function json(
   data: unknown,
-  init?: ResponseInit & { status?: number },
+  init?: ResponseInit & { status?: number }
 ): Response {
   return new Response(JSON.stringify(data, null, 2), {
     ...init,
@@ -14,13 +14,13 @@ export function json(
 export function errorJson(
   status: number,
   message: string,
-  extra?: Record<string, unknown>,
+  extra?: Record<string, unknown>
 ): Response {
   return json(
     { error: { message, ...extra } },
     {
       status,
-    },
+    }
   );
 }
 
@@ -31,4 +31,3 @@ export async function readJsonBody<T = unknown>(request: Request): Promise<T> {
     throw new Error('Invalid JSON body');
   }
 }
-

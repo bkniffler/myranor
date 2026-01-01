@@ -20,4 +20,3 @@ export function asUserId(value: string): UserId {
 export function asEventId(value: string): EventId {
   return value as EventId;
 }
-

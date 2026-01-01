@@ -4,6 +4,7 @@ import type { SuccessTier } from '../domain/success';
 import type {
   CampaignRules,
   CityPropertyMode,
+  CityPropertyTenure,
   CityPropertyTier,
   DomainSpecializationKind,
   DomainSpecializationPicks,
@@ -22,9 +23,9 @@ import type {
   PlayerTurn,
   PostTier,
   RulesVersion,
-  StorageTier,
   SpecialistKind,
   SpecialistTier,
+  StorageTier,
   TradeEnterpriseMode,
   TradeEnterpriseTier,
   WorkshopTier,
@@ -118,6 +119,7 @@ export type PlayerPendingAppliedEvent = {
   visibility: { scope: 'private'; playerId: PlayerId };
   playerId: PlayerId;
   goldApplied: number;
+  laborApplied: number;
   rawApplied: MaterialStock;
   specialApplied: MaterialStock;
   magicPowerApplied: number;
@@ -156,6 +158,13 @@ export type PlayerMaterialsConvertedEvent = {
   playerId: PlayerId;
   workshop: {
     rawConsumed: MaterialStock;
+    rawProduced: MaterialStock;
+    specialProduced: MaterialStock;
+  };
+  facilities: {
+    rawConsumed: MaterialStock;
+    specialConsumed: MaterialStock;
+    rawProduced: MaterialStock;
     specialProduced: MaterialStock;
   };
   stored: {
@@ -165,6 +174,8 @@ export type PlayerMaterialsConvertedEvent = {
   convertedToGold: {
     rawByType: MaterialStock;
     specialByType: MaterialStock;
+    laborConverted: number;
+    influenceConverted: number;
     goldGained: number;
   };
   lost: {
@@ -182,6 +193,7 @@ export type PlayerTurnResetEvent = {
   actionsUsed: number;
   actionKeysUsed: string[];
   facilityActionUsed: boolean;
+  usedPoliticalSteps: boolean;
   upkeep: PlayerTurn['upkeep'];
 };
 
@@ -314,6 +326,7 @@ export type PlayerCityPropertyAcquiredEvent = {
   playerId: PlayerId;
   cityPropertyId: string;
   tier: CityPropertyTier;
+  tenure: CityPropertyTenure;
   dc: number;
   roll: DiceRoll;
   rollModifier: number;
@@ -355,6 +368,14 @@ export type PlayerOfficeYieldModeSetEvent = {
   playerId: PlayerId;
   officeId: string;
   mode: OfficeYieldMode;
+};
+
+export type PlayerOfficeLostEvent = {
+  type: 'PlayerOfficeLost';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  officeId: string;
+  reason: string;
 };
 
 export type PlayerOrganizationAcquiredEvent = {
@@ -505,6 +526,53 @@ export type PlayerFacilityBuiltEvent = {
   usedFreeFacilityBuild: boolean;
 };
 
+export type PlayerLongTermProjectStartedEvent = {
+  type: 'PlayerLongTermProjectStarted';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  projectId: string;
+  kind: 'facility';
+  location: PlayerFacilityBuiltEvent['location'];
+  facilityKey: string;
+  startedAtRound: number;
+  totalRounds: number;
+  remainingRounds: number;
+  laborPerRound: number;
+  magicPowerPerRound: number;
+  upfrontCosts: {
+    goldSpent: number;
+    influenceSpent: number;
+    laborSpent: number;
+    rawSpent: MaterialStock;
+    specialSpent: MaterialStock;
+    magicPowerSpent: number;
+  };
+  usedFreeFacilityBuild: boolean;
+};
+
+export type PlayerLongTermProjectProgressedEvent = {
+  type: 'PlayerLongTermProjectProgressed';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  projectId: string;
+  progressedAtRound: number;
+  remainingRoundsAfter: number;
+  upkeepPaid: { labor: number; magicPower: number };
+  reason: string;
+};
+
+export type PlayerLongTermProjectCompletedEvent = {
+  type: 'PlayerLongTermProjectCompleted';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  projectId: string;
+  completedAtRound: number;
+  kind: 'facility';
+  location: PlayerFacilityBuiltEvent['location'];
+  facilityInstanceId: string;
+  facilityKey: string;
+};
+
 export type PlayerFacilityDamagedEvent = {
   type: 'PlayerFacilityDamaged';
   visibility: { scope: 'private'; playerId: PlayerId };
@@ -569,6 +637,96 @@ export type PlayerFollowersAdjustedEvent = {
   reason: string;
 };
 
+export type PlayerPoliticsAdjustedEvent = {
+  type: 'PlayerPoliticsAdjusted';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  kwDelta?: number;
+  asDelta?: number;
+  nDelta?: number;
+  reason: string;
+};
+
+export type PlayerEventIncidentRecordedEvent = {
+  type: 'PlayerEventIncidentRecorded';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  sectionStartsAtRound: number;
+  tableRollTotal: number;
+  incidentKind: string;
+  countDelta: number;
+  reason: string;
+};
+
+export type PlayerCounterReactionLossChoiceSetEvent = {
+  type: 'PlayerCounterReactionLossChoiceSet';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  choice: 'gold' | 'influence';
+};
+
+export type PlayerCounterReactionResolvedEvent = {
+  type: 'PlayerCounterReactionResolved';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  threshold: 3 | 6 | 9;
+  defense: {
+    dc: number;
+    roll: DiceRoll;
+    rollModifier: number;
+    rollTotal: number;
+    defended: boolean;
+  };
+  loss: { kind: 'gold' | 'influence'; amount: number };
+  politicsDelta: { kwDelta: number; asDelta: number; nDelta: number };
+  reason: string;
+};
+
+export type PlayerPoliticalStepsResolvedEvent =
+  | {
+      type: 'PlayerPoliticalStepsResolved';
+      visibility: { scope: 'private'; playerId: PlayerId };
+      playerId: PlayerId;
+      kind: 'convertInformation';
+      to: 'gold' | 'influence';
+      amount: number;
+      infoSpent: number;
+      goldGained: number;
+      influenceGained: number;
+      actionCost: number;
+      actionKey: string;
+    }
+  | {
+      type: 'PlayerPoliticalStepsResolved';
+      visibility: { scope: 'private'; playerId: PlayerId };
+      playerId: PlayerId;
+      kind: 'damageDefend' | 'manipulate' | 'loyaltySecure';
+      size: PostTier;
+      investments: number;
+      investmentPayment: string;
+      baseCosts: { gold: number; influence: number };
+      investmentCosts: { gold: number; influence: number };
+      infoSpent: number;
+      infoBonus: number;
+      infoGained: number;
+      dc: number;
+      roll: DiceRoll;
+      rollModifier: number;
+      rollTotal: number;
+      tierResult: SuccessTier;
+      influencePenalty: number;
+      politicsDelta: { kwDelta: number; asDelta: number; nDelta: number };
+      defense?: {
+        dc: number;
+        roll: DiceRoll;
+        rollModifier: number;
+        rollTotal: number;
+        defended: boolean;
+      };
+      actionCost: number;
+      actionKey: string;
+    };
+
 export type PlayerDomainSpecializationSetEvent = {
   type: 'PlayerDomainSpecializationSet';
   visibility: { scope: 'private'; playerId: PlayerId };
@@ -597,13 +755,60 @@ export type PlayerSpecialistHiredEvent = {
   playerId: PlayerId;
   specialistId: string;
   kind: SpecialistKind;
+  secondaryKind?: SpecialistKind;
   tier: SpecialistTier;
-  tableRoll: DiceRoll;
+  baseEffectBonus?: number;
+  autoPromoteAtRound?: number;
+  dc: number;
+  roll: DiceRoll;
+  rollModifier: number;
+  rollTotal: number;
+  tierResult: SuccessTier;
+  tableRoll: DiceRoll | null;
   costAdjustmentGold: number;
-  loyaltyRolled: DiceRoll;
-  loyaltyFinal: number;
-  traits: Array<{ id: number; name: string; positive: string; negative: string }>;
+  loyaltyRolled: DiceRoll | null;
+  loyaltyFinal: number | null;
+  traitRoll: DiceRoll | null;
+  influencePerRoundBonus: number;
+  traits: Array<{
+    id: number;
+    name: string;
+    positive: string;
+    negative: string;
+    positiveOnly?: boolean;
+    positiveMultiplier?: number;
+    negativeMultiplier?: number;
+  }>;
+  apprentice?: {
+    specialistId: string;
+    kind: SpecialistKind;
+    secondaryKind?: SpecialistKind;
+    tier: SpecialistTier;
+    loyalty: number;
+    traitRoll: DiceRoll;
+    traits: Array<{
+      id: number;
+      name: string;
+      positive: string;
+      negative: string;
+      positiveOnly?: boolean;
+      positiveMultiplier?: number;
+      negativeMultiplier?: number;
+    }>;
+  };
   goldSpent: number;
+  usedFreeFacilityBuild: boolean;
+  actionCost: number;
+};
+
+export type PlayerSpecialistPromotedEvent = {
+  type: 'PlayerSpecialistPromoted';
+  visibility: { scope: 'private'; playerId: PlayerId };
+  playerId: PlayerId;
+  specialistId: string;
+  fromTier: SpecialistTier;
+  toTier: SpecialistTier;
+  reason: string;
 };
 
 export type PlayerPrivateNoteAddedEvent = {
@@ -641,6 +846,7 @@ export type GameEvent =
   | PlayerCityPropertyModeSetEvent
   | PlayerOfficeAcquiredEvent
   | PlayerOfficeYieldModeSetEvent
+  | PlayerOfficeLostEvent
   | PlayerOrganizationAcquiredEvent
   | PlayerTradeEnterpriseAcquiredEvent
   | PlayerTradeEnterpriseModeSetEvent
@@ -651,19 +857,30 @@ export type GameEvent =
   | PlayerStorageBuiltEvent
   | PlayerStorageUpgradedEvent
   | PlayerFacilityBuiltEvent
+  | PlayerLongTermProjectStartedEvent
+  | PlayerLongTermProjectProgressedEvent
+  | PlayerLongTermProjectCompletedEvent
   | PlayerFacilityDamagedEvent
   | PlayerWorkshopDamagedEvent
   | PlayerStorageDamagedEvent
   | PlayerTradeEnterpriseDamagedEvent
   | PlayerTradeEnterpriseLostEvent
   | PlayerFollowersAdjustedEvent
+  | PlayerPoliticsAdjustedEvent
+  | PlayerEventIncidentRecordedEvent
+  | PlayerCounterReactionLossChoiceSetEvent
+  | PlayerCounterReactionResolvedEvent
   | PlayerDomainSpecializationSetEvent
   | PlayerStarterDomainUpgradedEvent
   | PlayerSpecialistHiredEvent
+  | PlayerSpecialistPromotedEvent
+  | PlayerPoliticalStepsResolvedEvent
   | PlayerPrivateNoteAddedEvent
   | PublicLogEntryAddedEvent;
 
-export function campaignMarketFromEvent(event: MarketRolledEvent): MarketStateFromEvent {
+export function campaignMarketFromEvent(
+  event: MarketRolledEvent
+): MarketStateFromEvent {
   return {
     round: event.round,
     instances: event.instances.map((i) => ({
@@ -691,7 +908,9 @@ type MarketStateFromEvent = {
   instances: MarketInstanceState[];
 };
 
-export function globalEventsFromEvent(event: SectionEventsRolledEvent): GlobalEventState[] {
+export function globalEventsFromEvent(
+  event: SectionEventsRolledEvent
+): GlobalEventState[] {
   return event.events.map((e) => ({
     startsAtRound: event.startsAtRound,
     endsAtRound: event.endsAtRound,

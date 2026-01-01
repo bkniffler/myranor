@@ -1,6 +1,6 @@
+import { formatPlaytestMarkdown } from './format';
 import { runPlaytest } from './runner';
 import { getScenario, listScenarioNames } from './scenarios';
-import { formatPlaytestMarkdown } from './format';
 
 type CliArgs = {
   runs: number;
@@ -65,9 +65,10 @@ function parseArgs(argv: string[]): CliArgs {
     const token = argv[i];
     if (!token) continue;
 
-    const [flag, inline] = token.startsWith('--') && token.includes('=')
-      ? token.split('=', 2)
-      : [token, undefined];
+    const [flag, inline] =
+      token.startsWith('--') && token.includes('=')
+        ? token.split('=', 2)
+        : [token, undefined];
 
     switch (flag) {
       case '--runs':
@@ -118,19 +119,19 @@ function fmt(n: number, digits = 2): string {
 
 function printSummary(report: ReturnType<typeof runPlaytest>): void {
   console.log(
-    `Playtest "${report.scenario.name}" — ${report.config.runs} Runs, ${report.config.rounds} Runden, Seed ${report.config.seed}`,
+    `Playtest "${report.scenario.name}" — ${report.config.runs} Runs, ${report.config.rounds} Runden, Seed ${report.config.seed}`
   );
   console.log(
-    `Gini (Final-Gold): mean=${fmt(report.outcomes.giniGold.mean, 3)} p50=${fmt(report.outcomes.giniGold.p50, 3)} p90=${fmt(report.outcomes.giniGold.p90, 3)}`,
+    `Gini (Final-Gold): mean=${fmt(report.outcomes.giniGold.mean, 3)} p50=${fmt(report.outcomes.giniGold.p50, 3)} p90=${fmt(report.outcomes.giniGold.p90, 3)}`
   );
 
   const agents = Object.entries(report.outcomes.byAgent);
   for (const [agentId, a] of agents) {
     console.log(
-      `- ${agentId}: gold mean=${fmt(a.finalGold.mean)} p10=${fmt(a.finalGold.p10)} p50=${fmt(a.finalGold.p50)} p90=${fmt(a.finalGold.p90)} | winRate=${fmt(a.winRate, 3)} | idle=${fmt(a.idleActionRate, 3)} | officesGold/round mean=${fmt(a.finalOfficesGoldPerRound.mean)} p50=${fmt(a.finalOfficesGoldPerRound.p50)}`,
+      `- ${agentId}: gold mean=${fmt(a.finalGold.mean)} p10=${fmt(a.finalGold.p10)} p50=${fmt(a.finalGold.p50)} p90=${fmt(a.finalGold.p90)} | winRate=${fmt(a.winRate, 3)} | idle=${fmt(a.idleActionRate, 3)} | officesGold/round mean=${fmt(a.finalOfficesGoldPerRound.mean)} p50=${fmt(a.finalOfficesGoldPerRound.p50)}`
     );
     console.log(
-      `  firstOffice: mean=${fmt(a.milestones.firstOfficeRound.mean)} p50=${fmt(a.milestones.firstOfficeRound.p50)} never=${fmt(a.milestones.firstOfficeRound.neverRate, 3)} | domainUpg: mean=${fmt(a.milestones.firstDomainUpgradeRound.mean)} p50=${fmt(a.milestones.firstDomainUpgradeRound.p50)} never=${fmt(a.milestones.firstDomainUpgradeRound.neverRate, 3)}`,
+      `  firstOffice: mean=${fmt(a.milestones.firstOfficeRound.mean)} p50=${fmt(a.milestones.firstOfficeRound.p50)} never=${fmt(a.milestones.firstOfficeRound.neverRate, 3)} | domainUpg: mean=${fmt(a.milestones.firstDomainUpgradeRound.mean)} p50=${fmt(a.milestones.firstDomainUpgradeRound.p50)} never=${fmt(a.milestones.firstDomainUpgradeRound.neverRate, 3)}`
     );
   }
 }
@@ -152,14 +153,14 @@ async function main() {
   const scenario = getScenario(args.scenario);
   if (!scenario) {
     throw new Error(
-      `Unknown scenario "${args.scenario}". Available: ${listScenarioNames().join(', ')}`,
+      `Unknown scenario "${args.scenario}". Available: ${listScenarioNames().join(', ')}`
     );
   }
 
   const report = runPlaytest(
     { runs: args.runs, rounds: args.rounds, seed: args.seed },
     scenario.name,
-    scenario.players,
+    scenario.players
   );
 
   if (args.out) {

@@ -1,11 +1,11 @@
-import { resolveSuccessTier, type SuccessTier } from '../core';
+import { type SuccessTier, resolveSuccessTier } from '../core';
 
 export type RollMode = 'normal' | 'advantage' | 'disadvantage';
 
 export function tierProbabilities(
   dc: number,
   modifier: number,
-  mode: RollMode = 'normal',
+  mode: RollMode = 'normal'
 ): Record<SuccessTier, number> {
   const counts: Record<SuccessTier, number> = {
     veryGood: 0,
@@ -37,4 +37,3 @@ export function tierProbabilities(
   }
   return counts;
 }
-

@@ -30,8 +30,8 @@ aufgeteilt ist.
 
 ### Pro Spieler
 
-1. **Ressourcenphase**: Reset + Ausschüttung + Wahl-Erträge (z.B. Amt: Gold vs Einfluss) + delayed payouts; alles außer Gold ist temporär.  
-2. **Unterhaltsphase**: ab Runde 2 Unterhalt zahlen; wenn nicht zahlbar, ruht die Funktion; zusätzlicher Unterhalt für AK/KK via Nahrung oder Gold; Untote via Zauberkraft.  
+1. **Ressourcenphase**: Reset + Ausschüttung + Wahl-Erträge (z.B. Amt: Gold vs Einfluss) + delayed payouts; alles außer **Gold** und **Information** ist temporär.  
+2. **Unterhaltsphase**: ab Runde 2 Unterhalt zahlen; wenn nicht zahlbar, ruht die Funktion; zusätzlicher Unterhalt für AK/KK via Nahrung oder Gold; Untote via Zauberkraft (`4` untote Einheiten = `1 ZK`).  
 3. **Aktionen**: 2 Standardaktionen, keine Wiederholung innerhalb der Standardaktionen (Unteraktionen zählen getrennt); 1 freie Einrichtungsaktion + optional Standardaktion für Bau; Bonusaktionen dürfen wiederholen.  
 4. **Umwandlung**: Werkstätten/Lager/weitere Umwandlungen; automatische Umwandlung am Rundenende (4 temporär → 1 Gold; 1 SM → 2 Gold); Reset der Pools.
 
@@ -65,5 +65,5 @@ Ziel: Investment-Definitionen, Caps, DC-Schwellen und Erfolgsstaffelungen expliz
   - Kauf/Verkauf als Investitionspakete (6 RM / 1 SM / 1 temporäre AK) inkl. Markt-/Eventlogik; Kauf kann mit Verkauf kombiniert werden (Kaufware nächste Runde).
 - **Materialgewinn**: Domänenverwaltung (DC 10) und Werkstattüberwachung (DC 12), Caps nach Tier; mittel ab 8 Invest, groß ab 12; Erträge nach Erfolgsstufe.
 - **Gewinn permanenter Posten**: Kosten/Anforderungen nach Postenart; DC-Regeln nach Kategorie (Domäne/Stadt/Werkstatt vs Amt/Orga vs Truppen); Kostenmodifikatoren über Erfolgsstufe.
-- **Politische Schritte**: WIP, aber Investment- und DC-System definiert.
+- **Politische Schritte**: definiert (Beschädigen/Verteidigen, Manipulieren, Loyalität sichern) inkl. Investment- und DC-System.
 - **Einrichtungen**: freie Aktion 1×/Runde, gelingt automatisch; Upgrades (Tier) mit DC-2 und Kosten minus Vorstufe.

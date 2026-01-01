@@ -7,15 +7,15 @@ Wichtig: `rulesVersion = v1` ist das **Kern-Aufbausystem**. **„Das Erste Lager
 ## Was wird getestet?
 
 - Phasen: Unterhalt (`maintenance`) → Aktionen (`actions`) → Umwandlung (`conversion`) → Reset (`reset`)
-- Markt: pro Runde je 1× Rohmaterial- und Sondermaterial-Tabelle (2d6), inkl. zusätzliche Märkte pro Handelsunternehmung
-- Ereignisse: pro Abschnitt (alle 5 Runden) 2 Ereignisse (2d20, ohne Doppelung), wirken 5 Runden
+- Markt: pro Markt-Abschnitt (4 Runden; R1–R4, R5–R8, …) je 1× Rohmaterial- und 1× Sondermaterial-Tabelle (2d6), inkl. zusätzliche Märkte pro Handelsunternehmung
+- Ereignisse: pro Ereignis-Abschnitt (4 Runden; Start ab Runde 2: R2–R5, R6–R9, …) 2 Ereignisse (2d20, ohne Doppelung), wirken 4 Runden
 - Aktionen:
   - 1) Einflussgewinn (`GainInfluence`)
   - 2) Geldgewinn (`MoneyLend`, `MoneySell`, `MoneyBuy`)
   - 3) Materialgewinn (`GainMaterials`)
   - 4) Posten erwerben (Domänen/Stadt/Ämter/Organisationen/Handelsunternehmungen/Pächter/Truppen)
   - 6) Sonderaktion Einrichtungen/Ausbau (Starterdomäne ausbauen, Spezialisierungen, Werkstatt/Lager)
-- Nicht im Scope: Aktion 5 „Politische Schritte“
+- Politische Schritte (v1): `PoliticalSteps` (Beschädigen/Verteidigen, Manipulieren, Loyalität sichern, Information umwandeln)
 
 Aktueller Implementierungsstand (inkl. Abweichungen/Interpretationen) ist in `docs/dev/implementation-status.md` dokumentiert.
 

@@ -190,7 +190,7 @@ const CORE_STRATEGY_PLAYERS: PlayerProfile[] = [
 ];
 
 const SOFT_GUARDRAILS: Record<string, string[]> = {
-  'Amtsfokus': [
+  Amtsfokus: [
     'Gold >= (Upkeep naechste Runde + 2) behalten',
     'Einfluss nur pushen, wenn in 1-2 Runden ein Amt geplant ist (temp reicht)',
     'Aemter nur, wenn Cap frei und Finanzierung realistisch',
@@ -206,12 +206,12 @@ const SOFT_GUARDRAILS: Record<string, string[]> = {
     'Orga braucht HQ: erst Stadtbesitz sichern',
     'Domaenen nur, wenn Stadt/Orga nicht stockt',
   ],
-  'Werkstattfokus': [
+  Werkstattfokus: [
     'Gold >= (Upkeep naechste Runde + 2) behalten',
     'Werkstatt-Input sichern: nicht unter 4 RM fuer Kern-Input fallen',
     'AK nicht unter 1 druecken',
   ],
-  'Domaenenfokus': [
+  Domaenenfokus: [
     'Gold >= (Upkeep naechste Runde + 2) behalten',
     'Wenn Lager voll oder Markt gut: verkaufen; sonst RM halten',
     'Nicht in Stadt/Orga investieren, bevor grosse Domaene realistisch',
@@ -219,7 +219,7 @@ const SOFT_GUARDRAILS: Record<string, string[]> = {
 };
 
 const TUNED_GUARDRAILS: Record<string, string[]> = {
-  'Amtsfokus': [
+  Amtsfokus: [
     'Gold >= (Upkeep naechste Runde + 4) behalten',
     'Wenn ein Amt bezahlbar + Cap frei: Amt priorisieren',
     'Temp-Einfluss nur, wenn Amtkauf in 1-2 Runden geplant ist',
@@ -236,12 +236,12 @@ const TUNED_GUARDRAILS: Record<string, string[]> = {
     'Wenn Orga bezahlbar + HQ da: Orga priorisieren',
     'Domänen erst nach mind. 2 Stadtbesitz oder 1 Orga',
   ],
-  'Werkstattfokus': [
+  Werkstattfokus: [
     'Gold >= (Upkeep naechste Runde + 1) behalten',
     'Werkstatt-Input sichern: mind. 4 RM fuer Kern-Input',
     'AK nicht unter 1 druecken',
   ],
-  'Domaenenfokus': [
+  Domaenenfokus: [
     'Gold >= (Upkeep naechste Runde + 1) behalten',
     'Domänenausbau/Erwerb priorisieren, wenn bezahlbar',
     'Verkauf nur, wenn Lager voll oder Markt gut',
@@ -258,12 +258,12 @@ function applyGuardrails(
       mode === 'none'
         ? []
         : mode === 'tuned'
-          ? TUNED_GUARDRAILS[profile.strategyCard.title] ??
+          ? (TUNED_GUARDRAILS[profile.strategyCard.title] ??
             profile.strategyCard.guardrails ??
-            []
-          : SOFT_GUARDRAILS[profile.strategyCard.title] ??
+            [])
+          : (SOFT_GUARDRAILS[profile.strategyCard.title] ??
             profile.strategyCard.guardrails ??
-            [];
+            []);
     return {
       ...profile,
       strategyCard: {

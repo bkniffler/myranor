@@ -1,11 +1,10 @@
 import type {
-  MarketInstanceState,
   MarketSideState,
   MarketState,
   RawMarketGroup,
   SpecialMarketGroup,
 } from '../domain/types';
-import { rollDice, type DiceRoll } from '../util/dice';
+import { type DiceRoll, rollDice } from '../util/dice';
 import type { Rng } from '../util/rng';
 
 export type MarketSideRoll = {
@@ -29,6 +28,11 @@ export type MarketRoll = {
   round: number;
   instances: MarketInstanceRoll[];
 };
+
+export function isMarketSectionStartRound(round: number): boolean {
+  // Soll: Markt-Abschnitte dauern 4 Runden (R1–R4, R5–R8, ...).
+  return (round - 1) % 4 === 0;
+}
 
 function emptyRawMods(): Record<RawMarketGroup, number> {
   return {
@@ -64,7 +68,7 @@ function emptySpecialMods(): Record<SpecialMarketGroup, number> {
 function addMods(
   mods: Record<string, number>,
   keys: string[],
-  delta: number,
+  delta: number
 ): void {
   for (const k of keys) mods[k] = (mods[k] ?? 0) + delta;
 }
@@ -72,7 +76,7 @@ function addMods(
 function addAllExcept(
   mods: Record<string, number>,
   excluded: string[],
-  delta: number,
+  delta: number
 ): void {
   const exclude = new Set(excluded);
   for (const k of Object.keys(mods)) {
@@ -95,7 +99,11 @@ function rollRawSide(rng: Rng): MarketSideRoll {
     modifierRolls.push({ roll: bonus, note: 'Teure RM +bonus' });
     modifierRolls.push({ roll: penalty, note: 'Andere -penalty' });
     addMods(mods, ['rawExpensiveBuilding', 'rawExpensiveOther'], bonus.total);
-    addAllExcept(mods, ['rawExpensiveBuilding', 'rawExpensiveOther'], -penalty.total);
+    addAllExcept(
+      mods,
+      ['rawExpensiveBuilding', 'rawExpensiveOther'],
+      -penalty.total
+    );
     return {
       tableRoll,
       categoryLabel: 'Teuerstes Rohmaterial',
@@ -111,12 +119,14 @@ function rollRawSide(rng: Rng): MarketSideRoll {
     const penalty = rollDice('1d2', rng);
     modifierRolls.push({ roll: bonus, note: 'Gefragte Kategorie +bonus' });
     modifierRolls.push({ roll: penalty, note: 'Andere -penalty' });
-    const demanded: RawMarketGroup = total === 3 ? 'rawCheapBuilding' : 'rawCheapFood';
+    const demanded: RawMarketGroup =
+      total === 3 ? 'rawCheapBuilding' : 'rawCheapFood';
     mods[demanded] += bonus.total;
     addAllExcept(mods, [demanded], -penalty.total);
     return {
       tableRoll,
-      categoryLabel: total === 3 ? 'Billiges Baumaterial' : 'Billiges Nahrungsmaterial',
+      categoryLabel:
+        total === 3 ? 'Billiges Baumaterial' : 'Billiges Nahrungsmaterial',
       demandLabel: 'Sehr gefragt',
       modifiersByGroup: mods,
       modifierRolls,
@@ -141,16 +151,20 @@ function rollRawSide(rng: Rng): MarketSideRoll {
   if (total === 6) {
     const bonus = rollDice('1d2', rng);
     modifierRolls.push({ roll: bonus, note: 'Billig/Einfach +bonus' });
-    addMods(mods, [
-      'rawCheapBuilding',
-      'rawCheapFood',
-      'rawCheapConsumable',
-      'rawCheapOther',
-      'rawBasicBuilding',
-      'rawBasicFood',
-      'rawBasicConsumable',
-      'rawBasicOther',
-    ], bonus.total);
+    addMods(
+      mods,
+      [
+        'rawCheapBuilding',
+        'rawCheapFood',
+        'rawCheapConsumable',
+        'rawCheapOther',
+        'rawBasicBuilding',
+        'rawBasicFood',
+        'rawBasicConsumable',
+        'rawBasicOther',
+      ],
+      bonus.total
+    );
     return {
       tableRoll,
       categoryLabel: 'Billiges/Einfaches Material',
@@ -176,7 +190,11 @@ function rollRawSide(rng: Rng): MarketSideRoll {
     const bonus = rollDice('1d6', rng);
     modifierRolls.push({ roll: bonus, note: 'Einfache Kategorie +bonus' });
     const demanded: RawMarketGroup =
-      total === 8 ? 'rawBasicBuilding' : total === 9 ? 'rawBasicFood' : 'rawBasicConsumable';
+      total === 8
+        ? 'rawBasicBuilding'
+        : total === 9
+          ? 'rawBasicFood'
+          : 'rawBasicConsumable';
     mods[demanded] += bonus.total;
     return {
       tableRoll,
@@ -214,10 +232,26 @@ function rollRawSide(rng: Rng): MarketSideRoll {
   {
     const expensivePenalty = rollDice('1d8', rng);
     const cheapBonus = rollDice('1d6', rng);
-    modifierRolls.push({ roll: expensivePenalty, note: 'Teures Material -penalty' });
+    modifierRolls.push({
+      roll: expensivePenalty,
+      note: 'Teures Material -penalty',
+    });
     modifierRolls.push({ roll: cheapBonus, note: 'Billiges Material +bonus' });
-    addMods(mods, ['rawExpensiveBuilding', 'rawExpensiveOther'], -expensivePenalty.total);
-    addMods(mods, ['rawCheapBuilding', 'rawCheapFood', 'rawCheapConsumable', 'rawCheapOther'], cheapBonus.total);
+    addMods(
+      mods,
+      ['rawExpensiveBuilding', 'rawExpensiveOther'],
+      -expensivePenalty.total
+    );
+    addMods(
+      mods,
+      [
+        'rawCheapBuilding',
+        'rawCheapFood',
+        'rawCheapConsumable',
+        'rawCheapOther',
+      ],
+      cheapBonus.total
+    );
     return {
       tableRoll,
       categoryLabel: 'Teures Material',
@@ -258,12 +292,14 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
     const penalty = rollDice('1d2', rng);
     modifierRolls.push({ roll: bonus, note: 'Gefragte Kategorie +bonus' });
     modifierRolls.push({ roll: penalty, note: 'Andere -penalty' });
-    const demanded: SpecialMarketGroup = total === 3 ? 'specialCheapCraft' : 'specialCheapConsumable';
+    const demanded: SpecialMarketGroup =
+      total === 3 ? 'specialCheapCraft' : 'specialCheapConsumable';
     mods[demanded] += bonus.total;
     addAllExcept(mods, [demanded], -penalty.total);
     return {
       tableRoll,
-      categoryLabel: total === 3 ? 'Billiges Handwerksprodukt' : 'Billige Verbrauchsgüter',
+      categoryLabel:
+        total === 3 ? 'Billiges Handwerksprodukt' : 'Billige Verbrauchsgüter',
       demandLabel: 'Sehr gefragt',
       modifiersByGroup: mods,
       modifierRolls,
@@ -274,11 +310,13 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
   if (total === 5 || total === 6) {
     const bonus = rollDice('1d2', rng);
     modifierRolls.push({ roll: bonus, note: 'Gefragte Kategorie +bonus' });
-    const demanded: SpecialMarketGroup = total === 5 ? 'specialCheapFood' : 'specialCheapOther';
+    const demanded: SpecialMarketGroup =
+      total === 5 ? 'specialCheapFood' : 'specialCheapOther';
     mods[demanded] += bonus.total;
     return {
       tableRoll,
-      categoryLabel: total === 5 ? 'Billige Nahrungsveredelung' : 'Billiges Sondermaterial',
+      categoryLabel:
+        total === 5 ? 'Billige Nahrungsveredelung' : 'Billiges Sondermaterial',
       demandLabel: 'Gefragt',
       modifiersByGroup: mods,
       modifierRolls,
@@ -291,7 +329,10 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
     metaRolls.push(direction);
     const sign = direction.total <= 3 ? -1 : 1;
     const magnitude = rollDice('1d2', rng);
-    modifierRolls.push({ roll: magnitude, note: `Alle Sondermaterialien ${sign === -1 ? '-' : '+'}1d2` });
+    modifierRolls.push({
+      roll: magnitude,
+      note: `Alle Sondermaterialien ${sign === -1 ? '-' : '+'}1d2`,
+    });
     addMods(mods, Object.keys(mods), sign * magnitude.total);
     return {
       tableRoll,
@@ -320,7 +361,10 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
   if (total === 9) {
     const bonus = rollDice('1d6', rng);
     const penalty = rollDice('1d2', rng);
-    modifierRolls.push({ roll: bonus, note: 'Einfache Handwerksprodukte +bonus' });
+    modifierRolls.push({
+      roll: bonus,
+      note: 'Einfache Handwerksprodukte +bonus',
+    });
     modifierRolls.push({ roll: penalty, note: 'Andere -penalty' });
     mods.specialBasicCraft += bonus.total;
     addAllExcept(mods, ['specialBasicCraft'], -penalty.total);
@@ -370,7 +414,10 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
   metaRolls.push(direction);
   const sign = direction.total <= 2 ? -1 : 1;
   const magnitude = sign === -1 ? rollDice('2d6', rng) : rollDice('3d6', rng);
-  modifierRolls.push({ roll: magnitude, note: `Luxusgut ${sign === -1 ? '-' : '+'}${sign === -1 ? '2d6' : '3d6'}` });
+  modifierRolls.push({
+    roll: magnitude,
+    note: `Luxusgut ${sign === -1 ? '-' : '+'}${sign === -1 ? '2d6' : '3d6'}`,
+  });
   mods.specialExpensiveLuxury += sign * magnitude.total;
   return {
     tableRoll,
@@ -385,7 +432,7 @@ function rollSpecialSide(rng: Rng): MarketSideRoll {
 export function rollMarketInstances(
   round: number,
   instances: Array<{ id: string; label: string; ownerPlayerId?: string }>,
-  rng: Rng,
+  rng: Rng
 ): MarketRoll {
   return {
     round,

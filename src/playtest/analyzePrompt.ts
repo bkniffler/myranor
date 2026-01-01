@@ -107,37 +107,99 @@ function rulesSnapshot(): unknown {
     },
     posts: {
       domain: {
-        starter: { upkeepGold: domainGoldUpkeep('starter'), labor: domainLaborPerRound('starter'), raw: domainRawPerRound('starter') },
-        small: { upkeepGold: domainGoldUpkeep('small'), labor: domainLaborPerRound('small'), raw: domainRawPerRound('small') },
-        medium: { upkeepGold: domainGoldUpkeep('medium'), labor: domainLaborPerRound('medium'), raw: domainRawPerRound('medium') },
-        large: { upkeepGold: domainGoldUpkeep('large'), labor: domainLaborPerRound('large'), raw: domainRawPerRound('large') },
+        starter: {
+          upkeepGold: domainGoldUpkeep('starter'),
+          labor: domainLaborPerRound('starter'),
+          raw: domainRawPerRound('starter'),
+        },
+        small: {
+          upkeepGold: domainGoldUpkeep('small'),
+          labor: domainLaborPerRound('small'),
+          raw: domainRawPerRound('small'),
+        },
+        medium: {
+          upkeepGold: domainGoldUpkeep('medium'),
+          labor: domainLaborPerRound('medium'),
+          raw: domainRawPerRound('medium'),
+        },
+        large: {
+          upkeepGold: domainGoldUpkeep('large'),
+          labor: domainLaborPerRound('large'),
+          raw: domainRawPerRound('large'),
+        },
       },
       cityPropertyLeased: {
-        small: { labor: cityLaborPerRound('small', 'leased'), influence: cityInfluencePerRound('small', 'leased'), gold: cityGoldPerRound('small', 'leased') },
-        medium: { labor: cityLaborPerRound('medium', 'leased'), influence: cityInfluencePerRound('medium', 'leased'), gold: cityGoldPerRound('medium', 'leased') },
-        large: { labor: cityLaborPerRound('large', 'leased'), influence: cityInfluencePerRound('large', 'leased'), gold: cityGoldPerRound('large', 'leased') },
+        small: {
+          labor: cityLaborPerRound('small', 'leased'),
+          influence: cityInfluencePerRound('small', 'leased'),
+          gold: cityGoldPerRound('small', 'leased'),
+        },
+        medium: {
+          labor: cityLaborPerRound('medium', 'leased'),
+          influence: cityInfluencePerRound('medium', 'leased'),
+          gold: cityGoldPerRound('medium', 'leased'),
+        },
+        large: {
+          labor: cityLaborPerRound('large', 'leased'),
+          influence: cityInfluencePerRound('large', 'leased'),
+          gold: cityGoldPerRound('large', 'leased'),
+        },
       },
       office: {
-        smallInfluence: officesIncomePerRound('small', 'influence', DEFAULT_CAMPAIGN_RULES),
-        smallGold: officesIncomePerRound('small', 'gold', DEFAULT_CAMPAIGN_RULES),
-        smallSplit: officesIncomePerRound('small', 'split', DEFAULT_CAMPAIGN_RULES),
+        smallInfluence: officesIncomePerRound(
+          'small',
+          'influence',
+          DEFAULT_CAMPAIGN_RULES
+        ),
+        smallGold: officesIncomePerRound(
+          'small',
+          'gold',
+          DEFAULT_CAMPAIGN_RULES
+        ),
+        smallSplit: officesIncomePerRound(
+          'small',
+          'split',
+          DEFAULT_CAMPAIGN_RULES
+        ),
       },
       workshop: {
-        small: { upkeep: workshopUpkeep('small'), cap: workshopCapacity('small') },
-        medium: { upkeep: workshopUpkeep('medium'), cap: workshopCapacity('medium') },
-        large: { upkeep: workshopUpkeep('large'), cap: workshopCapacity('large') },
+        small: {
+          upkeep: workshopUpkeep('small'),
+          cap: workshopCapacity('small'),
+        },
+        medium: {
+          upkeep: workshopUpkeep('medium'),
+          cap: workshopCapacity('medium'),
+        },
+        large: {
+          upkeep: workshopUpkeep('large'),
+          cap: workshopCapacity('large'),
+        },
       },
       storage: {
-        small: { upkeep: storageUpkeep('small'), cap: storageCapacity('small', DEFAULT_CAMPAIGN_RULES) },
-        medium: { upkeep: storageUpkeep('medium'), cap: storageCapacity('medium', DEFAULT_CAMPAIGN_RULES) },
-        large: { upkeep: storageUpkeep('large'), cap: storageCapacity('large', DEFAULT_CAMPAIGN_RULES) },
+        small: {
+          upkeep: storageUpkeep('small'),
+          cap: storageCapacity('small', DEFAULT_CAMPAIGN_RULES),
+        },
+        medium: {
+          upkeep: storageUpkeep('medium'),
+          cap: storageCapacity('medium', DEFAULT_CAMPAIGN_RULES),
+        },
+        large: {
+          upkeep: storageUpkeep('large'),
+          cap: storageCapacity('large', DEFAULT_CAMPAIGN_RULES),
+        },
       },
     },
     notes: {
-      market: 'Pro Runde werden Märkte gerollt (lokal + je Handelsunternehmung eigene Märkte). Geldgewinn: Verkauf/Kauf nutzt Markt-Modifikatoren pro Materialgruppe.',
-      events: 'Pro Abschnitt (5 Runden) werden 2 Ereignisse gerollt und im State gespeichert. Viele Effekte wirken als Modifikatoren auf Upkeep/Ertrag/DC oder als Nebeneffekte (LO, Schaden, etc.).',
-      visibility: 'Engine-Events haben public/private visibility; Playtest nutzt volle private Events.',
-      dcScaling: 'Check-Skalierung: Effektiver Check = base + floor(Runde/10).',
+      market:
+        'Markt-Abschnitte dauern 4 Runden (R1–R4, R5–R8, ...). Am Abschnittsstart werden Märkte gerollt (lokal + je Handelsunternehmung eigene Märkte). Geldgewinn: Verkauf/Kauf nutzt Markt-Modifikatoren pro Materialgruppe.',
+      events:
+        'Ereignis-Abschnitte starten ab Runde 2 und dauern 4 Runden (R2–R5, R6–R9, ...). Am Abschnittsstart werden 2 Ereignisse gerollt und im State gespeichert. Viele Effekte wirken als Modifikatoren auf Upkeep/Ertrag/DC oder als Nebeneffekte (LO, Schaden, etc.).',
+      visibility:
+        'Engine-Events haben public/private visibility; Playtest nutzt volle private Events.',
+      dcScaling:
+        'Check-Skalierung: Effektiver Check = base + floor((Runde-1)/6).',
     },
   };
 }

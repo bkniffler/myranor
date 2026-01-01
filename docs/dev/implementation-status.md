@@ -1,8 +1,8 @@
 # Implementierungsstatus (Myranor Aufbausystem) – Engine `rulesVersion = v1`
 
-Quelle der Regeln: `docs/reference/Aufbausystem.md` (Kernsystem) + Projektkontext `docs/design/concept.md`.
+Quelle der Regeln (Soll): `docs/rules/soll/aufbausystem.md` (+ Detailkatalog `docs/rules/soll/facilities.md`).
 
-Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engine **implementiert**, was **fehlt**, und welche **Interpretationen** gelten – damit Playtests belastbar auswertbar sind.
+Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engine **implementiert**, was ist **teilweise** umgesetzt, und was fehlt – damit Playtests belastbar auswertbar sind.
 
 ## Legende
 
@@ -13,202 +13,119 @@ Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engi
 
 ## Scope (v1)
 
-- ✅ **Kern-Aufbausystem**: Rundenablauf, Markt, Abschnitts-Ereignisse, Aktionen **1–4 & 6**
-- ❌ **Aktion 5 „Politische Schritte“**: explizit nicht im Scope
-- ❌ **„Erweiterte Aufbausysteme → Das Erste Lager“** (Nomisma/Nahrung/Tiere/KK/Werkzeuge/None/Oktrale): nicht modelliert (eigener Ruleset-Kandidat)
+- ✅ Kernsystem: Phasenmodell, Markt, Ereignis-Abschnitte (4 Runden), Aktionen 1–4 & 6
+- ✅ Politische Schritte (v1-light): `KW/AS/N`, `Information`, Neider-Gegenreaktionen
+- ✅ Loyalität v1: `LO 0–6`, Aufruhr/Abwanderung, LO-Proben (d6 under)
+- ✅ Fachkräfte v1: Anwerben-Check + Tabellen + Trait-Effekte (v1-Interpretation)
+- ✅ Produktions-Caps v1: Werkstätten/Lager sind separat an Domänen-/Stadtbesitz-Größe gebunden (City: keine Facility-Slots, nur Produktions-Caps)
+- 🟡 Langzeitvorhaben (Bauzeit) v1: `BuildFacility` kann Projekte starten; Fortschritt kostet AK/ZK im Maintenance, Abschluss erzeugt Facility (v1: u.a. `general.medium.city.insulae`)
+- ❌ Privatbastionen (Soll: WIP)
+- ❌ „Das Erste Lager“ (Nomisma/Nahrung/Tiere/Oktrale etc. als eigenes System) – nicht als eigener Ressourcenblock modelliert
+
+## Canonical Docs (v1)
+
+- Implementierte Regeln: `docs/rules/rules-v1.md`
+- Tabellen/Listen:
+  - Events: `docs/rules/tables/events.md`
+  - Markt: `docs/rules/tables/market.md`
+  - Materialien: `docs/rules/tables/materials.md`
+  - Facilities (v1): `docs/rules/facilities/catalog.md`
+- Soll-Änderungen (Change Docs): `docs/rules/soll/changes/README.md`
 
 ## Code-Orte (v1)
 
 - Engine/Reducer: `src/core/engine/engine.ts`
+- Commands: `src/core/commands/types.ts`
 - State/Types: `src/core/domain/types.ts`
 - Defaults/Basiswerte: `src/core/rules/v1.ts`
-- Materialkatalog (typed RM/SM): `src/core/rules/materials_v1.ts`
-- Marktsystem (2d6): `src/core/rules/market_v1.ts`
-- Ereignisse (Tabelle + Roll-Logik): `src/core/rules/eventTable_v1.ts`, `src/core/rules/events_v1.ts`
-- Ereignis-Modifikatoren (DC/Steuern/Markt): `src/core/rules/eventModifiers_v1.ts`
+- Materialkatalog: `src/core/rules/materials_v1.ts`
+- Markt: `src/core/rules/market_v1.ts`
+- Ereignisse: `src/core/rules/eventTable_v1.ts`, `src/core/rules/events_v1.ts`
 
-## Startbedingungen
+## Startbedingungen (v1)
 
-Quelle: `docs/reference/Aufbausystem.md` → „Startbedingungen“ (Kernsystem).
-
-- ✅ Starter-Domäne (`DomainTier: "starter"`) inkl. Basisertrag (2 AK, 4 RM)
+- ✅ Startgold: `4`
+- ✅ Startchecks: `influence=3`, `money=3`, `materials=3`
+- ✅ Starter-Domäne (`tier=starter`): Ertrag `2 AK` + `8 RM` (typed auf `rawPicks`)
 - ✅ 2 permanente Arbeitskraft (`holdings.permanentLabor = 2`)
-- ✅ Kleine Werkstatt zu Beginn (`workshop-starter`, zählt nicht als Domänen-Facility-Slot)
-- ✅ Kleiner städtischer Besitz, verpachtet (`city-starter`, `mode: "leased"`)
-- ✅ Startgold: 4
-- ✅ Start-Aktionen: 2 Aktionen/Runde + 1 freie Einrichtungs-/Ausbauaktion (`campaign.rules`)
+- ✅ Start-Werkstatt (`workshop-starter`) auf Starter-Domäne (zählt nicht gegen Domänen-Slots)
+- ✅ Start-Lager (`storage-starter`) auf Starter-Domäne (zählt nicht gegen Domänen-Slots)
+- ✅ Start-Stadtbesitz klein, verpachtet (`city-starter`, `mode=leased`, `tenure=owned`)
+- ✅ Start-Amt klein (`office-starter`, `yieldMode=influence`)
 
-Quelle: `docs/reference/Aufbausystem.md` → „Das Erste Lager“.
-
-- ❌ Startressourcen Nomisma/Nahrung/Tiere/KK/Werkzeuge sind nicht im Engine-State (nicht Teil `v1`)
-
-## Ressourcenmodell
-
-- ✅ Gold: `PlayerEconomy.gold` (+ `pending.gold` für „nächste Runde“)
-- ✅ Arbeitskraft (AK): `PlayerTurn.laborAvailable` (Reset in Phase `reset`)
-- ✅ Einfluss: `PlayerTurn.influenceAvailable` (Reset in Phase `reset`)
-- ✅ Rohmaterial/Sondermaterial (typed): `PlayerEconomy.inventory.raw|special` (`materialId -> count`)
-- ✅ Permanente Arbeitskraft (handelbar): `PlayerHoldings.permanentLabor`
-- ✅ Permanenter Einfluss (als dauerhafter Basis-Zuwachs): `PlayerHoldings.permanentInfluence`
-
-## Rundenablauf
-
-Quelle: `docs/reference/Aufbausystem.md` → „Die Runde“.
+## Rundenablauf / Phasen (v1)
 
 - ✅ Phasenmodell: `maintenance → actions → conversion → reset`
+- ✅ Markt-Abschnitt: 4 Runden (R1–R4, R5–R8, …)
+- ✅ Ereignis-Abschnitt: 4 Runden, Start ab Runde 2 (R2–R5, R6–R9, …)
+- ✅ In `maintenance → actions`:
+  - Markt-Roll (Abschnittsstart)
+  - Event-Roll (Abschnittsstart)
+  - Neider-Gegenreaktion (wenn `N>=3/6/9`)
+  - Income/Upkeep wird angewandt
 
-### Maintenance
+## Ressourcenmodell (v1)
 
-- ✅ Einkommen (regeltextnah für Kernposten, teils vereinfacht):
-  - Domänen: RM-Ertrag (typed, aktuell grob auf `raw.wood`/`raw.grainVeg` gesplittet)
-  - Stadtbesitz (verpachtet): Gold + Einfluss + AK gemäß Tier
-  - Ämter: Gold oder Einfluss je `yieldMode` (Hausregel: kleines Amt `2 Gold` statt `4`)
-  - Pächter/Anhänger/Klienten: +1 Gold je Stufe (wenn nicht in Unruhe)
-  - Unterweltcircel: Gold/Einfluss je Stufe×HQ-Stufe (gemäß Regeltext), sofern nicht in Unruhe
-  - Handelsunternehmungen: Ertrag (SM oder SM→Gold) + zusätzliche Marktsysteme
-- ✅ Unterhalt ab Runde 2:
-  - Domänen, Stadtbesitz (Eigenproduktion), Organisationen, Handelsunternehmungen, Truppen
-  - Werkstätten/Lager: werden nur „unterhalten“, wenn Gold/AK reichen (sonst in der Runde inaktiv)
-  - Arbeitskraft-Unterhalt: 1 RM je 4 AK (wenn RM fehlen: 🧩 v1-Interpretation → effektive AK sinken)
-- 🟡 Nichtzahlung von Gold/Einfluss-Unterhalt bei Posten ist aktuell als **negativer Goldstand** möglich (kein „Abschalten“/Kündigen modelliert).
+- ✅ Gold (+ `pending.gold`)
+- ✅ Information (persistent; v1 nutzt sie in Politischen Schritten)
+- ✅ Pools pro Runde: Arbeitskraft (`AK`) + Einfluss
+- ✅ Inventar: typed RM/SM (`materialId → count`)
+- ✅ Politik-Tracker: `KW/AS/N`
+- ✅ Truppen / Follower / Fachkräfte als eigene Holdings
 
-### Conversion
+## Unterhalt (v1)
 
-- ✅ Werkstatt-Konversion RM→SM (4:1, Kapazitäten je Werkstatt)
-- ✅ Lagerung: nur in unterhaltenen Lagern, Kapazität pro Lager × `storageCapacityMultiplier` (Default: 2×)
-- ✅ Auto-Konversion am Rundenende:
-  - RM→Gold: Standard 4:1 (Food-RM bei Hungersnot 3:1)
-  - SM→Gold: 1 SM = 2 Gold
-- ✅ Nicht gelagerte Restbestände verfallen
+- ✅ Unterhalt wird ab Runde 2 berechnet
+- ✅ Viele Posten bleiben auch bei negativem Goldstand aktiv (Gold kann negativ werden)
+- ✅ Werkstätten/Lager sind nur aktiv, wenn sie in der Runde unterhalten werden können (Labor/Gold reichen)
+- ✅ Handelsunternehmungen-Unterhalt (v1): `small/medium/large = (2G+1AK) / (5G+2AK) / (6G+4AK)`
+- ✅ Allgemeiner Unterhalt (pro Runde):
+  - `ceil(AK/4)` + `ceil(offene KK/2)` + `Follower-Level` Nahrungseinheiten
+  - wird aus `food`-getaggten RM/SM bezahlt; Rest wird als Gold-Unterhalt abgerechnet
+- ✅ Sonderfall Event 2 (Hungersnot): Fütterung wird separat geprüft; bei Mangel `LO -2`
 
-### Reset
-
-- ✅ Reset der Pools (AK/Einfluss) auf Basis der Holdings
-- ✅ Event 3 (Seuche): -1 AK je 2 „Follower-Level“ (≈ 500 Personen) pro Abschnitt (regeltextnah)
-
-## Markt (Marktsystem)
-
-Quelle: `docs/reference/Aufbausystem.md` → „Marktsystem“.
-
-- ✅ Pro Runde: je 1× Rohmaterial- und Sondermaterial-Tabelle (2d6)
-- ✅ Typed-Matching: Markt-Modifikator pro Investment über `material.marketGroup`
-- ✅ Zusätzliche Märkte durch Handelsunternehmungen: je Stufe 1 eigener Markt (`trade-<id>-<n>`)
-- ✅ Geldgewinn (Verkauf/Kauf) kann einen Markt wählen (`marketInstanceId`)
-- ✅ Handelsunternehmung im Modus `trade` nutzt den **besten** eigenen Handelsmarkt für die investierten SM
-- 🧩 Event-Sale-Boni (z.B. „+1d6 für Magiekomponenten“) sind aktuell als **flacher Bonus pro Verkauf-Aktion** modelliert (nicht pro Investment)
-
-## Loyalität / Anhänger / Klienten / Pächter
-
-Quelle: `docs/reference/Aufbausystem.md` → „Pächter, Anhänger und Untertanen“.
+## Loyalität / Anhänger / Klienten / Pächter (v1)
 
 - ✅ Modell: `FollowersState = { levels, loyalty, inUnrest }` an Domäne/Stadt/Organisation
-- ✅ Erträge (wenn nicht `inUnrest`):
+- ✅ LO-Skala: `0–6` (Cap 6)
+- ✅ LO-Probe (wenn gefordert): `1w6`, Erfolg bei `Wurf <= LO`
+- ✅ Erträge (wenn Gruppe „aktiv“ / nicht in Unruhe):
   - +1 AK je Stufe (über Basispool)
   - +1 Gold je Stufe (Maintenance)
-  - Domänen zusätzlich +1 einfaches RM je Stufe (typed, abhängig von Domänen-Spezialisierung; grob gemappt)
-- ✅ Caps:
-  - Domänen: 2/4/8 Stufen (klein/mittel/groß)
-  - Stadtbesitz: 2/3/4 Stufen (klein/mittel/groß)
-  - Unterwelt: 2/4/6 Stufen (2×Tier)
-  - Kult: 2/4/8 Stufen
-  - Collegien: 1/2/3 Stufen
-- ✅ Unruhe: `levels > 0 && loyalty <= 2` → Posten-Erträge/Pools fallen aus (v1-Mechanik)
-- 🧩 Abwanderung: Regeltext nennt Abwanderung, aber keine Tick-Regel → v1: solange `loyalty <= 2` verliert die Gruppe **1 Stufe pro Runde**
-- ✅ Ereignis-Interaktionen (Auszug):
-  - Hungersnot: Food-RM/SM werden als Upkeep verbraucht; bei Mangel `loyalty -2`
-  - Gute Ernte/Feiertage/Unheilvolle/Sehr gutes Jahr: LO- und Stufenänderungen (Abschnittsstart)
-  - Aufstand/Erbe der Achäer: Loyalitätsprobe (Abschnittsstart) → LO-Malus
-  - Plünderung/Überfälle: Stufenverluste (regeltextnah)
-- ❌ Spezielle Loyalitäts-Aktionen/Fazilitäten (z.B. „Loyalität sichern“) sind noch nicht als eigene Commands modelliert
+  - Domänen zusätzlich: `+2` billige RM je Pächterstufe (aus Domänenproduktion; v1: best-effort Mapping)
+- ✅ Unruhe/Alternieren:
+  - LO `>= 3`: immer aktiv
+  - LO `1–2`: Erträge nur jede zweite Runde (via `inUnrest` Toggle)
+  - LO `<= 0`: in Unruhe (keine Erträge)
+- ✅ Abwanderung (Soll): nur bei LO `<= 0` verliert die Gruppe `-1` Stufe pro Runde
 
-## Aktionen (ohne Politische Schritte)
+## Fachkräfte (v1)
 
-### 1) Einflussgewinn (`GainInfluence`)
+- ✅ `HireSpecialist` vorhanden (Kosten/Unterhalt, Cap, Check DC 10 + Tiermod)
+- ✅ 2w6-Rekrutierungstabelle + 1w20-Charaktertabelle sind umgesetzt:
+  - Kostenanpassungen, LO-Setzung (Cap 6), Trait-Roll
+  - Sonderfälle: „Prestige“ (+2 Einfluss/Runde), „Lehrling“, Auto-Promotion (nach 4 Runden), Trait-Multiplikatoren (Roll 10/12), „Gelehrt“ (Zweitbereich)
+- ✅ Trait-Effekte (v1-Interpretation) sind mechanisch umgesetzt (DC/Unterhalt/Income/Refinement/Defense/LO-Nebeneffekte)
 
-- ✅ Temporär (1 Gold → 4 Einfluss, Erfolgsstaffel)
-- ✅ Permanent (2 Gold → 1 permanenter Einfluss, Erfolgsstaffel)
-- ✅ DC-Mods: Besitz-/Amt-Größe, Kult-Stufe, Events (z.B. Säuberung/Inspektion)
-- ✅ Caps gemäß Regeltext (temporär 4/6/8/12; permanent: 🧩 v1-Interpretation „2 + Summe Tier-Ränge Ämter+Organisationen“)
-- ✅ Bonusaktionen:
-  - Große Ämter: +1 Bonusaktion Einflussgewinn je großem Amt
-  - Großer Kult: +1 Bonusaktion Einflussgewinn
+## Politische Schritte / Information / Konsequenzen (v1)
 
-### 2) Geldgewinn (`MoneyLend`, `MoneySell`, `MoneyBuy`)
+- ✅ `PoliticalSteps` (damageDefend/manipulate/loyaltySecure/convertInformation)
+- ✅ `Information` ist persistent; `convertInformation` implementiert (`1 Info → 2 Gold` oder `4 Einfluss`)
+- ✅ `KW` beeinflusst DC (Stufenmodell), `AS` beeinflusst Acquire/DCs, `N` triggert Gegenreaktionen
+- ✅ Passive Erholung: wenn keine Politischen Schritte in einer Runde, dann `KW-1` und `N-1` (min 0)
+- ✅ Spielerwahl „Gold oder Einfluss“ bei Gegenreaktionen ist abgebildet (Command `SetCounterReactionLossChoice`; Playtests setzen heuristisch)
 
-- ✅ Geldverleih: DC 14, Auszahlung nächste Runde, Cap 2/4/6/10 je Handelsunternehmungs-Tier
-- ✅ Verkauf: DC 14, Verkauf von RM/SM/permanenter AK, Cap 3 + (2×TradeTierSum) + (DomainTierSum)
-- 🟡 Kauf: implementiert (Preis-/Erfolgsstaffel ist teilweise 🧩 Interpretation, Regeltext spezifiziert nur „Geschafft“ eindeutig)
-- ✅ Bonusaktionen: Großes Handelscollegium → 1 Bonusaktion Geldgewinn/Runde
+## Markt (v1)
 
-### 3) Materialgewinn (`GainMaterials`)
+- ✅ Markt-Rolls alle 4 Runden pro Marktinstanz (2d6 Roh + 2d6 SM)
+- ✅ Kauf nutzt Marktmodifikatoren als Kostenaufschlag (gefragte Ware ist teurer; Gold-Boni werden zu Zusatzkosten)
+- ✅ Handelsunternehmungen erzeugen zusätzliche private Marktinstanzen (auch wenn `mode=produce`; solange nicht beschädigt)
+  - ✅ City-Produktions-Caps: `small: 2×small oder 1×medium`, `medium: 1×small+1×medium`, `large: 1×large+1×medium`
 
-- ✅ Domänenverwaltung: DC 10, Cap 4×Domänen-Tier, targetId erforderlich bei mehreren Domänen
-- ✅ Werkstattaufsicht: DC 12, Cap 2×Werkstatt-Tier, targetId erforderlich bei mehreren Werkstätten
-- ✅ Bonusaktionen: Großes Handwerkscollegium → 1 Bonusaktion Materialgewinn/Runde
+## Ereignisse (v1)
 
-### 4) Gewinn permanenter Posten (`Acquire*`, `RecruitTroops`, `AcquireTenants`)
-
-- ✅ Domäne/Stadtbesitz/Ämter: DC gemäß Regeltext, Kosten + Erfolgs-Kostenmodifikatoren
-- ✅ Organisationen (Unterwelt/Spion/Kult/Collegien): Stufenaufbau, HQ-Anforderung (Stadtbesitz-Tier ≥ Orga-Tier)
-- ✅ Handelsunternehmungen: DC 10, 🧩 Kaufkosten v1-Interpretation (20/40/80 Gold)
-- ✅ Truppen: Kosten (Gold/Einfluss/SM) + Events (z.B. Musterung), Cap-Regeln (v1-Interpretation)
-- ✅ Pächter/Anhänger anwerben: Kosten + Erfolgs-Kostenmodifikatoren, Cap-Regeln
-
-### 6) Einrichtungen errichten/ausbauen (Sonderaktion)
-
-- ✅ Starter-Domäne ausbauen (`UpgradeStarterDomain`)
-- ✅ Domänen-Spezialisierung setzen (Landwirtschaft/Tierzucht/Forst/Bergbau) – Kosten teils 🧩 vereinfacht
-- ✅ Werkstatt/Lager bauen & upgraden (inkl. Slot-/Kapazitätsregeln, Fachkraft-Voraussetzungen für größere Werkstätten)
-- 🟡 Allgemeine/Besondere Einrichtungen (`BuildFacility`) sind aktuell **generisch** (`general.*` / `special.*`) mit Goldkosten nach Tier; viele konkrete Kosten/Effekte fehlen
-
-## Ereignisse (Ereignistabellen)
-
-Quelle: `docs/reference/Aufbausystem.md` → „Ereignistabellen“.
-
-- ✅ Pro Abschnitt (5 Runden): 2× Event (2d20), ohne Doppelungen
-- ✅ Meta-Rolls werden einmalig gespeichert (z.B. Denera-Aufruhr-Trigger, Market-Deltas, Räuber/Piraten)
-
-**Event-Coverage (2–40)**
-
-- ✅ 2 Hungersnot: Food-RM 3:1 (Auto-Convert) + Fütterung/LO -2 + Sale-Bonus
-- ✅ 3 Seuche: Werkstatt-Unterhalt +1 AK, -AK pro Follower-Level, Sale-Bonus Medizin
-- ✅ 4 Kriegssteuer: +5 Gold/Runde + Einmalabgabe pro Amt + Sale-Bonus Waffen/Rüstung
-- ✅ 5 Aufstand: Loyalitätsprobe Stadt-Klienten (Abschnittsstart) + Sale-Bonus Waffen/Rüstung
-- ✅ 6 Kultüberprüfung: Trigger+Verbergen-Check, Einfluss- und Anhänger-Verlust + Kirchenaufsicht (🟡 nicht spezialisiert) +6 Einfluss
-- ✅ 7 Zahlungsengpässe: Amts-Gold halbiert, Geldverleih-DC +4
-- ✅ 8 Dürresommer: Landwirtschaft/Tierzucht halbiert (1 Runde) + Facility-Schaden (1 Runde, vereinfachte Abbildung) + Sale-Bonus Food
-- ✅ 9 Bautätigkeit: Werkstatt-Unterhalt +1 Gold + Sale-Boni Baumaterial
-- ✅ 10 Stagnation: teure Marktwerte -1d4, Handelsunternehmungen halbiert, Sell/Lend DC +2
-- ✅ 11 Gute Ernte: Landwirtschaft +8 RM, Food-Markt -1, LO +1 + Pächter-Kosten halbiert
-- ✅ 12 Säuberung: Influence-DC -2 (🟡 Amtsverluste/Curia/Hof-Spezialisierung nicht modelliert)
-- ✅ 13 Handelszusammenbruch: Geldverleih halbiert, Handelsunternehmung-Upkeep +4/Tier, Facility-Kosten (Trade) halbiert (1 Runde)
-- 🟡 14 Magischer Unfall: Sale-Bonus Magie + vereinfachter Facility-Schaden; Artefakt-Kaufchance nicht modelliert
-- 🟡 15 Unwetter: Sell-DC +1 + vereinfachter Facility-Schaden; Schiffe nicht modelliert
-- 🟡 16 Räuber/Piraten: Räuber-Variante (RM-Diebstahl) implementiert; Piraten/Schiffe nicht modelliert; Sell-DC +2
-- ✅ 17 Pässe/Söldner: Handelsunternehmungen halbiert; teure SM +2 Marktwert; Söldner-Rekrutierung halbiert
-- ✅ 18 Korruptionsuntersuchung: Amts-Einfluss halbiert + +2 Einfluss/Stufe (Unterwelt/Spion/Kult)
-- 🟡 19 (Fliegender Basar): teure SM -1d6 Marktwert (weitere Effekte ggf. fehlen)
-- 🟡 20 Alchemistischer Unfall: Sale-Bonus Alchemie + Werkstatt-Upkeep +1 Gold + Schaden (Abschnittsstart, max 1) implementiert
-- 🟡 21 (Neues Bergwerk): Metall-RM Markt -1d4 (weitere Effekte ggf. fehlen)
-- ✅ 22 Offener Konflikt: Handelsunternehmung-Upkeep +3/Tier (weitere Hofamt-Effekte nicht spezialisiert)
-- ✅ 23 Erhöhte Steuereinnahmen: Amts-Gold +2/Tier, Facility-Kosten (Amt general.*) ×2
-- ✅ 24 Religiöse Feiertage: Kult +6 Einfluss, LO +1
-- 🟡 25 Musterung: Truppenkosten ×2 (Abstellen/Verfügbarkeit von Söldnern nicht modelliert) + Sale-Bonus Food/Rüstung
-- 🟡 26 Nachbarn: Handelsunternehmung halbiert + Spion +4 Einfluss + Angriffsgefahr/DC+2 (Domänenangriffe ✅; Schiffe/Handelsschiffe ❌)
-- 🟡 27 Aufruhr Denera: Handwerkscollegium -AK/Stufe + Werkstatt-Upkeep +Gold/Stufe + vereinfachter Facility-Schaden
-- ✅ 28 Unheilvolle: LO Kult +1, sonst -1; (Cammern-Zauberkraft nicht modelliert) + Denera-Trigger (Meta)
-- ✅ 29 Magische Bestien: Verteidigungsprobe oder -4 RM Ertrag (regeltextnah)
-- 🟡 30 Feuersbrunst: vereinfachter Facility-Schaden + Stadtbesitz-Kaufchance -50% (1 Runde) + Sale-Bonus Baumaterial
-- ✅ 31 Aufschwung: +1 Gold pro 2 Investitionen (Lend/Sell) + Sale-Bonus Luxus
-- ✅ 32 Landflucht: -AK pro Pächter (1 Runde) + Unterwelt/Handwerk +AK/Stufe
-- ✅ 33 Warenüberschuss: Handelsunternehmungen Bonus +2 Gold/Tier oder +1 SM/Tier (Modusabhängig) + teure SM Markt -1d4
-- 🟡 34 Achäer: Magische SM (+4) + Kult-Zauberkraft + LO-Probe Land + -AK pro 2 Pächterstufen (Trigger)
-- ✅ 35 Hedonismus: teure SM Markt +2d6 + Kult +6 Einfluss + Denera-Trigger (Meta)
-- 🟡 36 Großes Bauprojekt: Baumaterial Markt +2d4 (Langzeitprojekte nicht modelliert)
-- ✅ 37 Plünderung: Angriffe auf (unverteidigte) Domänen inkl. RM-/Pächter-Verlust + Söldner +6 Einfluss
-- 🟡 38 Wunder: Trigger für Kult +6 Einfluss/+6 Gold pro Stufe (Gasthäuser etc nicht modelliert)
-- 🟡 39 Provinzinspektion: Influence-DC -4; Politische Abwehrprobe/Effekte nicht modelliert (Aktion 5 out of scope)
-- ✅ 40 Sehr gutes Jahr: Domänen-Ertrag +50% (1 Runde) + Landwirtschaft +8 (4 Runden) + Pächter +1 Stufe + LO +2 + Food-Markt -1d4
+- ✅ Abschnitte: 4 Runden; ab Runde 2 werden pro Abschnitt 2 Events gerollt
+- 🟡 Eventtexte sind in `eventTable_v1.ts`/`docs/rules/tables/events.md` dokumentiert; einzelne Effekte sind in der Engine teils vereinfacht
 
 ## Visibility / Logs
 

@@ -26,4 +26,3 @@ export function rollDice(expression: string, rng: Rng): DiceRoll {
 export function rollD20(rng: Rng): DiceRoll {
   return rollDice('1d20', rng);
 }
-

@@ -30,4 +30,3 @@ export function successTierLabelDe(tier: SuccessTier): string {
       return 'Fehlschlag';
   }
 }
-

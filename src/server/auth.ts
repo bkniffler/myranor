@@ -13,4 +13,3 @@ export function getActorFromRequest(request: Request): ActorContext {
 
   return { role: roleRaw, userId };
 }
-

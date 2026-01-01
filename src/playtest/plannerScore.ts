@@ -101,7 +101,11 @@ function rawStockGoldEq(state: CampaignState, stock: MaterialStock): number {
   for (const [materialId, count] of Object.entries(stock)) {
     const c = count ?? 0;
     if (c <= 0) continue;
-    const divisor = rawAutoConvertDivisor(materialId, state.globalEvents, state.round);
+    const divisor = rawAutoConvertDivisor(
+      materialId,
+      state.globalEvents,
+      state.round
+    );
     value += c / Math.max(1, divisor);
   }
   return value;
@@ -113,15 +117,24 @@ function specialStockGoldEq(stock: MaterialStock): number {
   return value;
 }
 
-function inventoryGoldEq(state: CampaignState, me: PlayerState['economy']['inventory']): number {
+function inventoryGoldEq(
+  state: CampaignState,
+  me: PlayerState['economy']['inventory']
+): number {
   return rawStockGoldEq(state, me.raw) + specialStockGoldEq(me.special);
 }
 
-function pendingInventoryGoldEq(state: CampaignState, me: PlayerState['economy']['pending']): number {
+function pendingInventoryGoldEq(
+  state: CampaignState,
+  me: PlayerState['economy']['pending']
+): number {
   return rawStockGoldEq(state, me.raw) + specialStockGoldEq(me.special);
 }
 
-function storageCapacityGoldEq(state: CampaignState, player: PlayerState): number {
+function storageCapacityGoldEq(
+  state: CampaignState,
+  player: PlayerState
+): number {
   const ids = new Set(player.turn.upkeep.maintainedStorageIds);
   let rawCap = 0;
   let specialCap = 0;
@@ -138,7 +151,12 @@ function storageCapacityGoldEq(state: CampaignState, player: PlayerState): numbe
 function combatPower(player: PlayerState): number {
   // Rough proxy for "military options": bodyguards and mercenaries count more than militia/thugs.
   const t = player.holdings.troops;
-  return t.bodyguardLevels * 2 + t.mercenaryLevels * 1.5 + t.militiaLevels * 1 + t.thugLevels * 0.75;
+  return (
+    t.bodyguardLevels * 2 +
+    t.mercenaryLevels * 1.5 +
+    t.militiaLevels * 1 +
+    t.thugLevels * 0.75
+  );
 }
 
 const DC_BONUS_GOLD_EQ_PER_ACTION = 0.5;
@@ -149,23 +167,53 @@ const BONUS_ACTION_GOLD_EQ = {
 };
 
 function domainBaseCost(tier: string): number {
-  return tier === 'small' ? 35 : tier === 'medium' ? 80 : tier === 'large' ? 120 : 0;
+  return tier === 'small'
+    ? 35
+    : tier === 'medium'
+      ? 80
+      : tier === 'large'
+        ? 120
+        : 0;
 }
 
 function cityBaseCost(tier: string): number {
-  return tier === 'small' ? 15 : tier === 'medium' ? 25 : tier === 'large' ? 50 : 0;
+  return tier === 'small'
+    ? 15
+    : tier === 'medium'
+      ? 25
+      : tier === 'large'
+        ? 50
+        : 0;
 }
 
 function tradeBaseCost(tier: string): number {
-  return tier === 'small' ? 20 : tier === 'medium' ? 40 : tier === 'large' ? 80 : 0;
+  return tier === 'small'
+    ? 20
+    : tier === 'medium'
+      ? 40
+      : tier === 'large'
+        ? 80
+        : 0;
 }
 
 function workshopBaseCost(tier: string): number {
-  return tier === 'small' ? 8 : tier === 'medium' ? 16 : tier === 'large' ? 40 : 0;
+  return tier === 'small'
+    ? 8
+    : tier === 'medium'
+      ? 16
+      : tier === 'large'
+        ? 40
+        : 0;
 }
 
 function storageBaseCost(tier: string): number {
-  return tier === 'small' ? 8 : tier === 'medium' ? 16 : tier === 'large' ? 40 : 0;
+  return tier === 'small'
+    ? 8
+    : tier === 'medium'
+      ? 16
+      : tier === 'large'
+        ? 40
+        : 0;
 }
 
 function officeCostGoldEq(tier: string): number {
@@ -193,7 +241,8 @@ function officeCostGoldEq(tier: string): number {
 }
 
 function orgCostGoldEq(kind: string, tier: string): number {
-  const rank = tier === 'small' ? 1 : tier === 'medium' ? 2 : tier === 'large' ? 3 : 0;
+  const rank =
+    tier === 'small' ? 1 : tier === 'medium' ? 2 : tier === 'large' ? 3 : 0;
   if (rank === 0) return 0;
   const base =
     kind === 'cult'
@@ -204,20 +253,28 @@ function orgCostGoldEq(kind: string, tier: string): number {
   return base.gold * rank + base.influence * rank * INFLUENCE_GOLD_EQ;
 }
 
-function officeIncomeGoldEq(state: CampaignState, office: PlayerState['holdings']['offices'][number]): number {
+function officeIncomeGoldEq(
+  state: CampaignState,
+  office: PlayerState['holdings']['offices'][number]
+): number {
   const inc = officesIncomePerRound(office.tier, office.yieldMode, state.rules);
   return inc.gold + inc.influence * INFLUENCE_GOLD_EQ;
 }
 
-function cityIncomeGoldEq(city: PlayerState['holdings']['cityProperties'][number]): number {
+function cityIncomeGoldEq(
+  city: PlayerState['holdings']['cityProperties'][number]
+): number {
   const gold = cityGoldPerRound(city.tier, city.mode);
-  const influence = cityInfluencePerRound(city.tier, city.mode) * INFLUENCE_GOLD_EQ;
+  const influence =
+    cityInfluencePerRound(city.tier, city.mode) * INFLUENCE_GOLD_EQ;
   const labor = cityLaborPerRound(city.tier, city.mode) * LABOR_GOLD_EQ;
   const upkeep = cityGoldUpkeep(city.tier, city.mode);
   return gold + influence + labor - upkeep;
 }
 
-function domainIncomeGoldEq(domain: PlayerState['holdings']['domains'][number]): number {
+function domainIncomeGoldEq(
+  domain: PlayerState['holdings']['domains'][number]
+): number {
   const raw = domainRawPerRound(domain.tier) * RAW_GOLD_EQ;
   const labor = domainLaborPerRound(domain.tier) * LABOR_GOLD_EQ;
   const upkeep = domainGoldUpkeep(domain.tier);
@@ -239,7 +296,10 @@ function orgIncomeGoldEq(
     return (5 * tier + permanent) * INFLUENCE_GOLD_EQ;
   }
   if (org.kind === 'underworld') {
-    const cityRank = Math.max(0, ...holdings.cityProperties.map((c) => postTierRank(c.tier)));
+    const cityRank = Math.max(
+      0,
+      ...holdings.cityProperties.map((c) => postTierRank(c.tier))
+    );
     const per = tier === 1 ? 1 : tier === 2 ? 2 : 3;
     const goldPer = tier === 1 ? 4 : tier === 2 ? 5 : 6;
     const influence = per * tier * cityRank;
@@ -255,11 +315,13 @@ function tradeIncomeGoldEq(
   if (te.damage) return 0;
   const gold = te.tier === 'small' ? 4 : te.tier === 'medium' ? 10 : 24;
   const tradeSpecialIn = te.tier === 'small' ? 1 : te.tier === 'medium' ? 2 : 4;
-  const produceSpecialOut = te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
+  const produceSpecialOut =
+    te.tier === 'small' ? 3 : te.tier === 'medium' ? 6 : 12;
   const upkeepGold = te.tier === 'small' ? 2 : te.tier === 'medium' ? 4 : 6;
   const upkeepLabor = te.tier === 'small' ? 0 : te.tier === 'medium' ? 1 : 2;
   const upkeep = upkeepGold + upkeepLabor * LABOR_GOLD_EQ;
-  if (te.mode === 'produce') return produceSpecialOut * SPECIAL_GOLD_EQ - upkeep;
+  if (te.mode === 'produce')
+    return produceSpecialOut * SPECIAL_GOLD_EQ - upkeep;
   // "Trade": consumes Sondermaterial (opportunity cost) for gold (plus market/event deltas not modeled here).
   return gold - tradeSpecialIn * SPECIAL_GOLD_EQ - upkeep;
 }
@@ -277,15 +339,31 @@ function workshopIncomeGoldEq(
 function facilityGoldCost(key: string): number {
   const [category, size] = key.split('.', 2);
   if (category === 'general') {
-    return size === 'small' ? 8 : size === 'medium' ? 12 : size === 'large' ? 30 : 0;
+    return size === 'small'
+      ? 8
+      : size === 'medium'
+        ? 12
+        : size === 'large'
+          ? 30
+          : 0;
   }
   if (category === 'special') {
-    return size === 'small' ? 10 : size === 'medium' ? 20 : size === 'large' ? 40 : 0;
+    return size === 'small'
+      ? 10
+      : size === 'medium'
+        ? 20
+        : size === 'large'
+          ? 40
+          : 0;
   }
   return 0;
 }
 
-function tenantCostGoldEq(goldPerLevel: number, influencePerLevel: number, levels: number): number {
+function tenantCostGoldEq(
+  goldPerLevel: number,
+  influencePerLevel: number,
+  levels: number
+): number {
   return goldPerLevel * levels + influencePerLevel * levels * INFLUENCE_GOLD_EQ;
 }
 
@@ -301,22 +379,44 @@ function troopCostGoldEq(player: PlayerState): number {
 function dcBonusGoldEqPerRound(player: PlayerState): number {
   let bonus = 0;
 
-  const hasTradeSmall = player.holdings.tradeEnterprises.some((t) => t.tier === 'small');
-  const hasTradeMedium = player.holdings.tradeEnterprises.some((t) => t.tier === 'medium');
-  const hasTradeLarge = player.holdings.tradeEnterprises.some((t) => t.tier === 'large');
+  const hasTradeSmall = player.holdings.tradeEnterprises.some(
+    (t) => t.tier === 'small'
+  );
+  const hasTradeMedium = player.holdings.tradeEnterprises.some(
+    (t) => t.tier === 'medium'
+  );
+  const hasTradeLarge = player.holdings.tradeEnterprises.some(
+    (t) => t.tier === 'large'
+  );
   if (hasTradeSmall) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasTradeMedium) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasTradeLarge) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
 
-  const collegiumTrade = player.holdings.organizations.find((o) => o.kind === 'collegiumTrade');
-  if (collegiumTrade) bonus += DC_BONUS_GOLD_EQ_PER_ACTION * 2 * postTierRank(collegiumTrade.tier);
+  const collegiumTrade = player.holdings.organizations.find(
+    (o) => o.kind === 'collegiumTrade'
+  );
+  if (collegiumTrade)
+    bonus +=
+      DC_BONUS_GOLD_EQ_PER_ACTION * 2 * postTierRank(collegiumTrade.tier);
 
-  const hasOfficeSmall = player.holdings.offices.some((o) => o.tier === 'small');
-  const hasOfficeMedium = player.holdings.offices.some((o) => o.tier === 'medium');
-  const hasOfficeLarge = player.holdings.offices.some((o) => o.tier === 'large');
-  const hasCitySmall = player.holdings.cityProperties.some((c) => c.tier === 'small' && c.mode === 'leased');
-  const hasCityMedium = player.holdings.cityProperties.some((c) => c.tier === 'medium' && c.mode === 'leased');
-  const hasCityLarge = player.holdings.cityProperties.some((c) => c.tier === 'large' && c.mode === 'leased');
+  const hasOfficeSmall = player.holdings.offices.some(
+    (o) => o.tier === 'small'
+  );
+  const hasOfficeMedium = player.holdings.offices.some(
+    (o) => o.tier === 'medium'
+  );
+  const hasOfficeLarge = player.holdings.offices.some(
+    (o) => o.tier === 'large'
+  );
+  const hasCitySmall = player.holdings.cityProperties.some(
+    (c) => c.tier === 'small' && c.mode === 'leased'
+  );
+  const hasCityMedium = player.holdings.cityProperties.some(
+    (c) => c.tier === 'medium' && c.mode === 'leased'
+  );
+  const hasCityLarge = player.holdings.cityProperties.some(
+    (c) => c.tier === 'large' && c.mode === 'leased'
+  );
   if (hasOfficeSmall || hasCitySmall) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasOfficeMedium || hasCityMedium) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasOfficeLarge || hasCityLarge) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
@@ -324,34 +424,48 @@ function dcBonusGoldEqPerRound(player: PlayerState): number {
   const cult = player.holdings.organizations.find((o) => o.kind === 'cult');
   if (cult) bonus += DC_BONUS_GOLD_EQ_PER_ACTION * postTierRank(cult.tier);
 
-  const hasDomainSmall = player.holdings.domains.some((d) => d.tier === 'small');
-  const hasDomainMedium = player.holdings.domains.some((d) => d.tier === 'medium');
-  const hasDomainLarge = player.holdings.domains.some((d) => d.tier === 'large');
+  const hasDomainSmall = player.holdings.domains.some(
+    (d) => d.tier === 'small'
+  );
+  const hasDomainMedium = player.holdings.domains.some(
+    (d) => d.tier === 'medium'
+  );
+  const hasDomainLarge = player.holdings.domains.some(
+    (d) => d.tier === 'large'
+  );
   if (hasDomainSmall) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasDomainMedium) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
   if (hasDomainLarge) bonus += DC_BONUS_GOLD_EQ_PER_ACTION;
 
-  const collegiumCraft = player.holdings.organizations.find((o) => o.kind === 'collegiumCraft');
-  if (collegiumCraft) bonus += DC_BONUS_GOLD_EQ_PER_ACTION * 2 * postTierRank(collegiumCraft.tier);
+  const collegiumCraft = player.holdings.organizations.find(
+    (o) => o.kind === 'collegiumCraft'
+  );
+  if (collegiumCraft)
+    bonus +=
+      DC_BONUS_GOLD_EQ_PER_ACTION * 2 * postTierRank(collegiumCraft.tier);
 
   return bonus;
 }
 
 function bonusActionsGoldEqPerRound(player: PlayerState): number {
-  const largeOffices = player.holdings.offices.filter((o) => o.tier === 'large').length;
+  const largeOffices = player.holdings.offices.filter(
+    (o) => o.tier === 'large'
+  ).length;
   const hasLargeCult = player.holdings.organizations.some(
     (o) => o.kind === 'cult' && o.tier === 'large' && !o.followers.inUnrest
   );
   const bonusInfluence = largeOffices + (hasLargeCult ? 1 : 0);
 
   const bonusMoney = player.holdings.organizations.some(
-    (o) => o.kind === 'collegiumTrade' && o.tier === 'large' && !o.followers.inUnrest
+    (o) =>
+      o.kind === 'collegiumTrade' && o.tier === 'large' && !o.followers.inUnrest
   )
     ? 1
     : 0;
 
   const bonusMaterials = player.holdings.organizations.some(
-    (o) => o.kind === 'collegiumCraft' && o.tier === 'large' && !o.followers.inUnrest
+    (o) =>
+      o.kind === 'collegiumCraft' && o.tier === 'large' && !o.followers.inUnrest
   )
     ? 1
     : 0;
@@ -363,7 +477,10 @@ function bonusActionsGoldEqPerRound(player: PlayerState): number {
   );
 }
 
-function domainSpecializationGoldEq(state: CampaignState, player: PlayerState): number {
+function domainSpecializationGoldEq(
+  state: CampaignState,
+  player: PlayerState
+): number {
   let value = 0;
   for (const domain of player.holdings.domains) {
     const spec = domain.specialization;
@@ -382,7 +499,10 @@ function domainSpecializationGoldEq(state: CampaignState, player: PlayerState): 
   return value;
 }
 
-function assetsGoldEq(state: CampaignState, player: PlayerState): { total: number; breakdown: AssetBreakdown } {
+function assetsGoldEq(
+  state: CampaignState,
+  player: PlayerState
+): { total: number; breakdown: AssetBreakdown } {
   let domains = 0;
   let cityProperties = 0;
   let offices = 0;
@@ -403,7 +523,8 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
     tenants += tenantCostGoldEq(12, 4, d.tenants.levels);
     for (const f of d.facilities) facilities += facilityGoldCost(f.key);
     if (d.specialization) {
-      for (const f of d.specialization.facilities) facilities += facilityGoldCost(f.key);
+      for (const f of d.specialization.facilities)
+        facilities += facilityGoldCost(f.key);
     }
   }
 
@@ -412,15 +533,18 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
     tenants += tenantCostGoldEq(12, 4, c.tenants.levels);
     for (const f of c.facilities) facilities += facilityGoldCost(f.key);
     if (c.specialization) {
-      for (const f of c.specialization.facilities) facilities += facilityGoldCost(f.key);
+      for (const f of c.specialization.facilities)
+        facilities += facilityGoldCost(f.key);
     }
   }
 
   for (const o of player.holdings.offices) {
     let facilityInfluence = 0;
-    for (const f of o.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'office');
+    for (const f of o.facilities)
+      facilityInfluence += facilityInfluencePerRound(f.key, 'office');
     if (o.specialization) {
-      for (const f of o.specialization.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'office');
+      for (const f of o.specialization.facilities)
+        facilityInfluence += facilityInfluencePerRound(f.key, 'office');
     }
     const facilityIncome = facilityInfluence * INFLUENCE_GOLD_EQ;
     offices +=
@@ -428,13 +552,15 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
       (officeIncomeGoldEq(state, o) + facilityIncome) * ROI_ROUNDS;
     for (const f of o.facilities) facilities += facilityGoldCost(f.key);
     if (o.specialization) {
-      for (const f of o.specialization.facilities) facilities += facilityGoldCost(f.key);
+      for (const f of o.specialization.facilities)
+        facilities += facilityGoldCost(f.key);
     }
   }
 
   for (const org of player.holdings.organizations) {
     let facilityInfluence = 0;
-    for (const f of org.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'organization');
+    for (const f of org.facilities)
+      facilityInfluence += facilityInfluencePerRound(f.key, 'organization');
     const facilityIncome = facilityInfluence * INFLUENCE_GOLD_EQ;
     organizations +=
       orgCostGoldEq(org.kind, org.tier) +
@@ -453,22 +579,30 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
   for (const t of player.holdings.tradeEnterprises) {
     let facilityInfluence = 0;
     if (!t.damage) {
-      for (const f of t.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'tradeEnterprise');
+      for (const f of t.facilities)
+        facilityInfluence += facilityInfluencePerRound(
+          f.key,
+          'tradeEnterprise'
+        );
     }
-    const facilityIncome = (t.damage ? 0 : facilityInfluence * INFLUENCE_GOLD_EQ);
+    const facilityIncome = t.damage ? 0 : facilityInfluence * INFLUENCE_GOLD_EQ;
     const baseCost = tradeBaseCost(t.tier);
-    const adjustedCost = t.damage ? Math.max(0, baseCost - t.damage.repairCostGold) : baseCost;
+    const adjustedCost = t.damage
+      ? Math.max(0, baseCost - t.damage.repairCostGold)
+      : baseCost;
     tradeEnterprises +=
-      adjustedCost +
-      (tradeIncomeGoldEq(t) + facilityIncome) * ROI_ROUNDS;
+      adjustedCost + (tradeIncomeGoldEq(t) + facilityIncome) * ROI_ROUNDS;
     for (const f of t.facilities) facilities += facilityGoldCost(f.key);
   }
 
   for (const w of player.holdings.workshops) {
     let facilityInfluence = 0;
-    for (const f of w.facilities) facilityInfluence += facilityInfluencePerRound(f.key, 'workshop');
+    for (const f of w.facilities)
+      facilityInfluence += facilityInfluencePerRound(f.key, 'workshop');
     const facilityIncome = facilityInfluence * INFLUENCE_GOLD_EQ;
-    workshops += workshopBaseCost(w.tier) + (workshopIncomeGoldEq(w) + facilityIncome) * ROI_ROUNDS;
+    workshops +=
+      workshopBaseCost(w.tier) +
+      (workshopIncomeGoldEq(w) + facilityIncome) * ROI_ROUNDS;
     for (const f of w.facilities) facilities += facilityGoldCost(f.key);
   }
 
@@ -478,14 +612,18 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
   }
 
   for (const spec of player.holdings.specialists) {
-    specialists += spec.tier === 'simple' ? 10 : spec.tier === 'experienced' ? 25 : 50;
+    specialists +=
+      spec.tier === 'simple' ? 10 : spec.tier === 'experienced' ? 25 : 50;
   }
 
-  for (const f of player.holdings.troops.facilities) facilities += facilityGoldCost(f.key);
+  for (const f of player.holdings.troops.facilities)
+    facilities += facilityGoldCost(f.key);
   troops += troopCostGoldEq(player);
 
   domainSpecializations = domainSpecializationGoldEq(state, player);
-  bonuses = (dcBonusGoldEqPerRound(player) + bonusActionsGoldEqPerRound(player)) * ROI_ROUNDS;
+  bonuses =
+    (dcBonusGoldEqPerRound(player) + bonusActionsGoldEqPerRound(player)) *
+    ROI_ROUNDS;
 
   const breakdown: AssetBreakdown = {
     domains,
@@ -526,14 +664,17 @@ function assetsGoldEq(state: CampaignState, player: PlayerState): { total: numbe
 export function computeNetWorth(
   state: CampaignState,
   player: PlayerState,
-  weights: NetWorthWeights = DEFAULT_NET_WORTH_WEIGHTS,
+  weights: NetWorthWeights = DEFAULT_NET_WORTH_WEIGHTS
 ): NetWorthBreakdown {
   const assets = assetsGoldEq(state, player);
   const breakdown: Omit<NetWorthBreakdown, 'score'> = {
     gold: player.economy.gold,
     pendingGold: player.economy.pending.gold,
     inventoryGoldEq: inventoryGoldEq(state, player.economy.inventory),
-    pendingInventoryGoldEq: pendingInventoryGoldEq(state, player.economy.pending),
+    pendingInventoryGoldEq: pendingInventoryGoldEq(
+      state,
+      player.economy.pending
+    ),
     labor: player.turn.laborAvailable,
     permanentLabor: player.holdings.permanentLabor,
     influence: player.turn.influenceAvailable,

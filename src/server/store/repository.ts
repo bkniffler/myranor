@@ -1,8 +1,8 @@
-import type { CampaignState, GameEvent } from '../../core';
+import type { CampaignState } from '../../core';
 import { reduceEvents } from '../../core';
 
-import type { StoredEvent } from './types';
 import { FileCampaignStore } from './fileCampaignStore';
+import type { StoredEvent } from './types';
 
 export type CampaignLoaded = {
   seq: number;
@@ -30,7 +30,7 @@ export class CampaignRepository {
   async append(
     campaignId: string,
     expectedSeq: number,
-    newEvents: StoredEvent[],
+    newEvents: StoredEvent[]
   ): Promise<CampaignLoaded> {
     const current = await this.load(campaignId);
     if (current.seq !== expectedSeq) {
@@ -40,8 +40,9 @@ export class CampaignRepository {
     await this.store.appendEvents(campaignId, newEvents);
     const updated = await this.load(campaignId);
 
-    const snapshot: { seq: number; state: CampaignState } | null =
-      updated.state ? { seq: updated.seq, state: updated.state } : null;
+    const snapshot: { seq: number; state: CampaignState } | null = updated.state
+      ? { seq: updated.seq, state: updated.state }
+      : null;
     if (snapshot) {
       await this.store.writeSnapshot(campaignId, snapshot);
     }
@@ -53,4 +54,3 @@ export class CampaignRepository {
     return new CampaignRepository(new FileCampaignStore(rootDir));
   }
 }
-

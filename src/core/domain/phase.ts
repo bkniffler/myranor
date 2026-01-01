@@ -23,4 +23,3 @@ export function nextPhase(current: Phase): Phase {
       return 'maintenance';
   }
 }
-

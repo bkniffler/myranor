@@ -52,7 +52,10 @@ Der Ablauf jeder Runde besteht aus:
 - **Ausschüttung** erneuerbarer Ressourcen aus Posten, Einrichtungen und anderen Quellen.
 - Bei **Wahl-Erträgen** (z.B. Ämter: **Gold oder Einfluss**) legt der Spieler hier fest, was er in dieser Runde erhält.
 - **Runden-verzögerte** Ressourcen werden hier freigegeben.
-- Ressourcen sind – mit Ausnahme von **Gold** – **temporär**.
+- Ressourcen sind – mit Ausnahme von **Gold** und **Information** – **temporär**.
+- **Information** ist eine stackbare, persistente politische Ressource (bleibt von Runde zu Runde erhalten):
+  - kann für Politische Schritte ausgegeben werden (siehe „Politische Schritte“),
+  - oder in Gold/Einfluss umgewandelt werden (siehe „Politische Schritte“).
 
 #### 2) Unterhaltsphase
 
@@ -62,9 +65,14 @@ Der Ablauf jeder Runde besteht aus:
 
 Zusätzlicher allgemeiner Unterhalt (ab Runde 2):
 - Arbeitskräfte (AK) und Kampfkraft (KK) kosten:
-  - **1 RM (Nahrung)** pro **4 AK / 2 KK**, **oder**
-  - **1 Gold** pro **4 AK / 2 KK**.
-- Untote Arbeits- und Kampfkräfte benötigen stattdessen **Zauberkraft** (Details/Skalierung TBD).
+  - **1 RM (Nahrung; Preisklasse beliebig)** pro **4 AK / 2 KK**, oder
+  - falls Nahrung nicht verfügbar: **1 Gold** pro **4 AK / 2 KK**.
+- Zusätzlich kosten **Pächter/Anhänger/Klienten** Unterhalt:
+  - **1 RM (Nahrung; Preisklasse beliebig)** pro **Stufe** (250 Personen), oder
+  - falls Nahrung nicht verfügbar: **1 Gold** pro Stufe.
+- Untote Arbeits- und Kampfkräfte benötigen stattdessen **Zauberkraft**:
+  - **4 untote Einheiten** (AK/KK) benötigen **1 ZK** Unterhalt.
+  - Untote Arbeitskräfte verursachen **keinen** Nahrungs-/Gold-Unterhalt über die obigen AK-Regeln.
 
 #### 3) Spieleraktionen
 
@@ -92,6 +100,7 @@ Zusätzlicher allgemeiner Unterhalt (ab Runde 2):
 - Am Rundenende werden vorhandene, nicht verbrauchte temporäre Ressourcen erfasst und automatisch umgewandelt:
   - Rohmaterial, Arbeitskräfte und temporärer Einfluss: **4 Einheiten = 1 Gold**
   - Sondermaterial: **1 Sondermaterial = 2 Gold**
+  - Material‑Verkaufsbonus: Rohmaterialien (inkl. „verbesserte RM“) können einen **saleBonusGold** haben; beim Verkauf/Autoumtausch wird pro **4 Einheiten** der entsprechende Bonus zusätzlich in Gold angerechnet (Materialkatalog: `docs/rules/soll/tables/materials.md`).
   - Werkstätten wandeln Rohmaterial automatisch nach ihrer Kapazität in Sondermaterial um.
 
 **Ressourcen-Reset (Rundenende)**
@@ -329,9 +338,14 @@ Beschreibung: Erweitere dein Reich durch den Erwerb von Domänenland, Werkstätt
 - Groß: **140 Gold**
 
 **Städtischer Grundbesitz**
-- Klein: **12 Gold**
-- Mittel: **25 Gold**
-- Groß: **60 Gold**
+- Kauf (Standard):
+  - Klein: **12 Gold**
+  - Mittel: **25 Gold**
+  - Groß: **60 Gold**
+- Pacht (gepachtet; Alternative zu Kauf):
+  - kostet **die Hälfte** (z.B. 6 / 12.5 / 30 Gold),
+  - `DC -2` auf die Posten‑Gewinnen‑Probe (nur für diesen Erwerb),
+  - verursacht zusätzlich **1 Gold Pacht** Unterhalt pro Runde (unabhängig vom Modus „verpachtet“/„Eigenproduktion“).
 
 **Werkstätten/Lager** (werden i.d.R. über Aktion 6 gebaut; hier der Vollständigkeit halber)
 - Werkstatt/Lager klein: **8 Gold**
@@ -346,12 +360,16 @@ Beschreibung: Erweitere dein Reich durch den Erwerb von Domänenland, Werkstätt
 **Pächter/Klienten/Anhänger/Untertanen**
 - je 250: **12 Gold, 4 Einfluss**
 - Mittel: 500, Groß: 1000
+- Unterhalt (pro Stufe, pro Runde): **1 RM (Nahrung; Preisklasse beliebig)**; wenn nicht verfügbar: **1 Gold**
 
-**Unterweltcircel / Spionagering**
+**Unterweltcircel**
+- Kosten pro Stufe (Klein/Mittel/Groß): **12 Gold, 4 Einfluss**
+
+**Spionagering**
 - Kosten pro Stufe (Klein/Mittel/Groß): **16 Gold, 6 Einfluss**
 
 **Kult**
-- Kosten pro Stufe (Klein/Mittel/Groß): **8 Gold, 6 Einfluss**
+- Kosten pro Stufe (Klein/Mittel/Groß): **8 Gold, 8 Einfluss**
 
 **Handwerks-/Handelscollegium**
 - Kosten pro Stufe (Klein/Mittel/Groß): **20 Gold, 2 Einfluss**
@@ -386,34 +404,66 @@ DC-Senkungen aus Posten/Einrichtungen: max. `-4` gesamt.
 - Schlecht geschafft: Kostensteigerung um **20%**; wenn Ressourcen nicht vorhanden → Kauf scheitert, Ressourcen bleiben aber erhalten.
 - Fehlschlag: Aktion nicht erfolgreich, Ressourcen bleiben aber erhalten.
 
-### 5) Politische Schritte (WIP)
+### 5) Politische Schritte
 
 Beschreibung: Führe politische Aktionen durch, wie Reformen, Bündnisse oder Intrigen.
 
-**Kosten**
-- Basis: `1 Einfluss` und `1 Gold` pro Größenstufe
+**Information (Ressource)**
+- Information ist wie Gold **persistent** und kann **akkumulieren**.
+- Information wird bei **Politischen Schritten** automatisch bei Erfolg generiert (kein separater „Informationsgewinn“ nötig).
+- Einsatz (Standard):
+  - gib `1 Information` aus → erhalte `+2` Bonus auf den Wurf eines Politische‑Schritte‑Checks.
+- Umwandlung (optional):
+  - `1 Information → 2 Gold`, oder
+  - `1 Information → 4 temporärer Einfluss` (so gewonnener Einfluss ist wie üblich temporär und wird am Rundenende zurückgesetzt).
+
+**Konsequenzen / Ansehen / Neider**
+- Politische Schritte können einen **Konsequenzenwert** erhöhen/senken und **Ansehen** beeinflussen.
+- Eskalationen/Schwellenwerte werden als Tabelle geführt (Soll): `docs/rules/soll/tables/konsequenzen.md`.
+
+**Kosten (Basis)**
+- `1 Einfluss` und `1 Gold` pro Größenstufe (klein/mittel/groß).
+
+**Unteraktionen & Investments**
 
 **Beschädigen/Verteidigen**
 - Investiere je `1 Kampfkraft` (verdeckt oder offen) **oder** `6 Einfluss` (= 1 Investition)
-- Deckelung: max. `4 Investitionen` pro Stufe (Klein/Mittel/Groß) von Amt oder Unterweltcircel/Spionagering oder Kult
+- Deckelung: max. `4 Investitionen` pro Stufe (Klein/Mittel/Groß) eines vorhandenen Amts oder Unterweltcircels/Spionagerings/Kults.
 
 **Manipulieren**
 - Investiere je `6 Einfluss & 2 Gold` **oder** `6 Gold & 2 Einfluss` (= 1 Investition)
-- Deckelung: max. `2 Investitionen` pro Stufe (Klein/Mittel/Groß) von Amt oder Unterweltcircel/Spionagering oder Kult
+- Deckelung: max. `2 Investitionen` pro Stufe (Klein/Mittel/Groß) eines vorhandenen Amts oder Unterweltcircels/Spionagerings/Kults.
+
+**Loyalität sichern**
+- Investiere je `6 Einfluss & 2 Gold` **oder** `6 Gold & 2 Einfluss` (= 1 Investition)
+- Deckelung: **max. 1 Investition pro Loyalitäts‑Ziel** (Pächter-/Anhänger-/Klientenstufe, Fachkraft, Berater, Truppenkategorie)
+- Investitionsgröße: jeder weitere LO‑Ziel zählt als „größere“ Investmentstufe:
+  - 1 Ziel: klein
+  - 2 Ziele: mittel (`+4 DC`)
+  - 3 Ziele: groß (`+8 DC`)
 
 **DC**
-- Grund-DC: **12** (WIS/INT/CHA)
-- Investitionsgröße:
+- Grund-DC: **14** (WIS/INT/CHA)
+- Investitionsgröße (Beschädigen/Verteidigen, Manipulieren):
   - ab **4** Investitionen: **mittel** (`+4 DC`)
   - ab **8** Investitionen: **groß** (`+8 DC`)
 - DC-Senkungen aus Posten/Einrichtungen: max. `-4` gesamt.
 
 **Erfolge**
-- Sehr gut geschafft: Kosten um 2 reduziert; Konsequenzen um 4 reduziert; erhalte 3 Informationen und schädige Fraktion/verbessere Ruf.
-- Gut geschafft: Kosten um 1 reduziert; Konsequenzen um 2 reduziert; erhalte 2 Information oder schädige Fraktion oder verbessere Ruf.
-- Geschafft: Aktion erfolgreich, Kosten unverändert; erhalte 1 Information.
-- Schlecht geschafft: -1 Einfluss oder Ansehensverlust; Konsequenzen um 2 erhöht.
-- Fehlschlag: -1 Einfluss und Ansehensverlust; Konsequenzen um 4 erhöht.
+
+Für **Beschädigen/Verteidigen** und **Manipulieren**:
+- Sehr gut geschafft: Kosten um **2** reduziert; Konsequenzen um **4** reduziert; erhalte `+3` **Information** und schädige Fraktion/verbessere eigenen Ruf.
+- Gut geschafft: Kosten um **1** reduziert; Konsequenzen um **2** reduziert; erhalte `+2` **Information** **oder** schädige Fraktion **oder** verbessere Ruf.
+- Geschafft: Aktion erfolgreich, Kosten unverändert; erhalte `+1` **Information**.
+- Schlecht geschafft: Einflussverlust in **Höhe der investierten Einfluss‑Investments** und `-1` Ansehen; „Neider“/Konsequenzenwert `+2`.
+- Fehlschlag: totaler Investmentverlust; Einflussverlust in **doppelter** Höhe der investierten Einfluss‑Investments und Ansehensverlust. Kann mit einer sofortigen Verteidigungsprobe abgewehrt werden (erschwert: `+4` bei mittlerem Investment, `+8` bei großem Investment). „Neider“/Konsequenzenwert `+4`.
+
+Für **Loyalität sichern**:
+- Sehr gut geschafft: Kosten um **3 Gold** reduziert; Loyalität `+2` für Ziel(e).
+- Gut geschafft: Kosten um **2 Gold pro Ziel** reduziert; Loyalität `+1` für Ziel(e).
+- Geschafft: Loyalität `+1` für Ziel(e).
+- Schlecht geschafft: Kosten **verdoppelt**; Loyalität `+1` für Ziel(e), ansonsten verfällt das Investment ohne Erfolg.
+- Fehlschlag: Loyalität der Ziele `-1`; Investment verfällt.
 
 ### 6) Einrichtungen errichten/ausbauen (Freie Aktion)
 
@@ -527,8 +577,7 @@ Einrichtungen sind besondere Modifikationen **innerhalb eines Postens** (und von
 Spezialisierungen sind ein besonderer Teil der Einrichtungen:
 
 - Posten können **spezialisiert** werden (über die freie Aktion „Einrichtungen errichten/ausbauen“).
-- Grundsätzlich ist pro Posten nur **eine** Spezialisierung möglich.
-  - Ausnahme: bei **großen** Werkstätten, **großem** Stadtbesitz oder **großen** Domänen können mehrere Spezialisierungen möglich sein (Soll, genaue Regeln TBD).
+- Grundsätzlich ist pro Posten **oder Werkstatt** nur **eine** Spezialisierung möglich.
 - Eine Spezialisierung:
   - erlaubt den Ausbau weiterer Rohmaterial- oder Sondermaterialarten über die anfängliche Auswahl hinaus,
   - erlaubt die **Änderung** der Rohmaterial-Art (z.B. Produktionsausrichtung),
@@ -590,13 +639,17 @@ Die folgenden Werte beschreiben den Standardzustand (Soll):
 
 Pächter/Anhänger/Klienten gelten als **Sondereinrichtung** (Zusatz‑Einrichtung), die an Posten gebunden wird (Domäne/Stadtbesitz/Circel/Kult etc.).
 
+Unterhalt (für jede Stufe, pro Runde):
+- **1 RM (Nahrung; Preisklasse beliebig)**, oder
+- falls Nahrung nicht verfügbar: **1 Gold**
+
 ### Pächterstufen (Domänen)
 
 - 1 Pächterstufe = ca. **250** Personen.
 - Effekt pro Stufe:
   - `+1 AK` (temporär pro Runde)
   - `+1 Gold` (pro Runde)
-  - zusätzlich auf Domänen: `+1 einfaches RM` (passend zur Domäne/Spezialisierung; Details in `docs/rules/soll/facilities.md`)
+  - zusätzlich auf Domänen: `+2 billige RM` (aus der bereits gewählten Domänen‑Produktion; falls keine billige RM gewählt wurde: passend zur Spezialisierung; Details in `docs/rules/soll/facilities.md`)
 - Caps:
   - kleine Domäne: max. **2** Pächterstufen
   - mittlere Domäne: max. **4** Pächterstufen
@@ -611,13 +664,19 @@ Pächter/Anhänger/Klienten gelten als **Sondereinrichtung** (Zusatz‑Einrichtu
   - Stadtbesitz: max. **2/3/4** Stufen (klein/mittel/groß)
   - Circel & Collegien: max. **1 Stufe Anhänger pro Circel‑Stufe**
   - Kulte: max. **2/4/8** Stufen (klein/mittel/groß)
-    - Unterhalt für Anhänger‑Stufen: **1 Gold oder 1 Einfluss pro Stufe** (Wahl; genaue Abwicklung TBD)
 
 ### Loyalität (Soll)
 
-- Pächter/Anhänger/Klienten haben **Loyalität**.
-- Bei Unterschreiten von Schwellenwerten kann es zu **Aufruhr** kommen (Posten ruhen/liegen lahm) oder zu **Abwanderung** (Verlust von Stufen).
-- Konkrete Trigger/Proben/Skalierung: siehe `docs/rules/soll/facilities.md` (TBD/Phase 2).
+- Pächter/Anhänger/Klienten (und ggf. gebundene Fachkräfte/Berater) haben **Loyalität** (`LO`), Skala **0–6** (Cap: max. `6`).
+- Default bei Neuanwerbung: **LO = 3** (kann über Anwerben-/Charaktertabellen abweichen).
+- Ausnahme: Truppen starten standardmäßig mit **LO = 2**.
+- LO kann durch **Ereignisse** und durch **Politische Schritte** steigen/sinken; Proben auf Loyalität werden dadurch getriggert.
+- **LO‑Probe** (wenn gefordert): würfle `1w6`; die Probe gelingt, wenn `Wurf <= LO` (unterwürfeln).
+- Wiederherstellung/Boost ist primär über **Politische Schritte: Loyalität sichern** möglich.
+- Mali:
+  - bei `LO = 1–2`: die Boni/Erträge (AK/KK/sonstige Effekte) dieser gebundenen Einheiten stehen nur **jede zweite Runde** zur Verfügung.
+  - bei `LO = 0`: pro Runde wandert **1 Stufe** (Pächter/Anhänger/Klient) ab und geht verloren.
+  - Details (Checks, Wiederherstellung, Schwellen): `docs/rules/soll/facilities.md`
 
 ## Domänen
 
@@ -673,8 +732,12 @@ Werkstätten und Lager sind **strikt** an Domänen gekoppelt (pro Domäne eigene
 ## Städtischer Grundbesitz
 
 Städtischer Besitz kann **gekauft** oder **gepachtet** werden.
-- Gepachteter Besitz: Unterhalt fällt an (wie unten); Nutzung ist i.d.R. Eigenproduktion (Details/TBD).
-- Gekaufter Besitz: kann entweder **verpachtet** (Ertrag) oder für **Eigenproduktion** genutzt werden.
+- **Gekauft**: Standard-Erwerb (volle Kosten); kein Pacht-Unterhalt.
+- **Gepachtet**: kostet beim Erwerb die **Hälfte** und hat `DC -2` beim Posten-Gewinnen (Details unter Aktion 4); zusätzlich fällt immer **1 Gold Pacht** Unterhalt pro Runde an (unabhängig vom Modus).
+
+Nutzungsmodus:
+- **verpachtet**: bringt Miete/Ertrag (siehe unten).
+- **Eigenproduktion**: bringt Arbeitskraft/Produktionsvorteile (siehe unten) und verursacht den angegebenen Unterhalt.
 
 ### Kleiner Besitz
 - Unterhalt: **2 Gold/Runde** (fällt nur an, wenn **nicht** verpachtet)
@@ -703,10 +766,11 @@ Städtischer Besitz kann **gekauft** oder **gepachtet** werden.
 
 Allgemein:
 - Permanente Posten, die **Anhänger/Klienten** (oder Pächter) gewinnen können; repräsentieren Personenzusammenschlüsse.
-- Allgemeiner “Ertrag” (strukturell): erlauben den Bau von **zusätzlichen** städtischen Einrichtungen.
-  - Pro Stufe: `+1` zusätzliche **allgemeine oder besondere** städtische Einrichtung (Soll-Text).
-- Einrichtungscaps (Circel/Collegium):
-  - max. **3 Einrichtungen** (allgemein + besonders) pro Stufe, bis max. **9**.
+- Einrichtungscaps (Circel/Collegium, “eigene” Einrichtungen):
+  - max. **3 Einrichtungen** (allgemein + besonders) pro Stufe (klein=3, mittel=6, groß=9).
+- Zusätzliche Slots (Stadtbesitz):
+  - pro Stufe eines Circels/Collegiums: `+1` **zusätzlicher Einrichtungs‑Slot** für **stätischen Besitz** (kann allgemein oder besonders sein).
+  - Dieser Bonus ist **einmalig** pro Circel/Collegium und **nicht** an die Anzahl der Stadtbesitze gekoppelt (Slots werden auf deine Stadtbesitze verteilt).
 - Anhänger/Klienten (allgemein):
   - Circel/Collegien können Klienten/Anhänger von **1/2/3 Stufen** (Stufe = 250) pro Circel-Stufe erreichen;
   - Kulte und Banden weichen davon ab (siehe unten).
@@ -714,9 +778,6 @@ Allgemein:
   - benötigt einen **kleinen/mittleren/großen Stadtbesitz** pro Stufe als Hauptquartier (Tier-gekoppelt).
 - DC-Senkungen:
   - gelten **nur einmal** und akkumulieren **nicht** bei mehreren Circeln derselben Art.
-- Zusätzliche Slots (Soll-Text, Präzisierung/TBD):
-  - pro Stufe `+1` **allgemeine** Einrichtung,
-  - plus je nach Circel-Art `+1` **besondere** Einrichtung.
 
 ### Unterweltcircel
 - Unterhalt: **1 Gold + 1 AK** pro Stufe
@@ -726,7 +787,7 @@ Allgemein:
   - ab Stufe 3: `+8 Gold` und `+6 Einfluss`, dazu `+2 Gold` und `+1 Einfluss` pro Stufe/Größe jedes Stadtbesitzes
 - Anhänger (Banden/Pächter):
   - max. **2/4/6** pro Stufe (Soll-Text)
-  - Kosten: **12 Gold + 10 Einfluss** pro Anhängerstufe
+  - Anwerbekosten (einmalig): **12 Gold + 4 Einfluss** pro Anhängerstufe
 
 ### Spionagering
 - Unterhalt: **2 Gold** pro Stufe
@@ -744,7 +805,7 @@ Allgemein:
 - Vorteile: `-1 DC` auf **Einflussgewinn** pro Stufe
 - Anhänger:
   - max. **2/4/8** (Soll-Text)
-  - Kosten: **8 Gold + 8 Einfluss** pro Anhängerstufe
+  - Anwerbekosten (einmalig): **8 Gold + 8 Einfluss** pro Anhängerstufe
 
 ### Handwerkscollegium / Handelscollegium (Gilde)
 - Wahl: muss Handwerks- **oder** Handelscollegium sein

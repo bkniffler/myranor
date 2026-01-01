@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 import {
-  asUserId,
-  decide,
   type GameCommand,
   GameRuleError,
+  asUserId,
   cryptoRng,
+  decide,
 } from '../core';
 import type { CampaignState } from '../core';
 
@@ -45,7 +45,7 @@ function newId(): string {
 function toStoredEvents(
   domainEvents: ReturnType<typeof decide>,
   actor: { userId: string; role: 'gm' | 'player' },
-  startingSeq: number,
+  startingSeq: number
 ): StoredEvent[] {
   return domainEvents.map((event, index) => ({
     id: newId(),
@@ -71,7 +71,7 @@ function publicStateView(state: CampaignState) {
 
 function privateStateView(
   state: CampaignState,
-  actor: { role: 'gm' | 'player'; userId: string },
+  actor: { role: 'gm' | 'player'; userId: string }
 ) {
   if (actor.role === 'gm') {
     return state;
@@ -86,7 +86,10 @@ function privateStateView(
   };
 }
 
-function filterEventsForPublic(events: StoredEvent[], fromSeq: number): StoredEvent[] {
+function filterEventsForPublic(
+  events: StoredEvent[],
+  fromSeq: number
+): StoredEvent[] {
   return events
     .filter((e) => e.seq >= fromSeq)
     .filter((e) => e.event.visibility.scope === 'public');
@@ -96,7 +99,7 @@ function filterEventsForActor(
   events: StoredEvent[],
   actor: { role: 'gm' | 'player'; userId: string },
   state: CampaignState | null,
-  fromSeq: number,
+  fromSeq: number
 ): StoredEvent[] {
   if (actor.role === 'gm') {
     return events.filter((e) => e.seq >= fromSeq);
@@ -134,7 +137,9 @@ Bun.serve({
       if (request.method === 'POST' && path === '/api/campaigns') {
         if (actor.role !== 'gm') return errorJson(403, 'GM erforderlich.');
 
-        const body = createCampaignBodySchema.parse(await readJsonBody(request));
+        const body = createCampaignBodySchema.parse(
+          await readJsonBody(request)
+        );
         const campaignId = newId();
 
         const loaded = await repository.load(campaignId);
@@ -251,13 +256,19 @@ Bun.serve({
       if (request.method === 'GET' && tail === '/events/private') {
         const loaded = await repository.load(campaignId);
         const fromSeq = parseFromSeq(url);
-        return json(filterEventsForActor(loaded.events, actor, loaded.state, fromSeq));
+        return json(
+          filterEventsForActor(loaded.events, actor, loaded.state, fromSeq)
+        );
       }
 
       return errorJson(404, 'Not found');
     } catch (error) {
       const status =
-        error instanceof GameRuleError ? 400 : error instanceof z.ZodError ? 400 : 500;
+        error instanceof GameRuleError
+          ? 400
+          : error instanceof z.ZodError
+            ? 400
+            : 500;
       const message =
         error instanceof GameRuleError
           ? error.message
@@ -272,11 +283,18 @@ Bun.serve({
         method: request.method,
         path,
         status,
-        error: error instanceof Error ? { name: error.name, message: error.message } : error,
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message }
+            : error,
         durationMs: Date.now() - startedAt,
       });
 
-      return errorJson(status, message, error instanceof GameRuleError ? { code: error.code } : undefined);
+      return errorJson(
+        status,
+        message,
+        error instanceof GameRuleError ? { code: error.code } : undefined
+      );
     }
   },
 });

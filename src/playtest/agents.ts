@@ -2,15 +2,17 @@ import type { GameCommand, PlayerState, PostTier } from '../core';
 
 import { getMaterialOrThrow } from '../core/rules/materials_v1';
 
-import type { Agent, RoundContext } from './types';
 import { createPlannerAgent } from './plannerAgent';
 import { DEFAULT_NET_WORTH_WEIGHTS } from './plannerScore';
+import type { Agent, RoundContext } from './types';
 
 function postTierRank(tier: PostTier): number {
   return tier === 'small' ? 1 : tier === 'medium' ? 2 : 3;
 }
 
-function domainTierRank(tier: PlayerState['holdings']['domains'][number]['tier']): number {
+function domainTierRank(
+  tier: PlayerState['holdings']['domains'][number]['tier']
+): number {
   if (tier === 'starter') return 0;
   return postTierRank(tier);
 }
@@ -20,18 +22,28 @@ function starterDomainId(me: PlayerState): string | null {
 }
 
 function largestDomainId(me: PlayerState): string | null {
-  const domains = [...me.holdings.domains].sort((a, b) => domainTierRank(b.tier) - domainTierRank(a.tier));
+  const domains = [...me.holdings.domains].sort(
+    (a, b) => domainTierRank(b.tier) - domainTierRank(a.tier)
+  );
   return domains[0]?.id ?? null;
 }
 
 function largestWorkshopId(me: PlayerState): string | null {
-  const workshops = [...me.holdings.workshops].sort((a, b) => postTierRank(b.tier) - postTierRank(a.tier));
+  const workshops = [...me.holdings.workshops].sort(
+    (a, b) => postTierRank(b.tier) - postTierRank(a.tier)
+  );
   return workshops[0]?.id ?? null;
 }
 
 function sellInvestmentCap(me: PlayerState): number {
-  const capFromTrade = me.holdings.tradeEnterprises.reduce((sum, te) => sum + 2 * postTierRank(te.tier), 0);
-  const capFromDomains = me.holdings.domains.reduce((sum, d) => sum + domainTierRank(d.tier), 0);
+  const capFromTrade = me.holdings.tradeEnterprises.reduce(
+    (sum, te) => sum + 2 * postTierRank(te.tier),
+    0
+  );
+  const capFromDomains = me.holdings.domains.reduce(
+    (sum, d) => sum + domainTierRank(d.tier),
+    0
+  );
   return 2 + capFromTrade + capFromDomains;
 }
 
@@ -42,7 +54,7 @@ function localMarketInstanceId(): string {
 function sellScore(
   ctx: RoundContext,
   materialId: string,
-  kind: 'raw' | 'special',
+  kind: 'raw' | 'special'
 ): number {
   const inst =
     ctx.state.market.instances.find((i) => i.id === localMarketInstanceId()) ??
@@ -50,7 +62,8 @@ function sellScore(
   if (!inst) return 0;
 
   const material = getMaterialOrThrow(materialId);
-  const mods = kind === 'raw' ? inst.raw.modifiersByGroup : inst.special.modifiersByGroup;
+  const mods =
+    kind === 'raw' ? inst.raw.modifiersByGroup : inst.special.modifiersByGroup;
   const marketMod = Math.trunc(mods[material.marketGroup] ?? 0);
   return marketMod + (material.saleBonusGold ?? 0);
 }
@@ -61,7 +74,7 @@ function buildMoneySellCommand(
     maxInvestments?: number;
     preferKind?: 'raw' | 'special' | 'any';
     marketInstanceId?: string;
-  } = {},
+  } = {}
 ): GameCommand | null {
   const me = ctx.me;
   const cap = Math.max(0, sellInvestmentCap(me));
@@ -87,7 +100,9 @@ function buildMoneySellCommand(
       score: sellScore(ctx, materialId, 'raw'),
     });
   }
-  for (const [materialId, count] of Object.entries(me.economy.inventory.special)) {
+  for (const [materialId, count] of Object.entries(
+    me.economy.inventory.special
+  )) {
     const inv = Math.floor(count ?? 0);
     if (inv <= 0) continue;
     lots.push({
@@ -105,7 +120,9 @@ function buildMoneySellCommand(
   const pool = filtered.length ? filtered : lots;
   if (pool.length === 0) return null;
 
-  pool.sort((a, b) => b.score - a.score || a.materialId.localeCompare(b.materialId));
+  pool.sort(
+    (a, b) => b.score - a.score || a.materialId.localeCompare(b.materialId)
+  );
 
   let remaining = budget;
   const rawCounts: Record<string, number> = {};
@@ -115,16 +132,21 @@ function buildMoneySellCommand(
     if (remaining <= 0) break;
     const take = Math.min(lot.investments, remaining);
     remaining -= take;
-    if (lot.kind === 'raw') rawCounts[lot.materialId] = (rawCounts[lot.materialId] ?? 0) + take * 6;
-    else specialCounts[lot.materialId] = (specialCounts[lot.materialId] ?? 0) + take;
+    if (lot.kind === 'raw')
+      rawCounts[lot.materialId] = (rawCounts[lot.materialId] ?? 0) + take * 6;
+    else
+      specialCounts[lot.materialId] =
+        (specialCounts[lot.materialId] ?? 0) + take;
   }
 
   const items: Array<
     | { kind: 'raw'; materialId: string; count: number }
     | { kind: 'special'; materialId: string; count: number }
   > = [];
-  for (const [materialId, count] of Object.entries(rawCounts)) items.push({ kind: 'raw', materialId, count });
-  for (const [materialId, count] of Object.entries(specialCounts)) items.push({ kind: 'special', materialId, count });
+  for (const [materialId, count] of Object.entries(rawCounts))
+    items.push({ kind: 'raw', materialId, count });
+  for (const [materialId, count] of Object.entries(specialCounts))
+    items.push({ kind: 'special', materialId, count });
 
   if (items.length === 0) return null;
   return {
@@ -137,10 +159,12 @@ function buildMoneySellCommand(
 
 function buildGainMaterialsCommand(
   me: PlayerState,
-  mode: 'domainAdministration' | 'workshopOversight',
+  mode: 'domainAdministration' | 'workshopOversight'
 ): GameCommand | null {
   const targetId =
-    mode === 'domainAdministration' ? largestDomainId(me) : largestWorkshopId(me);
+    mode === 'domainAdministration'
+      ? largestDomainId(me)
+      : largestWorkshopId(me);
   if (!targetId) return null;
 
   const labor = Math.max(0, me.turn.laborAvailable);
@@ -149,8 +173,19 @@ function buildGainMaterialsCommand(
   const investments = Math.min(
     labor,
     mode === 'domainAdministration'
-      ? 4 * Math.max(1, domainTierRank(me.holdings.domains.find((d) => d.id === targetId)?.tier ?? 'starter'))
-      : 2 * postTierRank(me.holdings.workshops.find((w) => w.id === targetId)?.tier ?? 'small'),
+      ? 4 *
+          Math.max(
+            1,
+            domainTierRank(
+              me.holdings.domains.find((d) => d.id === targetId)?.tier ??
+                'starter'
+            )
+          )
+      : 2 *
+          postTierRank(
+            me.holdings.workshops.find((w) => w.id === targetId)?.tier ??
+              'small'
+          )
   );
   if (investments <= 0) return null;
 
@@ -164,15 +199,31 @@ function buildGainMaterialsCommand(
 }
 
 function buildGainInfluenceCommand(me: PlayerState): GameCommand | null {
-  const max = me.holdings.offices.length || me.holdings.organizations.length ? 6 : 4;
+  const max =
+    me.holdings.offices.length || me.holdings.organizations.length ? 6 : 4;
   const investments = Math.min(Math.max(0, me.economy.gold), max);
   if (investments <= 0) return null;
-  return { type: 'GainInfluence', campaignId: '', kind: 'temporary', investments };
+  return {
+    type: 'GainInfluence',
+    campaignId: '',
+    kind: 'temporary',
+    investments,
+  };
 }
 
 function buildLendMoneyCommand(me: PlayerState): GameCommand | null {
-  const maxTradeTier = Math.max(0, ...me.holdings.tradeEnterprises.map((t) => postTierRank(t.tier)));
-  const cap = maxTradeTier === 0 ? 2 : maxTradeTier === 1 ? 4 : maxTradeTier === 2 ? 6 : 10;
+  const maxTradeTier = Math.max(
+    0,
+    ...me.holdings.tradeEnterprises.map((t) => postTierRank(t.tier))
+  );
+  const cap =
+    maxTradeTier === 0
+      ? 2
+      : maxTradeTier === 1
+        ? 4
+        : maxTradeTier === 2
+          ? 6
+          : 10;
   const maxAffordable = Math.floor(me.economy.gold / 2);
   const investments = Math.min(cap, maxAffordable);
   if (investments <= 0) return null;
@@ -191,28 +242,49 @@ function buildSmallStorageCommand(me: PlayerState): GameCommand | null {
   if (me.economy.gold < 8) return null;
   const domain = me.holdings.domains.find((d) => d.tier !== 'starter');
   if (!domain) return null;
-  const hasStorage = me.holdings.storages.some((s) => s.location.kind === 'domain' && s.location.id === domain.id);
+  const hasStorage = me.holdings.storages.some(
+    (s) => s.location.kind === 'domain' && s.location.id === domain.id
+  );
   if (hasStorage) return null;
-  return { type: 'BuildStorage', campaignId: '', location: { kind: 'domain', id: domain.id }, tier: 'small' };
+  return {
+    type: 'BuildStorage',
+    campaignId: '',
+    location: { kind: 'domain', id: domain.id },
+    tier: 'small',
+  };
 }
 
 function buildAcquireOfficeSmallCommand(me: PlayerState): GameCommand | null {
   // Prefer cheaper influence payment if we have influence; otherwise gold-heavy.
   if (me.economy.gold >= 4 && me.turn.influenceAvailable >= 8) {
-    return { type: 'AcquireOffice', campaignId: '', tier: 'small', payment: 'influenceFirst' };
+    return {
+      type: 'AcquireOffice',
+      campaignId: '',
+      tier: 'small',
+      payment: 'influenceFirst',
+    };
   }
   if (me.economy.gold >= 8 && me.turn.influenceAvailable >= 2) {
-    return { type: 'AcquireOffice', campaignId: '', tier: 'small', payment: 'goldFirst' };
+    return {
+      type: 'AcquireOffice',
+      campaignId: '',
+      tier: 'small',
+      payment: 'goldFirst',
+    };
   }
   return null;
 }
 
-function buildAcquireTradeEnterpriseSmallCommand(me: PlayerState): GameCommand | null {
+function buildAcquireTradeEnterpriseSmallCommand(
+  me: PlayerState
+): GameCommand | null {
   if (me.economy.gold < 20) return null;
   return { type: 'AcquireTradeEnterprise', campaignId: '', tier: 'small' };
 }
 
-function buildAcquireCityPropertyMediumCommand(me: PlayerState): GameCommand | null {
+function buildAcquireCityPropertyMediumCommand(
+  me: PlayerState
+): GameCommand | null {
   if (me.economy.gold < 25) return null;
   return { type: 'AcquireCityProperty', campaignId: '', tier: 'medium' };
 }
@@ -228,27 +300,52 @@ function buildAcquireUnderworldCommand(me: PlayerState): GameCommand | null {
   return { type: 'AcquireOrganization', campaignId: '', kind: 'underworld' };
 }
 
-function buildAcquireCollegiumTradeCommand(me: PlayerState): GameCommand | null {
+function buildAcquireCollegiumTradeCommand(
+  me: PlayerState
+): GameCommand | null {
   if (me.economy.gold < 20) return null;
-  return { type: 'AcquireOrganization', campaignId: '', kind: 'collegiumTrade' };
+  return {
+    type: 'AcquireOrganization',
+    campaignId: '',
+    kind: 'collegiumTrade',
+  };
 }
 
-function buildAcquireCollegiumCraftCommand(me: PlayerState): GameCommand | null {
+function buildAcquireCollegiumCraftCommand(
+  me: PlayerState
+): GameCommand | null {
   if (me.economy.gold < 20) return null;
-  return { type: 'AcquireOrganization', campaignId: '', kind: 'collegiumCraft' };
+  return {
+    type: 'AcquireOrganization',
+    campaignId: '',
+    kind: 'collegiumCraft',
+  };
 }
 
-function buildAcquireTenantsForCityCommand(me: PlayerState): GameCommand | null {
-  const city = me.holdings.cityProperties.find((c) => c.tenants.levels < (c.tier === 'small' ? 2 : c.tier === 'medium' ? 3 : 4));
+function buildAcquireTenantsForCityCommand(
+  me: PlayerState
+): GameCommand | null {
+  const city = me.holdings.cityProperties.find(
+    (c) =>
+      c.tenants.levels < (c.tier === 'small' ? 2 : c.tier === 'medium' ? 3 : 4)
+  );
   if (!city) return null;
-  return { type: 'AcquireTenants', campaignId: '', location: { kind: 'cityProperty', id: city.id }, levels: 1 };
+  return {
+    type: 'AcquireTenants',
+    campaignId: '',
+    location: { kind: 'cityProperty', id: city.id },
+    levels: 1,
+  };
 }
 
 export const builderAgent: Agent = {
   id: 'builder',
   name: 'Baumeister',
   decideFacility(ctx) {
-    return buildUpgradeStarterDomainCommand(ctx.me) ?? buildSmallStorageCommand(ctx.me);
+    return (
+      buildUpgradeStarterDomainCommand(ctx.me) ??
+      buildSmallStorageCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -266,7 +363,10 @@ export const merchantAgent: Agent = {
   id: 'merchant',
   name: 'Händler',
   decideFacility(ctx) {
-    return buildUpgradeStarterDomainCommand(ctx.me) ?? buildSmallStorageCommand(ctx.me);
+    return (
+      buildUpgradeStarterDomainCommand(ctx.me) ??
+      buildSmallStorageCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -331,7 +431,10 @@ export const speculatorAgent: Agent = {
   id: 'speculator',
   name: 'Spekulant',
   decideFacility(ctx) {
-    return buildSmallStorageCommand(ctx.me) ?? buildUpgradeStarterDomainCommand(ctx.me);
+    return (
+      buildSmallStorageCommand(ctx.me) ??
+      buildUpgradeStarterDomainCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -370,7 +473,10 @@ export const tradeFocusAgent: Agent = {
   id: 'tradeFocus',
   name: 'Handel & Geld',
   decideFacility(ctx) {
-    return buildUpgradeStarterDomainCommand(ctx.me) ?? buildSmallStorageCommand(ctx.me);
+    return (
+      buildUpgradeStarterDomainCommand(ctx.me) ??
+      buildSmallStorageCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -409,7 +515,10 @@ export const workshopFocusAgent: Agent = {
   id: 'workshopFocus',
   name: 'Werkstattfokus',
   decideFacility(ctx) {
-    return buildUpgradeStarterDomainCommand(ctx.me) ?? buildSmallStorageCommand(ctx.me);
+    return (
+      buildUpgradeStarterDomainCommand(ctx.me) ??
+      buildSmallStorageCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -428,7 +537,10 @@ export const domainFocusAgent: Agent = {
   id: 'domainFocus',
   name: 'Domänenfokus',
   decideFacility(ctx) {
-    return buildUpgradeStarterDomainCommand(ctx.me) ?? buildSmallStorageCommand(ctx.me);
+    return (
+      buildUpgradeStarterDomainCommand(ctx.me) ??
+      buildSmallStorageCommand(ctx.me)
+    );
   },
   decideActions(ctx) {
     const me = ctx.me;
@@ -455,7 +567,13 @@ export const plannerOfficeAgent: Agent = createPlannerAgent({
 export const plannerTradeAgent: Agent = createPlannerAgent({
   id: 'plannerTrade',
   name: 'Planner: Handel & Geld',
-  weights: { ...DEFAULT_NET_WORTH_WEIGHTS, gold: 1.1, pendingGold: 1.0, influence: 0.15, labor: 0.35 },
+  weights: {
+    ...DEFAULT_NET_WORTH_WEIGHTS,
+    gold: 1.1,
+    pendingGold: 1.0,
+    influence: 0.15,
+    labor: 0.35,
+  },
   depth: 2,
   rollouts: 2,
   maxActionCandidates: 40,
@@ -465,7 +583,12 @@ export const plannerTradeAgent: Agent = createPlannerAgent({
 export const plannerCityAgent: Agent = createPlannerAgent({
   id: 'plannerCity',
   name: 'Planner: Stadt & Unterwelt',
-  weights: { ...DEFAULT_NET_WORTH_WEIGHTS, influence: 0.3, labor: 0.45, storageCapacityGoldEq: 0.06 },
+  weights: {
+    ...DEFAULT_NET_WORTH_WEIGHTS,
+    influence: 0.3,
+    labor: 0.45,
+    storageCapacityGoldEq: 0.06,
+  },
   depth: 2,
   rollouts: 2,
   maxActionCandidates: 40,
@@ -475,7 +598,12 @@ export const plannerCityAgent: Agent = createPlannerAgent({
 export const plannerWorkshopAgent: Agent = createPlannerAgent({
   id: 'plannerWorkshop',
   name: 'Planner: Werkstattfokus',
-  weights: { ...DEFAULT_NET_WORTH_WEIGHTS, inventoryGoldEq: 1.15, labor: 0.6, storageCapacityGoldEq: 0.08 },
+  weights: {
+    ...DEFAULT_NET_WORTH_WEIGHTS,
+    inventoryGoldEq: 1.15,
+    labor: 0.6,
+    storageCapacityGoldEq: 0.08,
+  },
   depth: 2,
   rollouts: 2,
   maxActionCandidates: 40,
@@ -485,7 +613,12 @@ export const plannerWorkshopAgent: Agent = createPlannerAgent({
 export const plannerDomainAgent: Agent = createPlannerAgent({
   id: 'plannerDomain',
   name: 'Planner: Domänenfokus',
-  weights: { ...DEFAULT_NET_WORTH_WEIGHTS, labor: 0.8, storageCapacityGoldEq: 0.12, influence: 0.2 },
+  weights: {
+    ...DEFAULT_NET_WORTH_WEIGHTS,
+    labor: 0.8,
+    storageCapacityGoldEq: 0.12,
+    influence: 0.2,
+  },
   depth: 2,
   rollouts: 2,
   maxActionCandidates: 40,
