@@ -269,6 +269,9 @@ Details zu einzelnen Aktionen/Commands stehen in `src/core/commands/types.ts` un
 Hinweis (Caps, v1):
 - Werkstätten/Lager im Stadtbesitz (Eigenproduktion) belegen **keine** Einrichtungsplätze des Stadtbesitzes; die Cap läuft separat über die Produktions-Caps (siehe oben).
 
+### Produkte und Produktion
+Die Produktion und Produktionsumstellung: Die Produktion der SM jeder Werkstätten muss mit dem Erwerb des Postens festgelegt werden, kann aber mit Ausbau (zu Mittel/Groß) oder Spezialisierung des verbunden Postens verändert werden. Die Spezialisierung erlaubt es ebenfalls die Produktion auf die Spezialisierten Arten von SM umzustellen (Produktarten mit (+Gold)(Bulk) Bonus; Grundsätzlich können Werkstätten jedes Material in anderes nach dem unter (## Conversion (v1) 2. Umwandlungsrate) geannten Umwandlungskurs bilden; Einrichtungen schalten entweder bestimmte teure Waren frei oder verbessern Werkstätten, sind aber keien Voraussetzung für Materialverarbeitung;
+
 ### Politische Schritte (`PoliticalSteps`, v1)
 
 - Ressourcen:
