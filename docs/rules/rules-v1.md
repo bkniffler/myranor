@@ -12,8 +12,8 @@ Dieses Dokument beschreibt die **tatsächlich in der Engine umgesetzten Regeln**
 
 ## Scope (v1)
 
-Enthalten:
-- Rundenablauf (Phasen), Markt, Ereignisse (Abschnitte), Aktionen, Scoring/Playtests.
+Enthalten
+- Rundenablauf (Phasen), Markt (SM + RM Tabellen) + Ereignisse (2mal auf Ereignistabelle ab 4. Runde), Ertrags Ausschüttung (Passiv-Erträge), Unterhaltsphase, Erste Auto-Umwandlungsphase (Werkstätten nach Kapazität). Standard-Aktionen, Freie Aktion, Auto-Umwandlung, Scoring/Playtests.
 - Politische Schritte (v1-light): `KW/AS/N`, `Information`, Gegenreaktionen.
 - Loyalität (v1): `LO 0–6`, Aufruhr/Abwanderung, LO-Proben.
 - Fachkräfte (v1): Anwerben-Check + 2w6/1w20 Tabellen + Trait-Effekte (v1-Interpretation).
@@ -162,6 +162,7 @@ Ab Runde 2 wird zusätzlich benötigt:
 - `ceil(Arbeitskraft / 4)` Nahrungseinheiten
 - `ceil(offene Kampfkraft / 2)` Nahrungseinheiten
 - `Follower-Level` Nahrungseinheiten (Pächter + Anhänger/Klienten)
+- Verwaltungsunterhalt: Permanente Posten kosten Verwaltungsunterhalt: Das Limit ab dem Verwaltungsunterhalt entsteht sind 4 kleine Posten; Jeder Kleine Posten der über diese 4 Posten hinaus erwerben wird kostet 1 Gold zusätzlichen Verwaltungsunterhalt per Runde; Jeder Mittlere und/oder Großen Posten über den ersten hinaus kostet zusätzlich 2 Gold Verwaltungsunterhalt pro Runde; 
 
 Bezahlung:
 - zuerst aus `food`-getaggten Roh-/Sondermaterialien,
@@ -196,14 +197,22 @@ Stadtbesitz (`mode=production`):
 
 Reihenfolge in `conversion`:
 1. Werkstätten wandeln automatisch um (nur wenn unterhalten):
-   - small: bis `8 RM → 2 SM` (4:1)
-   - medium: bis `12 RM → 3 SM`
-   - large: bis `24 RM → 6 SM`
-2. Lagerung (nur wenn unterhalten): bis Kapazität
-3. Autoumwandlung des Rests:
-   - RM: `count / divisor` Gold (Standard `divisor=4`, Events können abweichen) + `floor(count/4) * saleBonusGold`
-   - SM: `count * 2` Gold + `floor(count/4) * saleBonusGold`
-   - verbleibende AK/Einfluss-Pools: `AK/4` und `Einfluss/4` Gold
+   - small: Kapazität: 8 Billige oder Einfache RM oder 4 Teure RM oder 4 Einfache SM
+   - medium: Kapazität: 16 Billige oder Einfache RM oder 8 Teure RM oder 8 Einfache SM
+   - large: Kapazität: 24 Billige oder Einfache RM oder 12 Teure RM oder 12 Einfache SM
+2. Umwandlungsrate hängt von RM oder SM Typ ab (Umwandlungsart muss bei Werkstateinrichtung festgelegt werden):
+-	1:1 Billige und Einfache RM in Verbesserte RM
+-	2:1 Billige und Einfache RM in Einfache und Billige SM
+-	2:1 Teure RM oder Einfache SM in Teure SM
+-	2:1 Teure SM in doppelt Veredelte SM
+3. Lagerung (nur wenn unterhalten): bis Kapazität
+4. Autoumwandlung des Rests:
+   - RM (Einfach): `count / divisor` Gold (Standard `divisor=4`, Events können abweichen) + `floor(count/4) + saleBonusGold`
+   - RM (Billig): 6 zu 1 Gold + saleBonusGold`
+   - RM (Teuer): 1 zu 1 zu Gold + saleBonusGold`
+   - SM (Teuer): `count * 2` Gold + `floor(count/4) * saleBonusGold`
+   - SM (Billig oder Einfach): 1 zu 1 zu Gold
+   - verbleibende AK/Einfluss-Pools: `AK/2` und `Einfluss/4` Gold
 
 Hinweis:
 - Gold aus Umwandlung kann Bruchteile enthalten (z.B. `2 RM → 0.5 Gold`).
@@ -213,6 +222,7 @@ Hinweis:
 Action-Economy:
 - Standard: `2` Aktionen pro Runde (`actionsPerRound`)
 - Zusätzlich: `1` freie Einrichtungsausbau-Action pro Runde (`freeFacilityBuildsPerRound`)
+- Einrichtungen oder Posten können freien Einrichtungsausbau Action erhöhen
 - Standardaktionen dürfen in der Runde nicht doppelt denselben **canonical action key** nutzen.
 
 Details zu einzelnen Aktionen/Commands stehen in `src/core/commands/types.ts` und `src/core/engine/engine.ts`.
