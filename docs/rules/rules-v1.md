@@ -53,26 +53,27 @@ Zusatz (v1): **Langzeitvorhaben (Bauzeit)** – einige Einrichtungen starten als
 ### Ereignis-Abschnitte (v1)
 
 - Dauer: **4 Runden**
-- Start-Runden: **R2, R6, R10, …** (`round >= 2 && (round-2) % 4 === 0`)
+- Start-Runden: **R4, R8, R12, …** (`round >= 4 && (round-2) % 4 === 0`)
 - Pro Abschnitt: **2× Event** (2d20, ohne Doppelungen)
 - Details: `docs/rules/tables/events.md`
 
 ## Checks & Erfolgsstufen (v1)
 
-### Check-Bonus (Attributsmodifikator)
+### Check-Bonus (Attributsmodifikator)(Playtest)
 
-- Startwerte pro Spieler: `influence=3`, `money=3`, `materials=3`
+- Startwerte pro Spieler: Der Startwert soll für Playtestzwecke +3 auf alle Attributsproben sein `influence=3`, `money=3`, `materials=3`
 - Progression: `effectiveCheck = base + floor((round-1)/6)`
   - R1–6: `+0`
   - R7–12: `+1`
   - R13–18: `+2`
+- Im Standardspiel muss der Attributsmodifier eingegeben werden oder von Charakter Sheet abgelesen werden
 
 ### Investitions-DC-Modifikator (Standard)
 
-- `+4` DC bei Investitionen `>= 4`
-- `+8` DC bei Investitionen `>= 8`
-
-(Einige Aktionen haben abweichende Schwellen, z.B. Politische Schritte: Loyalität sichern.)
+- `+4` DC bei Investitionen `>= 4` (Details angegeben bei Action) außerdem bei Erwerb Mittlerer Posten, Errichtung Mittlerere Einrichtungen, Rekrutierung Erfahrener Fachkräfte
+- `+8` DC bei Investitionen `>= 8` (Details angegeben bei Action) außerdem bei Erwerb Großer Posten, Errichtung Großer Einrichtungen, Rekrutierung Meisterlicher Fachkräfte
+- Aktionsgrößen: Generell ist eine Aktion ab 5 Investments oder wenn sie dazu dient eine Mittlere Einrichtung auszubauen oder Mittleren Posten zu erwerben eine Mittlere Aktion; Eine Aktion mit 8 Investments gilt als Große Aktion Investments oder wenn sie dazu dient eine Große Einrichtung auszubauen oder Großen Posten zu erwerben; Meist ist aber unter den DC Regelungen der Aktionan angegeben wann die Aktion als Klein oder Groß gilt;
+- Viele Aktionen haben abweichende Schwellen, z.B. Politische Schritte: Loyalität sichern, Geldgewinn: Geld Verleihen, etc)
 
 ### Erfolgsstufen
 
