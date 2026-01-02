@@ -87,6 +87,7 @@ Zusatz (v1): **Langzeitvorhaben (Bauzeit)** – einige Einrichtungen starten als
 
 Start-Ressourcen:
 - Gold: `4`
+- Influence: `4`
 - Information: `0`
 - Inventar: leer
 - Checks: `3/3/3`
@@ -94,10 +95,14 @@ Start-Ressourcen:
 Start-Holdings:
 - Domäne: `domain-starter` (`tier=starter`, `rawPicks=[raw.grain]`)
 - Stadtbesitz: `city-starter` (`tier=small`, `tenure=owned`, `mode=leased`)
-- Werkstatt: `workshop-starter` (`tier=small`, Domäne, `raw.grain → special.pulpellen`)
+- Werkstatt: `workshop-starter` (`tier=small`, Domäne, `raw.grain → special.pulpellen`)(Zählt nicht gegen Werkstatt Cap)
+Then Choose one of: 
 - Lager: `storage-starter` (`tier=small`, Domäne)
 - Amt: `office-starter` (`tier=small`, `yieldMode=influence`, `specialization.kind=cityAdministration`)
-- Permanente AK: `2`
+- Second Stadtbesitz: `city-starter` (`tier=small`, `tenure=owned`, `mode=leased`)
+- 1 Tier (Pächter, Domäne) or 1 Tier (Pächter, Stadt)
+Other Starting Ressources:
+- Permanente AK: `0`
 - Permanente Einflussquelle: `0`
 - Truppen: leer (`troops.loyalty = 2`)
 
