@@ -31,6 +31,7 @@ Beim Übergang `maintenance → actions` passieren (in dieser Reihenfolge):
 2. **Ereignis-Roll** (nur am Ereignis-Abschnittsstart)
 3. **Neider-Gegenreaktion** (wenn `N >= 3/6/9`, Spieler wählt Gold oder Einfluss)
 4. **Income/Upkeep** wird berechnet und als Event angewandt
+5. Auto-Umwandlung in Werkstatt wenn Aktiv bis zur Kapazität
 
 Zusatz (v1): **Langzeitvorhaben (Bauzeit)** – einige Einrichtungen starten als Projekt statt sofort gebaut zu werden:
 - Start: `BuildFacility` zahlt die **erste** Bau-Runde (AK/ZK) sofort; die restlichen Runden laufen als Projekt weiter.
