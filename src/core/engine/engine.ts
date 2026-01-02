@@ -5370,6 +5370,19 @@ export function decide(
               }
             }
 
+            // Amtseinrichtung (Soll/v1 subset): Administrative Reformen – 2 Gold Unterhalt/Runde.
+            {
+              let counted = false;
+              for (const office of player.holdings.offices) {
+                const has = [...office.facilities, ...(office.specialization?.facilities ?? [])].some(
+                  (f) => f.key === 'general.medium.office.administrativeReforms'
+                );
+                if (!has) continue;
+                if (!counted) upkeepGold += 2;
+                counted = true;
+              }
+            }
+
             // Handelsunternehmungen-Unterhalt
             const tradeUpkeepExtraPerTier =
               (activeEvents.some((e) => e.tableRollTotal === 13) ? 4 : 0) +
@@ -8126,7 +8139,30 @@ export function decide(
 
     case 'SetOfficeYieldMode': {
       if (!state) throw new GameRuleError('STATE', 'Kampagne existiert nicht.');
+      assertPhase(state, 'actions');
       const playerId = getActingPlayerIdOrThrow(state, ctx.actor);
+      const player = state.players[playerId];
+      if (!player) throw new Error('Player missing');
+
+      const office = player.holdings.offices.find((o) => o.id === command.officeId);
+      if (!office) throw new GameRuleError('INPUT', 'Unbekanntes Amt.');
+
+      // Soll: Split-Ertrag ist nur mit "Administrative Reformen" möglich.
+      if (command.mode === 'split') {
+        const hasAdministrativeReforms = player.holdings.offices.some((o) => {
+          for (const f of o.facilities)
+            if (f.key === 'general.medium.office.administrativeReforms') return true;
+          for (const f of o.specialization?.facilities ?? [])
+            if (f.key === 'general.medium.office.administrativeReforms') return true;
+          return false;
+        });
+        if (!hasAdministrativeReforms) {
+          throw new GameRuleError(
+            'RULE',
+            'Split-Ertrag erfordert die Amtseinrichtung "Administrative Reformen".'
+          );
+        }
+      }
       return [
         {
           type: 'PlayerOfficeYieldModeSet',
@@ -9359,6 +9395,49 @@ export function decide(
           throw new GameRuleError(
             'RULE',
             `Zu viele Insulaebauten in dieser Stadt (max. ${maxByTier}).`
+          );
+        }
+      }
+
+      // Soll: Administrative Reformen (Amtseinrichtung) – erlaubt Split-Ertrag.
+      if (command.facilityKey === 'general.medium.office.administrativeReforms') {
+        if (location.kind !== 'office') {
+          throw new GameRuleError(
+            'RULE',
+            'Administrative Reformen können nur in einem Amt errichtet werden.'
+          );
+        }
+        const office = player.holdings.offices.find((o) => o.id === location.id);
+        if (!office) throw new GameRuleError('INPUT', 'Unbekanntes Amt.');
+        if (office.tier === 'small') {
+          throw new GameRuleError(
+            'RULE',
+            'Administrative Reformen sind erst ab mittlerem Amt möglich.'
+          );
+        }
+        if (player.holdings.offices.length < 2) {
+          throw new GameRuleError(
+            'RULE',
+            'Administrative Reformen setzen mind. 2 Ämter voraus.'
+          );
+        }
+        const existingCount = player.holdings.offices.reduce((sum, o) => {
+          const all = [...o.facilities, ...(o.specialization?.facilities ?? [])];
+          return (
+            sum +
+            all.filter((f) => f.key === 'general.medium.office.administrativeReforms')
+              .length
+          );
+        }, 0);
+        const inProgressCount = player.holdings.longTermProjects.filter(
+          (p) =>
+            p.kind === 'facility' &&
+            p.facilityKey === 'general.medium.office.administrativeReforms'
+        ).length;
+        if (existingCount + inProgressCount >= 1) {
+          throw new GameRuleError(
+            'RULE',
+            'Administrative Reformen können nur einmal pro Spieler errichtet werden.'
           );
         }
       }

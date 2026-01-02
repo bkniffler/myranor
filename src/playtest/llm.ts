@@ -204,6 +204,10 @@ type PlayerLedger = {
 
 type RoundReport = {
   round: number;
+  global: {
+    market: CampaignState['market'];
+    activeEvents: CampaignState['globalEvents'];
+  };
   byPlayer: Array<{
     playerId: string;
     displayName: string;
@@ -849,7 +853,7 @@ function usage(): string {
     '  --seed <n>          RNG-Seed für Engine (default: 1)',
     '  --scenario <name>   Szenario-Name (default: core-v1-all5)',
     '  --players <n>       Statt Szenario: N generische Spieler (Checks +5)',
-    '  --model <id>        Model-ID überschreiben (default via MYRANOR_ANTHROPIC_MODEL)',
+    '  --model <id>        Model-ID überschreiben (z.B. google:gemini-3-flash-preview oder anthropic:claude-opus-4-5)',
     '  --out <file>        Report als JSON schreiben',
     '  --md-out <file>     Report als Markdown schreiben',
     '  --json              Report als JSON nach stdout',
@@ -859,8 +863,8 @@ function usage(): string {
     '  --help              Hilfe anzeigen',
     '',
     'Env:',
-    '  ANTHROPIC_API_KEY              (required)',
-    '  MYRANOR_ANTHROPIC_MODEL        (default: claude-opus-4-5)',
+    '  GOOGLE_GENERATIVE_AI_API_KEY   (required für google:*)',
+    '  ANTHROPIC_API_KEY              (required für anthropic:*)',
     '',
     'Example:',
     '  bun src/playtest/llm.ts --rounds 20 --seed 42 --scenario core-v1-strategies --out llm-run.json --pretty',
@@ -1137,6 +1141,98 @@ function formatDecisionLabel(label: string, note: string | null): string {
   return `${label} (Grund: ${note})`;
 }
 
+function formatLocationLabel(
+  location:
+    | { kind: 'domain' | 'cityProperty' | 'organization' | 'office' | 'tradeEnterprise' | 'workshop'; id: string }
+    | { kind: 'troops' }
+    | { kind: 'personal' }
+    | null
+    | undefined
+): string {
+  if (!location) return '?';
+  if (location.kind === 'troops') return 'troops';
+  if (location.kind === 'personal') return 'personal';
+  return `${location.kind}:${location.id}`;
+}
+
+function formatMoneyItems(
+  items:
+    | Array<
+        | { kind: 'labor'; count: number }
+        | { kind: 'raw' | 'special'; materialId: string; count: number }
+      >
+    | null
+    | undefined
+): string {
+  if (!items || items.length === 0) return '-';
+  return items
+    .map((it) => {
+      if (it.kind === 'labor') return `laborx${Math.trunc(it.count)}`;
+      return `${it.materialId}x${Math.trunc(it.count)}`;
+    })
+    .join(', ');
+}
+
+function formatCommandLabel(cmd: GameCommand): string {
+  switch (cmd.type) {
+    case 'SetOfficeYieldMode':
+      return `SetOfficeYieldMode office=${cmd.officeId} mode=${cmd.mode}`;
+    case 'SetCityPropertyMode':
+      return `SetCityPropertyMode city=${cmd.cityPropertyId} mode=${cmd.mode}`;
+    case 'SetTradeEnterpriseMode':
+      return `SetTradeEnterpriseMode trade=${cmd.tradeEnterpriseId} mode=${cmd.mode}`;
+    case 'UpgradeStarterDomain':
+      return `UpgradeStarterDomain domain=${cmd.domainId}`;
+    case 'SetDomainSpecialization':
+      return `SetDomainSpecialization domain=${cmd.domainId} kind=${cmd.kind}`;
+    case 'BuildWorkshop':
+      return `BuildWorkshop tier=${cmd.tier} at=${formatLocationLabel(cmd.location)} ${cmd.inputMaterialId ?? '?'}->${cmd.outputMaterialId ?? '?'}`;
+    case 'BuildStorage':
+      return `BuildStorage tier=${cmd.tier} at=${formatLocationLabel(cmd.location)}`;
+    case 'BuildFacility':
+      return `BuildFacility at=${formatLocationLabel(cmd.location)} key=${cmd.facilityKey}`;
+    case 'GainInfluence':
+      return `GainInfluence kind=${cmd.kind} investments=${cmd.investments}`;
+    case 'GainMaterials':
+      return `GainMaterials mode=${cmd.mode} investments=${cmd.investments}${cmd.targetId ? ` target=${cmd.targetId}` : ''}`;
+    case 'MoneyLend':
+      return `MoneyLend investments=${cmd.investments}`;
+    case 'MoneySell':
+      return `MoneySell market=${cmd.marketInstanceId ?? 'default'} items=[${formatMoneyItems(cmd.items)}]`;
+    case 'MoneyBuy':
+      return `MoneyBuy market=${cmd.marketInstanceId ?? 'default'} items=[${formatMoneyItems(cmd.items)}]`;
+    case 'MoneySellBuy':
+      return `MoneySellBuy market=${cmd.marketInstanceId ?? 'default'} sell=[${formatMoneyItems(cmd.sellItems)}] buy=[${formatMoneyItems(cmd.buyItems)}]`;
+    case 'AcquireDomain':
+      return `AcquireDomain tier=${cmd.tier}`;
+    case 'AcquireCityProperty':
+      return `AcquireCityProperty tier=${cmd.tier} tenure=${cmd.tenure ?? 'owned'}`;
+    case 'AcquireOffice':
+      return `AcquireOffice tier=${cmd.tier} payment=${cmd.payment}`;
+    case 'AcquireOrganization':
+      return `AcquireOrganization kind=${cmd.kind}`;
+    case 'AcquireTradeEnterprise':
+      return `AcquireTradeEnterprise tier=${cmd.tier}`;
+    case 'AcquireTenants':
+      return `AcquireTenants at=${formatLocationLabel(cmd.location)} levels=${cmd.levels}`;
+    case 'RecruitTroops':
+      return `RecruitTroops kind=${cmd.troopKind} levels=${cmd.levels}`;
+    case 'HireSpecialist':
+      return `HireSpecialist kind=${cmd.kind} tier=${cmd.tier}`;
+    case 'PoliticalSteps':
+      if (cmd.kind === 'convertInformation') {
+        return `PoliticalSteps kind=convertInformation to=${cmd.to} amount=${cmd.amount}`;
+      }
+      if (cmd.kind === 'loyaltySecure') {
+        const targets = cmd.targets.map((t) => `${t.kind}:${t.id}`).join(',');
+        return `PoliticalSteps kind=loyaltySecure size=${cmd.size} targets=[${targets}]`;
+      }
+      return `PoliticalSteps kind=${cmd.kind} size=${cmd.size} investments=${cmd.investments}`;
+    default:
+      return cmd.type;
+  }
+}
+
 function extractOutcome(
   events: GameEvent[]
 ): { actionKey: string; tier: string } | null {
@@ -1189,6 +1285,32 @@ function formatMarkdown(report: LlmPlayReport): string {
     for (const row of rows) {
       lines.push(`| ${row.map(escapeCell).join(' | ')} |`);
     }
+  };
+  const fmtEvents = (events: CampaignState['globalEvents']) => {
+    if (!events || events.length === 0) return 'keine';
+    return events
+      .map(
+        (e) =>
+          `${e.tableRollTotal} ${e.name} (R${e.startsAtRound}-${e.endsAtRound})`
+      )
+      .join(' | ');
+  };
+  const fmtMarket = (
+    market: CampaignState['market'],
+    playerId: string
+  ): string => {
+    const instances = (market?.instances ?? []).filter(
+      (m) => !m.ownerPlayerId || m.ownerPlayerId === playerId
+    );
+    if (instances.length === 0) return '-';
+    return instances
+      .map((m) => {
+        const raw = `${m.raw.categoryLabel}/${m.raw.demandLabel} (#${m.raw.tableRollTotal})`;
+        const special = `${m.special.categoryLabel}/${m.special.demandLabel} (#${m.special.tableRollTotal})`;
+        const owner = m.ownerPlayerId ? ` owner=${m.ownerPlayerId}` : '';
+        return `${m.id} (${m.label}${owner}) raw=${raw} special=${special}`;
+      })
+      .join(' | ');
   };
   lines.push(`# LLM-Play Report — ${report.config.scenario}`);
   lines.push('');
@@ -1349,7 +1471,9 @@ function formatMarkdown(report: LlmPlayReport): string {
     string,
     Array<RoundReport['byPlayer'][number] & { round: number }>
   >();
+  const globalByRound = new Map<number, RoundReport['global']>();
   for (const round of report.rounds) {
+    globalByRound.set(round.round, round.global);
     for (const p of round.byPlayer) {
       const list = roundsByPlayerId.get(p.playerId) ?? [];
       list.push({ ...p, round: round.round });
@@ -1366,7 +1490,12 @@ function formatMarkdown(report: LlmPlayReport): string {
       const m = r.ledger.materials;
       const actions = r.actions.length > 0 ? r.actions.join(', ') : 'keine';
       const facility = r.facility ?? 'keine';
+      const global = globalByRound.get(r.round);
       lines.push(`#### Runde ${r.round}`);
+      if (global) {
+        lines.push(`- Events: ${fmtEvents(global.activeEvents)}`);
+        lines.push(`- Markt: ${fmtMarket(global.market, r.playerId)}`);
+      }
       lines.push(`- Facility: ${facility}`);
       lines.push(`- Aktionen: ${actions}`);
       lines.push(
@@ -1457,7 +1586,7 @@ async function main() {
     );
   }
 
-  const model = createLLM();
+  const model = createLLM(args.model);
   const rng = createSeededRng(args.seed);
   const campaignId = `llm-${args.seed}`;
   const gm: ActorContext = { role: 'gm', userId: 'gm' };
@@ -1572,6 +1701,13 @@ async function main() {
     }
     if (!state) break;
 
+    const roundGlobalSnapshot = {
+      market: state.market,
+      activeEvents: state.globalEvents.filter(
+        (e) => state!.round >= e.startsAtRound && state!.round <= e.endsAtRound
+      ),
+    };
+
     const roundStartSnapshots = new Map<string, RoundSnapshot>();
     const roundStartHoldings = new Map<string, HoldingsSnapshot>();
     const roundActionLogs = new Map<
@@ -1647,7 +1783,7 @@ async function main() {
         const errorLabel = res.error
           ? ` ERR(${res.error instanceof GameRuleError ? res.error.code : 'ERR'})`
           : '';
-        const facilityLabel = `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
+        const facilityLabel = `${formatCommandLabel(cmd)}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
         roundLog.facility = formatDecisionLabel(facilityLabel, facilityNote);
       } else if (facilityNote) {
         roundLog.facility = formatDecisionLabel('keine Facility', facilityNote);
@@ -1731,7 +1867,7 @@ async function main() {
         const errorLabel = res.error
           ? ` ERR(${res.error instanceof GameRuleError ? res.error.code : 'ERR'})`
           : '';
-        const actionLabel = `${cmd.type}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
+        const actionLabel = `${formatCommandLabel(cmd)}${outcomeLabel ? ` -> ${outcomeLabel}` : ''}${errorLabel}`;
         roundActionLog.push(formatDecisionLabel(actionLabel, actionNote));
       }
     }
@@ -1760,7 +1896,7 @@ async function main() {
     }
     if (!state) break;
 
-    const roundReport: RoundReport = { round, byPlayer: [] };
+    const roundReport: RoundReport = { round, global: roundGlobalSnapshot, byPlayer: [] };
     for (const profile of profiles) {
       const start = roundStartSnapshots.get(profile.userId);
       const holdingsStart = roundStartHoldings.get(profile.userId);

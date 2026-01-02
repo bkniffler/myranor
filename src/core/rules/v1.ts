@@ -382,6 +382,11 @@ export function facilityInfluencePerRound(
     locationKind !== 'personal'
   )
     return 0;
+
+  // v1: Einige Facilities sind rein "freischaltend" oder anders bepreist
+  // und geben keinen pauschalen Einfluss-Output pro Runde.
+  if (facilityKey === 'general.medium.office.administrativeReforms') return 0;
+
   const [category, size] = facilityKey.split('.', 2);
   const tier =
     size === 'small' ? 1 : size === 'medium' ? 2 : size === 'large' ? 3 : 0;

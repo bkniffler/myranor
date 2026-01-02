@@ -924,37 +924,94 @@ function buildFacilityCandidates(
     });
   }
 
-  const officeMode = me.holdings.offices.find((o) => o.yieldMode !== 'gold');
-  if (officeMode) {
+  const hasAdministrativeReforms = me.holdings.offices.some((o) =>
+    [...o.facilities, ...(o.specialization?.facilities ?? [])].some(
+      (f) => f.key === 'general.medium.office.administrativeReforms'
+    )
+  );
+  const officeToInfluence = me.holdings.offices.find(
+    (o) => o.yieldMode !== 'influence'
+  );
+  if (officeToInfluence) {
     candidates.push({
-      id: `facility.office.mode.gold.${officeMode.id}`,
+      id: `facility.office.mode.influence.${officeToInfluence.id}`,
       kind: 'facility',
       command: {
         type: 'SetOfficeYieldMode',
         campaignId: '',
-        officeId: officeMode.id,
+        officeId: officeToInfluence.id,
+        mode: 'influence',
+      },
+      actionKey: null,
+      possibleNow: true,
+      summary: `Amt ${officeToInfluence.id} auf Einfluss-Ertrag umstellen.`,
+    });
+  }
+  const officeToGold = me.holdings.offices.find((o) => o.yieldMode !== 'gold');
+  if (officeToGold) {
+    candidates.push({
+      id: `facility.office.mode.gold.${officeToGold.id}`,
+      kind: 'facility',
+      command: {
+        type: 'SetOfficeYieldMode',
+        campaignId: '',
+        officeId: officeToGold.id,
         mode: 'gold',
       },
       actionKey: null,
       possibleNow: true,
-      summary: `Amt ${officeMode.id} auf Gold-Ertrag umstellen.`,
+      summary: `Amt ${officeToGold.id} auf Gold-Ertrag umstellen.`,
     });
   }
-  const officeSplit = me.holdings.offices.find((o) => o.yieldMode !== 'split');
-  if (officeSplit) {
+  const officeToSplit =
+    hasAdministrativeReforms &&
+    me.holdings.offices.find((o) => o.yieldMode !== 'split');
+  if (officeToSplit) {
     candidates.push({
-      id: `facility.office.mode.split.${officeSplit.id}`,
+      id: `facility.office.mode.split.${officeToSplit.id}`,
       kind: 'facility',
       command: {
         type: 'SetOfficeYieldMode',
         campaignId: '',
-        officeId: officeSplit.id,
+        officeId: officeToSplit.id,
         mode: 'split',
       },
       actionKey: null,
       possibleNow: true,
-      summary: `Amt ${officeSplit.id} auf Split-Ertrag umstellen (50/50 Gold + Einfluss).`,
+      summary: `Amt ${officeToSplit.id} auf Split-Ertrag umstellen (50/50 Gold + Einfluss; erfordert Administrative Reformen).`,
     });
+  }
+
+  // Soll/v1 subset: Administrative Reformen (ab mittlerem Amt, mind. 2 Ämter)
+  if (!hasAdministrativeReforms) {
+    const targetOffice = me.holdings.offices
+      .slice()
+      .sort((a, b) => postTierRank(b.tier) - postTierRank(a.tier))
+      .find((o) => {
+        if (o.tier === 'small') return false;
+        const used = o.facilities.length + (o.specialization?.facilities.length ?? 0);
+        const max = cityFacilitySlotsMax(o.tier);
+        return used + 1 <= max;
+      });
+    if (targetOffice && me.holdings.offices.length >= 2) {
+      candidates.push({
+        id: `facility.office.${targetOffice.id}.administrativeReforms`,
+        kind: 'facility',
+        command: {
+          type: 'BuildFacility',
+          campaignId: '',
+          location: { kind: 'office', id: targetOffice.id },
+          facilityKey: 'general.medium.office.administrativeReforms',
+        },
+        actionKey: null,
+        possibleNow:
+          me.economy.gold >= buffered(20, bufferFactor) &&
+          me.turn.influenceAvailable >= 40,
+        summary:
+          `Administrative Reformen bauen an Amt ${targetOffice.id} ` +
+          `(20 Gold, 40 Einfluss; Unterhalt 2 Gold/Runde; schaltet Split-Ertrag frei).`,
+      });
+    }
   }
 
   // Spezifische Facility (v1 subset): Gasse der Kunsthandwerker
@@ -2732,26 +2789,6 @@ export async function planFacilityWithLlm(options: {
   const mcTop = [...mcTopBase];
   if (nullScore && !mcTop.some((c) => c.candidate.command == null)) {
     mcTop.push(nullScore);
-  }
-  const shouldPreferOfficeSplit =
-    strategyWantsOffices(options.strategyCard, options.systemPreamble) &&
-    options.round >= 2;
-  if (shouldPreferOfficeSplit) {
-    const splitCandidate = facilityCandidates.find(
-      (c) =>
-        c.command?.type === 'SetOfficeYieldMode' &&
-        c.command.mode === 'split' &&
-        c.possibleNow
-    );
-    if (
-      splitCandidate &&
-      !mcTop.some((c) => c.candidate.id === splitCandidate.id)
-    ) {
-      const scored = mcRankedSafe.find(
-        (c) => c.candidate.id === splitCandidate.id
-      );
-      if (scored) mcTop.push(scored);
-    }
   }
   const allowNullFacility = true;
   const allowedFacilityCandidates = mcTop

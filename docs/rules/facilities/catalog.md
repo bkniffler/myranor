@@ -95,6 +95,18 @@ Effekt:
 
 ## Spezifische Keys (v1)
 
+### `general.medium.office.administrativeReforms` (Administrative Reformen)
+
+- Ort: `office` (nur `tier=medium|large`)
+- Kosten: `20 Gold` + `40 Einfluss`
+- Voraussetzung:
+  - Spieler hat mind. `2` Ämter
+  - Nur `1×` pro Spieler (inkl. laufender Projekte)
+- Unterhalt: `2 Gold` pro Runde (1× pro Spieler, nicht pro Amt)
+- Effekt:
+  - schaltet `yieldMode=split` frei (50:50) für `SetOfficeYieldMode`
+  - gibt in v1 **keinen** zusätzlichen „Facility‑Einfluss/Runde“ (Ausnahme-Key)
+
 ### `general.medium.city.insulae` (Insulaebau)
 
 - Ort: `cityProperty` (nur `tier=medium|large`)

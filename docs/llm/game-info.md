@@ -153,7 +153,7 @@ Konsequenz:
 - Facility:
   - Starter-Domäne ausbauen
   - Stadtbesitz auf Produktion umstellen (nur wenn Werkstatt/Lager danach bau-aktuell möglich)
-  - Amt auf `gold` oder `split` umstellen
+  - Amt-Ertrag umstellen: `influence`/`gold` (`split` nur mit Einrichtung **Administrative Reformen**)
   - Handelsunternehmung auf `trade` umstellen
   - Werkstatt/Lager bauen/upgraden (Caps beachten; Stadt nur bei `production`)
   - generische Einrichtungen (`general.*`/`special.*`) an Amt/Orga/Handel/Werkstatt

@@ -79,6 +79,7 @@ Dieses Dokument ist die **Coverage-/Abweichungsübersicht**: Was ist in der Engi
 - ✅ Viele Posten bleiben auch bei negativem Goldstand aktiv (Gold kann negativ werden)
 - ✅ Werkstätten/Lager sind nur aktiv, wenn sie in der Runde unterhalten werden können (Labor/Gold reichen)
 - ✅ Handelsunternehmungen-Unterhalt (v1): `small/medium/large = (2G+1AK) / (5G+2AK) / (6G+4AK)`
+- ✅ Amtseinrichtung `general.medium.office.administrativeReforms`: Build-Regeln (ab mittlerem Amt, mind. 2 Ämter, 1×/Spieler), Unterhalt `2 Gold/Runde`, schaltet `yieldMode=split` frei (kein zusätzlicher Facility‑Einfluss/Runde)
 - ✅ Allgemeiner Unterhalt (pro Runde):
   - `ceil(AK/4)` + `ceil(offene KK/2)` + `Follower-Level` Nahrungseinheiten
   - wird aus `food`-getaggten RM/SM bezahlt; Rest wird als Gold-Unterhalt abgerechnet

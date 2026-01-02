@@ -135,7 +135,7 @@ Unterhalt wird ab **Runde 2** berechnet.
 
 - Domänen: `AK` + `RM` nach Tier (siehe `src/core/rules/v1.ts`)
 - Stadtbesitz (verpachtet / `mode=leased`): `AK + Einfluss + Gold` nach Tier
-- Ämter: `Gold oder Einfluss` nach Tier/`yieldMode`
+- Ämter: `yieldMode=influence|gold|split` (split nur mit Amtseinrichtung `general.medium.office.administrativeReforms`)
 - Pächter/Anhänger/Klienten (Levels): `+1 Gold` pro Level (wenn nicht in Unruhe)
 - Handelsunternehmungen:
   - `produce`: erzeugt Sondermaterial (v1: `special.simpleTools`, `small/medium/large = 2/3/6`)
@@ -151,6 +151,7 @@ Unterhalt wird ab **Runde 2** berechnet.
   - spy: `+2 Gold` pro Tier-Rang
   - cult: `+1 Gold` pro Tier-Rang
   - collegium*: `+2 Gold` pauschal (v1)
+- Amtseinrichtung `general.medium.office.administrativeReforms`: `2 Gold` Unterhalt pro Runde (1× pro Spieler)
 - Handelsunternehmungen (v1): `small/medium/large = (2G+1AK) / (5G+2AK) / (6G+4AK)`
 - Truppen (v1): je nach Typ/Stufe (siehe `src/core/engine/engine.ts`)
 - Fachkräfte (v1): `simple/experienced/master = 1/3/5 Gold` pro Runde
@@ -238,6 +239,7 @@ Details zu einzelnen Aktionen/Commands stehen in `src/core/commands/types.ts` un
 - `AcquireDomain` (30/80/140 Gold; DC 10 + Tier + AS-Mod)
 - `AcquireCityProperty` (12/25/60 Gold; `tenure=pacht`: halbe Kosten & DC -2; DC 10/8 + Tier + AS-Mod)
 - `AcquireOffice` (Gold/Einfluss Mix; DC 14 + Tier + AS-Mod; kleine Ämter cap dynamisch)
+- `SetOfficeYieldMode` (`influence|gold|split`; split nur mit `general.medium.office.administrativeReforms`)
 - `AcquireOrganization` (pro Kind stufenweise; HQ-Anforderung über Stadtbesitz-Tier)
 - `AcquireTradeEnterprise` (v1: 20/40/80 Gold; DC 10 + Tier + AS-Mod)
 - `AcquireTenants` (Kosten abhängig von Ort/Org-Kind; Cap abhängig von Tier)
@@ -249,7 +251,9 @@ Details zu einzelnen Aktionen/Commands stehen in `src/core/commands/types.ts` un
 - `BuildFacility`: `general.*` / `special.*` sind in v1 meist generisch (Kosten/Slots/Influence); Details: `docs/rules/facilities/catalog.md`
 - `BuildWorkshop` / `UpgradeWorkshop`: benötigen ggf. Fachkräfte (für medium/large)
 - `BuildStorage` / `UpgradeStorage`
-- Spezieller Key (v1):
+- Spezifische Keys (v1 subset; Details in `docs/rules/facilities/catalog.md`):
+  - `general.medium.office.administrativeReforms`: schaltet `yieldMode=split` frei (50:50), kostet `20G+40E`, Unterhalt `2G`
+  - `general.medium.city.insulae`: Langzeitvorhaben (Insulaebau)
   - `special.medium.artisanAlley`: Stadtbesitz-Einrichtung, kostet `2× special.specialTools` (kein Gold), konvertiert Materialien automatisch in der Umwandlungsphase (siehe `docs/rules/facilities/catalog.md`)
 
 Hinweis (Caps, v1):

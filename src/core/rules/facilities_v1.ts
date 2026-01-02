@@ -62,6 +62,12 @@ export function facilityBuildCostV1(facilityKey: string): FacilityCost | null {
     magicPower: 0,
   };
 
+  // Soll: Administrative Reformen (Amt, ab mittlerem Amt)
+  if (facilityKey === 'general.medium.office.administrativeReforms') {
+    cost.gold = 20;
+    cost.influence = 40;
+  }
+
   // Soll: Insulaebau (Stadt, ab mittlerem Besitz; Langzeitvorhaben)
   if (facilityKey === 'general.medium.city.insulae') {
     cost.gold = 14;
